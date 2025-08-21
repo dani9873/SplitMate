@@ -1,37 +1,100 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# ----------------------------------------
+# DEPENDENCIAS
+# ----------------------------------------
 node_modules/
+.pnp/
+.pnp.js
+package-lock.json
+yarn.lock
+.yarn-integrity
+.npm
 
-# Expo
+# ----------------------------------------
+# ARCHIVOS DE CONSTRUCCIÓN / PRODUCCIÓN
+# ----------------------------------------
+/build/
+/dist/
+/web-build/
+/coverage/
+/out/
+/.next/
+/.nuxt/
+
+# ----------------------------------------
+# EXPO / REACT NATIVE / NATIVO
+# ----------------------------------------
 .expo/
-dist/
-web-build/
 expo-env.d.ts
-
-# Native
+.gradle/
+.idea/
 .kotlin/
-*.orig.*
+*.apk
+*.aab
+*.ipa
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
 
-# Metro
-.metro-health-check*
+# ----------------------------------------
+# TYPESCRIPT
+*.tsbuildinfo
+tsconfig.tsbuildinfo
 
-# debug
+# ----------------------------------------
+# ARCHIVOS DE CONFIGURACIÓN DEL ENTORNO
+# (dotenv)
+.env
+.env*.local
+.env.development
+.env.test
+.env.production
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# ----------------------------------------
+# LOGS Y DEBUG
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+.metro-health-check*
 
-# macOS
+# ----------------------------------------
+# TEMPORALES / SISTEMA OPERATIVO
+*.swp
+*.swo
 .DS_Store
+Thumbs.db
+*.orig.*
 *.pem
+*.tgz
 
-# local env files
-.env*.local
+# ----------------------------------------
+# HISTORIA DEL REPL / ESLINT CACHE
+.node_repl_history
+.eslintcache
 
-# typescript
-*.tsbuildinfo
+# ----------------------------------------
+# EDITORES / IDES
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ----------------------------------------
+# TESTING / SNAPSHOTS / JEST
+.jest/
+__snapshots__/
+
+# ----------------------------------------
+# DOCUMENTACIÓN
+/docs
