@@ -111,7 +111,29 @@ src/
 5. Cierra con un resumen breve: qué se hizo, cómo probarlo en el teléfono, decisiones
    tomadas y pendientes para la siguiente fase. Actualiza el "Estado" de abajo.
 
+## Pendientes técnicos
+
+- **Rutas tipadas de Expo Router desactivadas.** En Windows, el generador incremental de
+  `.expo/types/router.d.ts` compara rutas con `'../'` y registra archivos de `src/` como
+  rutas, lo que rompe `tsc` mientras Metro corre. Reevaluar en una fase futura o al
+  actualizar Expo (`experiments.typedRoutes` en `app.json`).
+- **decode-uri-component vía Expo Router.** Llega a la app a través de `query-string` al
+  interpretar enlaces y tiene un aviso de denegación de servicio con entradas mal
+  codificadas. En la fase de invitaciones, limitar y validar con zod el tamaño y el formato
+  de los enlaces antes de navegar.
+- **Avisos de npm audit aceptados por ahora.** Seis paquetes de origen: braces, node-forge,
+  sprintf-js, postcss-selector-parser y uuid viven en herramientas de build y desarrollo
+  (Metro, Expo CLI, Tailwind y el prebuild de iOS) y no llegan al teléfono;
+  decode-uri-component es el punto anterior. Ninguno se corrige sin `npm audit fix --force`,
+  que rompería la alineación con Expo SDK 57. Revisar en cada actualización de SDK.
+- **Skills de CLAUDE.md no sincronizadas.** Durante la implementación de la Fase 0 ninguna
+  estaba disponible en la sesión y sus criterios se aplicaron a mano. Comprobar que estén
+  disponibles al empezar la Fase 1.
+- **Build nativo local desde OneDrive.** Gradle y CMake fallan porque las rutas superan el
+  límite de Windows (`LongPathsEnabled` está en 0). Los development builds se hacen con
+  EAS Build (`eas build --profile development --platform android`).
+
 ## Estado
 
-- [ ] Fase 0 — Limpieza y cimientos
+- [x] Fase 0 — Limpieza y cimientos (rama `fase-0-limpieza-cimientos`, PR hacia `main` en revisión)
 - [ ] Fase 1 — Motor de cálculo (dominio) y base de datos local
