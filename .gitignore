@@ -4,7 +4,6 @@
 node_modules/
 .pnp/
 .pnp.js
-package-lock.json
 yarn.lock
 .yarn-integrity
 .npm
@@ -25,6 +24,9 @@ yarn.lock
 # ----------------------------------------
 .expo/
 expo-env.d.ts
+# Carpetas nativas generadas por prebuild (Continuous Native Generation)
+/android
+/ios
 .gradle/
 .idea/
 .kotlin/
