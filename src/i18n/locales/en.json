@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "nativeName": "English"
+  },
+  "tabs": {
+    "groups": "Groups",
+    "activity": "Activity",
+    "settings": "Settings"
+  },
+  "groups": {
+    "title": "Groups",
+    "empty": {
+      "title": "No groups yet",
+      "description": "A group is where you and your friends keep track of shared expenses. You will be able to create your first one soon."
+    }
+  },
+  "activity": {
+    "title": "Activity",
+    "empty": {
+      "title": "Nothing here yet",
+      "description": "Expenses, payments and changes from your groups will show up here."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "title": "Language",
+      "system": "Device language",
+      "systemHint": "Currently {{language}}"
+    },
+    "theme": {
+      "title": "Appearance",
+      "system": "Automatic",
+      "systemHint": "Follows your device setting",
+      "light": "Light",
+      "dark": "Dark"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The link you opened does not exist or has moved.",
+    "action": "Go to my groups"
+  }
+}

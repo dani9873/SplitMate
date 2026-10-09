@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Isotipo de SplitMate: dos mitades de una moneda, desplazadas, que forman una S. -->
+  <!-- Fuente de todos los íconos y del splash: npm run icons -->
+  <g stroke-linejoin="round" stroke-width="56">
+    <path d="M464 230 A232 232 0 0 0 464 694 Z" fill="#0E6B5E" stroke="#0E6B5E"/>
+    <path d="M560 330 A232 232 0 0 1 560 794 Z" fill="#E8603C" stroke="#E8603C"/>
+  </g>
+</svg>

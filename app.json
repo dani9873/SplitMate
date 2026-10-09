@@ -7,32 +7,41 @@
     "icon": "./assets/images/icon.png",
     "scheme": "splitmate",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
+      "bundleIdentifier": "com.dani9873.splitmate",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.dani9873.splitmate",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#F7F4EE"
+      }
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F4EE",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#0B1413"
+          }
+        }
+      ],
+      "expo-localization"
     ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b8f547af-1cf3-40bc-88dd-bad901837351"
+      }
+    },
+    "owner": "danielescc"
   }
 }
