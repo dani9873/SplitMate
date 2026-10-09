@@ -15,7 +15,8 @@
       "package": "com.dani9873.splitmate",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#F7F4EE"
       }
     },
     "plugins": [
@@ -28,7 +29,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#F7F4EE",
           "dark": {
-            "image": "./assets/images/splash-icon.png",
+            "image": "./assets/images/splash-icon-dark.png",
             "backgroundColor": "#0B1413"
           }
         }
