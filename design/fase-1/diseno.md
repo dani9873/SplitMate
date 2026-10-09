@@ -116,8 +116,12 @@ y al menos 95 % en ramas.
 - Al abrir se comprueba `PRAGMA cipher_version`. Un build sin SQLCipher es un error. La
   única excepción es Expo Go, que no incluye SQLCipher: ahí la base queda sin cifrar y se
   registra una advertencia, solo para desarrollo.
-- `android.allowBackup` queda en `false`, porque la clave del Keystore no se restaura en
-  otro dispositivo y una copia de la base sería ilegible.
+- La base y su WAL quedan fuera de los respaldos, porque la clave no viaja con ellos y una
+  copia restaurada sería ilegible. En Android, `android.allowBackup` en `false` más reglas
+  de respaldo que excluyen la carpeta `SQLite/` y la clave, por si algún día se activa el
+  respaldo. En iOS, un módulo local marca la carpeta de la base con `isExcludedFromBackup`;
+  así, tras restaurar el dispositivo, la app empieza con una base nueva en lugar de una
+  ilegible.
 
 **Si la clave se pierde**, por desinstalar la app, borrar sus datos o restaurarla en otro
 dispositivo, la base cifrada no se puede abrir y sus datos locales son irrecuperables. La

@@ -7,6 +7,7 @@ import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 
 import { logger } from '@/lib/logger';
 
+import { excludeDatabaseFromBackup } from './backup-exclusion';
 import { getOrCreateDatabaseKey } from './encryption-key';
 import { DatabaseSetupError } from './errors';
 import migrations from './migrations/migrations';
@@ -39,6 +40,7 @@ export async function openAppDatabase(): Promise<AppDatabase> {
   });
   const sqlite = openDatabaseSync(DATABASE_NAME, { enableChangeListener: true });
   try {
+    excludeFromBackup(sqlite.databasePath);
     unlock(sqlite, key);
     sqlite.execSync('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
     const db = drizzle(sqlite, { schema });
@@ -47,6 +49,15 @@ export async function openAppDatabase(): Promise<AppDatabase> {
   } catch (error) {
     sqlite.closeSync();
     throw error;
+  }
+}
+
+/** No bloquea el arranque: la base va cifrada aunque la exclusión falle. */
+function excludeFromBackup(databasePath: string): void {
+  try {
+    excludeDatabaseFromBackup(databasePath);
+  } catch (error) {
+    logger.warn('No se pudo excluir la base del respaldo de iOS', error);
   }
 }
 

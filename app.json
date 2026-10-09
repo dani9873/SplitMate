@@ -42,7 +42,13 @@
           "useSQLCipher": true
         }
       ],
-      "expo-secure-store"
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": false
+        }
+      ],
+      "./plugins/with-backup-rules"
     ],
     "extra": {
       "router": {},
