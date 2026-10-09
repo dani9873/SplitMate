@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Un push nuevo cancela la ejecución anterior de la misma rama o PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Solo lectura: este workflow no publica nada.
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Tipos, lint y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: ESLint y Prettier
+        run: npm run lint
+
+      - name: Pruebas
+        run: npm test -- --ci
