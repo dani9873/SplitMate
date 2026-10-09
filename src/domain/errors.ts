@@ -7,6 +7,7 @@ export type DomainErrorCode =
   | 'INVALID_SPLIT'
   | 'INVALID_PAYERS'
   | 'INVALID_RATE'
+  | 'INVALID_TRANSFER'
   | 'UNBALANCED';
 
 /** Error de una regla de negocio. El mensaje es para desarrolladores; la UI usa `code`. */
