@@ -1,5 +1,6 @@
 import { useLocales } from 'expo-localization';
 import { Moon, Smartphone, Sun } from 'lucide-react-native';
+import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -13,6 +14,12 @@ import { Screen } from '@/ui';
 import { OptionGroup, type Option } from './components/OptionGroup';
 import type { ThemePreference } from './preferences';
 import { usePreferences } from './preferences-store';
+
+// Solo en desarrollo: en producción Metro elimina esta rama y el módulo de desarrollo.
+const DevSettingsLink: ComponentType | null = __DEV__
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('@/features/dev').DevSettingsLink
+  : null;
 
 /** Ajustes de la app: idioma y apariencia. Los cambios se aplican al instante. */
 export function SettingsScreen() {
@@ -60,6 +67,7 @@ export function SettingsScreen() {
         value={theme}
         onChange={setTheme}
       />
+      {DevSettingsLink ? <DevSettingsLink /> : null}
     </Screen>
   );
 }

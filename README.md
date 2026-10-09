@@ -42,16 +42,18 @@ Los cambios de JavaScript llegan por Metro sin recompilar.
 
 ## Scripts
 
-| Comando              | Qué hace                                                  |
-| -------------------- | --------------------------------------------------------- |
-| `npm start`          | Servidor de desarrollo de Expo                            |
-| `npm run typecheck`  | `tsc --noEmit` con TypeScript estricto                    |
-| `npm run lint`       | ESLint y Prettier sobre todo el repo, sin advertencias    |
-| `npm run format`     | Formatea el código con Prettier                           |
-| `npm test`           | Pruebas con Jest, una sola ejecución, apta para CI        |
-| `npm run test:watch` | Pruebas en modo watch para desarrollo                     |
-| `npm run check`      | Tipos, lint y pruebas, lo mismo que corre CI en cada push |
-| `npm run icons`      | Regenera íconos y splash desde `assets/brand/logo.svg`    |
+| Comando                 | Qué hace                                                     |
+| ----------------------- | ------------------------------------------------------------ |
+| `npm start`             | Servidor de desarrollo de Expo                               |
+| `npm run typecheck`     | `tsc --noEmit` con TypeScript estricto                       |
+| `npm run lint`          | ESLint y Prettier sobre todo el repo, sin advertencias       |
+| `npm run format`        | Formatea el código con Prettier                              |
+| `npm test`              | Pruebas con Jest, una sola ejecución, apta para CI           |
+| `npm run test:watch`    | Pruebas en modo watch para desarrollo                        |
+| `npm run check`         | Tipos, lint y pruebas, lo mismo que corre CI en cada push    |
+| `npm run icons`         | Regenera íconos y splash desde `assets/brand/logo.svg`       |
+| `npm run test:coverage` | Pruebas con la cobertura exigida en `src/domain`             |
+| `npm run check:bundle`  | Verifica que la pantalla de desarrollo no esté en producción |
 
 ## Estructura
 
@@ -70,6 +72,19 @@ design/         Material de diseño fuera del bundle: propuestas de logo y captu
 
 - Sistema de diseño y sus decisiones: [src/ui/README.md](src/ui/README.md).
 - Traducciones y cómo agregar un idioma: [src/i18n/README.md](src/i18n/README.md).
+- Motor de cálculo, redondeo y liquidación: [src/domain/README.md](src/domain/README.md).
+
+## Base de datos local
+
+SQLite cifrada con SQLCipher, con Drizzle ORM. El esquema vive en `src/db/schema.ts` y las
+migraciones en `src/db/migrations`. Tras cambiar el esquema, genera la migración con:
+
+```bash
+npx drizzle-kit generate --name=descripcion_del_cambio
+```
+
+Las pruebas usan sql.js con las mismas migraciones. En desarrollo, Ajustes muestra un
+acceso a la pantalla `/dev`, que crea un grupo de ejemplo y muestra saldos y liquidación.
 
 ## Calidad
 

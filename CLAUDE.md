@@ -110,6 +110,8 @@ src/
    `npm test -- --watchAll=false`.
 5. Cierra con un resumen breve: qué se hizo, cómo probarlo en el teléfono, decisiones
    tomadas y pendientes para la siguiente fase. Actualiza el "Estado" de abajo.
+6. Cuando el usuario confirme que probó la fase en su teléfono y el CI esté en verde, haz
+   merge del PR con merge commit sin volver a preguntar.
 
 ## Pendientes técnicos
 
@@ -126,14 +128,25 @@ src/
   (Metro, Expo CLI, Tailwind y el prebuild de iOS) y no llegan al teléfono;
   decode-uri-component es el punto anterior. Ninguno se corrige sin `npm audit fix --force`,
   que rompería la alineación con Expo SDK 57. Revisar en cada actualización de SDK.
-- **Skills de CLAUDE.md no sincronizadas.** Durante la implementación de la Fase 0 ninguna
-  estaba disponible en la sesión y sus criterios se aplicaron a mano. Comprobar que estén
-  disponibles al empezar la Fase 1.
+- **Skills de CLAUDE.md: resuelto.** No estaban sincronizadas durante la Fase 0. Desde su cierre
+  están disponibles, y en la Fase 1 se usaron brainstorming, writing-plans,
+  test-driven-development, backend-api-database, security-code-review y
+  verification-before-completion.
 - **Build nativo local desde OneDrive.** Gradle y CMake fallan porque las rutas superan el
   límite de Windows (`LongPathsEnabled` está en 0). Los development builds se hacen con
   EAS Build (`eas build --profile development --platform android`).
+- **Clave de cifrado perdida.** Si se pierde la clave de expo-secure-store, la base cifrada
+  no se puede abrir y la app muestra su pantalla de error. La fase de sincronización debe
+  agregar la opción de reiniciar la base local y volver a descargar los datos.
+- **Exclusión del respaldo: falta compilarla en iOS.** La base y su WAL quedan fuera del
+  respaldo. En Android, `allowBackup` en `false` más las reglas de
+  `plugins/with-backup-rules.js`. En iOS, el módulo local `modules/splitmate-backup` marca la
+  carpeta con `isExcludedFromBackup`. Ese módulo en Swift todavía no se compiló: verificarlo
+  en el próximo build de iOS, que puede ser un build de simulador en EAS sin cuenta de Apple.
+- **Pantalla de desarrollo temporal.** `/dev` existe solo en desarrollo y `npm run
+  check:bundle` lo verifica en CI. Retirarla cuando existan los formularios de gastos.
 
 ## Estado
 
-- [x] Fase 0 — Limpieza y cimientos (rama `fase-0-limpieza-cimientos`, PR hacia `main` en revisión)
-- [ ] Fase 1 — Motor de cálculo (dominio) y base de datos local
+- [x] Fase 0 — Limpieza y cimientos (PR #1 integrado en `main`)
+- [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (rama `fase-1-dominio-db`, PR hacia `main` en revisión)

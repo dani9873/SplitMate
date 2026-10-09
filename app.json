@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
         "backgroundColor": "#F7F4EE"
-      }
+      },
+      "allowBackup": false
     },
     "plugins": [
       "expo-router",
@@ -34,7 +35,20 @@
           }
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": false
+        }
+      ],
+      "./plugins/with-backup-rules"
     ],
     "extra": {
       "router": {},
