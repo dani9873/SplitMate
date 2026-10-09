@@ -155,8 +155,8 @@ de 100 %.
 | `TOO_LONG`          | más de 64 símbolos | La operación es demasiado larga                 |
 
 Monto máximo: 9 999 999 999 en la unidad principal de la moneda (diez dígitos enteros). Con
-cuatro decimales, el mayor caso de ISO 4217, son 10¹⁴ unidades menores: miles de gastos
-máximos suman sin salir del rango seguro. En cualquier motivo, "Guardar" queda deshabilitado
+tres decimales, el máximo de las monedas admitidas (KWD, BHD…), son menos de 10¹³ unidades
+menores: cientos de gastos máximos suman sin salir del rango seguro de 9 × 10¹⁵. En cualquier motivo, "Guardar" queda deshabilitado
 y el mensaje se muestra bajo el monto y se anuncia al lector de pantalla.
 
 ## Pantallas

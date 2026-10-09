@@ -4,6 +4,13 @@ export { convert, convertParts, parseRate, type Rate } from './convert';
 export { currencyCode, isKnownCurrency, minorUnits, type CurrencyCode } from './currency';
 export { DomainError, type DomainErrorCode } from './errors';
 export {
+  evaluateAmount,
+  MAX_AMOUNT_INTEGER_DIGITS,
+  MAX_EXPRESSION_LENGTH,
+  type AmountEvaluation,
+  type AmountProblem,
+} from './expression';
+export {
   add,
   compare,
   equals,
