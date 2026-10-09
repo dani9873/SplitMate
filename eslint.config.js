@@ -7,7 +7,8 @@ module.exports = defineConfig([
   expoConfig,
   prettierRecommended,
   {
-    ignores: ['dist/*', 'coverage/*', 'android/*', 'ios/*', '.expo/*'],
+    // expo-env.d.ts lo genera Expo al arrancar y no se versiona.
+    ignores: ['dist/*', 'coverage/*', 'android/*', 'ios/*', '.expo/*', 'expo-env.d.ts'],
   },
   {
     // Los mocks de Jest usan require() dentro de sus fábricas.

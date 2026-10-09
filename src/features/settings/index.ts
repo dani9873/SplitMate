@@ -12,3 +12,4 @@ export {
   type PreferencesState,
 } from './preferences-store';
 export { useSystemLanguageSync } from './use-system-language-sync';
+export { SettingsScreen } from './SettingsScreen';

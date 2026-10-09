@@ -1,6 +1,7 @@
 import '@/ui/global.css';
 import '@/i18n';
 
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -12,7 +13,10 @@ import { fontAssets, ThemeProvider } from '@/ui';
 
 // El splash nativo sigue visible hasta que la primera pantalla está lista para pintarse.
 void SplashScreen.preventAutoHideAsync();
-SplashScreen.setOptions({ duration: 250, fade: true });
+// Expo Go no admite personalizar la salida del splash; en las builds propias sí.
+if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
+  SplashScreen.setOptions({ duration: 250, fade: true });
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
