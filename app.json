@@ -35,6 +35,13 @@
         }
       ],
       "expo-localization"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b8f547af-1cf3-40bc-88dd-bad901837351"
+      }
+    },
+    "owner": "danielescc"
   }
 }
