@@ -40,5 +40,13 @@
     "title": "Página no encontrada",
     "description": "El enlace que abriste no existe o cambió de lugar.",
     "action": "Ir a mis grupos"
+  },
+  "database": {
+    "loading": "Preparando tus datos",
+    "error": {
+      "title": "No se pudieron abrir tus datos",
+      "description": "Algo falló al preparar los datos guardados en este dispositivo. Puedes intentarlo de nuevo.",
+      "retry": "Reintentar"
+    }
   }
 }

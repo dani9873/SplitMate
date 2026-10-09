@@ -40,5 +40,13 @@
     "title": "Page not found",
     "description": "The link you opened does not exist or has moved.",
     "action": "Go to my groups"
+  },
+  "database": {
+    "loading": "Preparing your data",
+    "error": {
+      "title": "Couldn't open your data",
+      "description": "Something went wrong while preparing the data stored on this device. You can try again.",
+      "retry": "Try again"
+    }
   }
 }

@@ -7,6 +7,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect } from 'react';
 
+import { openAppDatabase } from '@/db/client';
+import { DatabaseGate, useDatabaseSetup } from '@/db/DatabaseProvider';
 import { usePreferences, useSystemLanguageSync } from '@/features/settings';
 import { logger } from '@/lib/logger';
 import { fontAssets, ThemeProvider } from '@/ui';
@@ -21,6 +23,7 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const preferencesReady = usePreferences((state) => state.hydrated);
+  const database = useDatabaseSetup(openAppDatabase);
   useSystemLanguageSync();
 
   useEffect(() => {
@@ -30,8 +33,9 @@ export default function RootLayout() {
   }, [fontError]);
 
   // Lista cuando hay fuentes (o fallaron: se sigue con las del sistema en lugar de
-  // quedarse en el splash) y ya se aplicaron el idioma y el tema guardados.
-  const ready = preferencesReady && (fontsLoaded || fontError != null);
+  // quedarse en el splash), ya se aplicaron el idioma y el tema guardados y la base terminó
+  // su primer intento de apertura. Si la base falló, se muestra su pantalla de error.
+  const ready = preferencesReady && (fontsLoaded || fontError != null) && database.settledOnce;
 
   const hideSplash = useCallback(() => {
     if (ready) {
@@ -45,7 +49,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider onLayout={hideSplash}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <DatabaseGate database={database}>
+        <Stack screenOptions={{ headerShown: false }} />
+      </DatabaseGate>
     </ThemeProvider>
   );
 }
