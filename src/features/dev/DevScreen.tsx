@@ -1,11 +1,10 @@
-import { sql } from 'drizzle-orm';
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { readCipherVersion } from '@/db/cipher';
 import { useDatabase } from '@/db/DatabaseProvider';
-import type { AppDatabase } from '@/db/repositories';
 import { useDatabaseChanges } from '@/db/use-database-changes';
 import { EXACT_SETTLEMENT_LIMIT, money } from '@/domain';
 import { formatMoney } from '@/lib/format';
@@ -19,19 +18,6 @@ import { addRandomExpense, createSampleGroup, resetSampleData } from './sample-d
 export const DEV_SCREEN_MARKER = 'splitmate-dev-screen-v1';
 
 const BENCHMARK_SIZES = [12, 14, 16, 18, 20];
-
-/** Versión de SQLCipher, o `null` si la base no está cifrada. */
-function readCipherVersion(db: AppDatabase): string | null {
-  try {
-    const [row] = db.all<unknown>(sql`PRAGMA cipher_version`);
-    const value = Array.isArray(row)
-      ? row[0]
-      : (row as { cipher_version?: unknown } | undefined)?.cipher_version;
-    return typeof value === 'string' && value.length > 0 ? value : null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Pantalla temporal para probar el motor en el teléfono: crea un grupo de ejemplo, agrega
