@@ -110,6 +110,8 @@ src/
    `npm test -- --watchAll=false`.
 5. Cierra con un resumen breve: qué se hizo, cómo probarlo en el teléfono, decisiones
    tomadas y pendientes para la siguiente fase. Actualiza el "Estado" de abajo.
+6. Cuando el usuario confirme que probó la fase en su teléfono y el CI esté en verde, haz
+   merge del PR con merge commit sin volver a preguntar.
 
 ## Pendientes técnicos
 
@@ -136,12 +138,11 @@ src/
 - **Clave de cifrado perdida.** Si se pierde la clave de expo-secure-store, la base cifrada
   no se puede abrir y la app muestra su pantalla de error. La fase de sincronización debe
   agregar la opción de reiniciar la base local y volver a descargar los datos.
-- **Copias de seguridad en iOS.** `android.allowBackup` está en `false`, pero en iOS el
-  archivo de la base puede entrar en las copias del dispositivo. Va cifrado y la clave no
-  viaja, así que una copia restaurada es ilegible. Evaluar excluir el archivo del respaldo.
-- **Longitud de `parseMoney`.** No limita el largo del texto; con entradas enormes `BigInt`
-  se vuelve lento. Hoy no recibe entrada del usuario. Limitarlo antes de conectarlo a los
-  formularios de gastos.
+- **Exclusión del respaldo: falta compilarla en iOS.** La base y su WAL quedan fuera del
+  respaldo. En Android, `allowBackup` en `false` más las reglas de
+  `plugins/with-backup-rules.js`. En iOS, el módulo local `modules/splitmate-backup` marca la
+  carpeta con `isExcludedFromBackup`. Ese módulo en Swift todavía no se compiló: verificarlo
+  en el próximo build de iOS, que puede ser un build de simulador en EAS sin cuenta de Apple.
 - **Pantalla de desarrollo temporal.** `/dev` existe solo en desarrollo y `npm run
   check:bundle` lo verifica en CI. Retirarla cuando existan los formularios de gastos.
 
