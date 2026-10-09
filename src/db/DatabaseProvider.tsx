@@ -118,6 +118,17 @@ function DatabaseErrorScreen({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+/** Entrega una base ya abierta. La app usa `DatabaseGate`; las pruebas, este proveedor. */
+export function DatabaseProvider({
+  value,
+  children,
+}: {
+  value: DatabaseContextValue;
+  children: ReactNode;
+}) {
+  return <DatabaseContext.Provider value={value}>{children}</DatabaseContext.Provider>;
+}
+
 /** Base y repositorios para las pantallas. Solo funciona dentro de `DatabaseGate`. */
 export function useDatabase(): DatabaseContextValue {
   const value = useContext(DatabaseContext);

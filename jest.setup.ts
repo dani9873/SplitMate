@@ -11,7 +11,5 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-// expo-sqlite es nativo: las pruebas usan sql.js y solo necesitan el aviso de cambios.
-jest.mock('expo-sqlite', () => ({
-  addDatabaseChangeListener: () => ({ remove: () => {} }),
-}));
+// expo-sqlite es nativo: las pruebas usan sql.js. Los avisos de cambios van por el bus propio.
+jest.mock('expo-sqlite', () => ({}));
