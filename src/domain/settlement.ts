@@ -13,8 +13,15 @@ export interface Transfer {
 /**
  * Máximo de miembros con saldo distinto de cero que se resuelven de forma exacta.
  * La DP usa O(2ⁿ) memoria y O(2ⁿ · n) tiempo; por encima del límite se usa el voraz.
+ *
+ * Medido el 2026-10-09 en un emulador Android 16 x86_64 con Hermes, mediana de 3 ejecuciones:
+ * 12 miembros 2 ms, 14 → 8 ms, 16 → 63 ms, 18 → 382 ms, 20 → 1626 ms. Cada miembro extra
+ * multiplica el tiempo por unas 2,4 veces. El objetivo era no pasar de unos 200 ms: 16 deja
+ * margen para teléfonos tres veces más lentos, y 18 ya lo supera en el emulador. Por encima,
+ * el voraz garantiza como máximo n − 1 transferencias. Grupos con más de 16 miembros con
+ * saldo pendiente a la vez son poco comunes.
  */
-export const EXACT_SETTLEMENT_LIMIT = 20;
+export const EXACT_SETTLEMENT_LIMIT = 16;
 
 /** Tope duro: con más bits la tabla de la DP no cabe razonablemente en memoria. */
 const HARD_LIMIT = 24;

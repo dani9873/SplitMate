@@ -43,7 +43,7 @@ export function Screen({
     return (
       <View testID={testID} className="flex-1 bg-background" style={safeArea}>
         <ScrollView
-          contentContainerClassName={cn('gap-6 px-5 pb-10', className)}
+          contentContainerClassName={cn('gap-6 px-5 pb-10', !title && 'pt-4', className)}
           keyboardShouldPersistTaps="handled"
         >
           {header}

@@ -119,5 +119,16 @@ dejarían de ser exactas en punto flotante.
 monto y luego por `memberId`, y la salida se ordena por pagador y receptor. Los mismos
 saldos producen las mismas transferencias, en el mismo orden, en cualquier dispositivo.
 
-**Límite.** El valor de `EXACT_SETTLEMENT_LIMIT` sale de medir la DP en un emulador
-Android con Hermes; la medición y su justificación están en el comentario de la constante.
+**Límite.** `EXACT_SETTLEMENT_LIMIT` es 16. Se midió la DP en un emulador Android 16 x86_64
+con Hermes, con la mediana de tres ejecuciones:
+
+| Miembros con saldo | Tiempo  |
+| ------------------ | ------- |
+| 12                 | 2 ms    |
+| 14                 | 8 ms    |
+| 16                 | 63 ms   |
+| 18                 | 382 ms  |
+| 20                 | 1626 ms |
+
+El objetivo era no pasar de unos 200 ms. Con 16 queda margen para teléfonos tres veces más
+lentos; con 18 ya se supera en el emulador. Por encima del límite se usa el voraz.
