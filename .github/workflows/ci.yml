@@ -37,3 +37,6 @@ jobs:
 
       - name: Pruebas con cobertura del dominio
         run: npm run test:coverage -- --ci
+
+      - name: Pantalla de desarrollo fuera del bundle de producción
+        run: npm run check:bundle

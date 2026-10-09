@@ -14,7 +14,8 @@
     "test:watch": "jest --watch",
     "check": "npm run typecheck && npm run lint && npm test",
     "icons": "node scripts/generate-icons.mjs",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "check:bundle": "node scripts/check-prod-bundle.mjs"
   },
   "jest": {
     "preset": "jest-expo",
