@@ -1,0 +1,9 @@
+node_modules
+android
+ios
+.expo
+dist
+coverage
+package-lock.json
+assets
+CLAUDE.md
