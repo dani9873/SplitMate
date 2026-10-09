@@ -34,7 +34,9 @@
           }
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-sqlite",
+      "expo-secure-store"
     ],
     "extra": {
       "router": {},
