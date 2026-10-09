@@ -85,6 +85,15 @@ describe('computeBalances', () => {
     ).toThrow(code('INVALID_TRANSFER'));
   });
 
+  it('detecta saldos fuera del rango seguro', () => {
+    const huge = Number.MAX_SAFE_INTEGER;
+    const entries: LedgerEntry[] = [
+      { kind: 'transfer', from: 'a', to: 'b', amount: huge },
+      { kind: 'transfer', from: 'a', to: 'b', amount: huge },
+    ];
+    expect(() => computeBalances('USD', entries)).toThrow(code('AMOUNT_OUT_OF_RANGE'));
+  });
+
   it('los saldos siempre suman cero', () => {
     const ids = ['a', 'b', 'c', 'd', 'e'];
     const member = fc.constantFrom(...ids);

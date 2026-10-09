@@ -17,7 +17,9 @@ export function parseRate(rate: string): Rate {
   if (rate.length > MAX_RATE_LENGTH || !RATE_PATTERN.test(rate)) {
     throw new DomainError('INVALID_RATE', `Tasa mal formada: "${rate}"`);
   }
-  const [whole = '', fraction = ''] = rate.split('.');
+  const dot = rate.indexOf('.');
+  const whole = dot === -1 ? rate : rate.slice(0, dot);
+  const fraction = dot === -1 ? '' : rate.slice(dot + 1);
   const numerator = BigInt(whole + fraction);
   if (numerator === 0n) {
     throw new DomainError('INVALID_RATE', 'La tasa debe ser mayor que cero');

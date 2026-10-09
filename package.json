@@ -13,7 +13,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "check": "npm run typecheck && npm run lint && npm test",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "test:coverage": "jest --coverage"
   },
   "jest": {
     "preset": "jest-expo",
@@ -30,7 +31,20 @@
       "/ios/",
       "/.expo/"
     ],
-    "testTimeout": 20000
+    "testTimeout": 20000,
+    "collectCoverageFrom": [
+      "src/domain/**/*.ts",
+      "!src/domain/**/__tests__/**",
+      "!src/domain/index.ts"
+    ],
+    "coverageThreshold": {
+      "./src/domain/": {
+        "lines": 100,
+        "functions": 100,
+        "statements": 100,
+        "branches": 95
+      }
+    }
   },
   "dependencies": {
     "@expo-google-fonts/manrope": "^0.4.2",

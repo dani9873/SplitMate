@@ -75,7 +75,10 @@ export function parseMoney(input: string, currency: string): Money {
     throw new DomainError('INVALID_AMOUNT', `Monto mal formado: "${input}"`);
   }
   const negative = input.startsWith('-');
-  const [integerPart = '', fractionPart = ''] = (negative ? input.slice(1) : input).split('.');
+  const digits = negative ? input.slice(1) : input;
+  const dot = digits.indexOf('.');
+  const integerPart = dot === -1 ? digits : digits.slice(0, dot);
+  const fractionPart = dot === -1 ? '' : digits.slice(dot + 1);
   const decimals = minorUnits(code);
   if (fractionPart.length > decimals) {
     throw new DomainError('INVALID_AMOUNT', `${code} admite ${decimals} decimales: "${input}"`);

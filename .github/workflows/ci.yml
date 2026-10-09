@@ -35,5 +35,5 @@ jobs:
       - name: ESLint y Prettier
         run: npm run lint
 
-      - name: Pruebas
-        run: npm test -- --ci
+      - name: Pruebas con cobertura del dominio
+        run: npm run test:coverage -- --ci
