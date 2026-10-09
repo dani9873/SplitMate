@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "nativeName": "Español"
+  },
+  "tabs": {
+    "groups": "Grupos",
+    "activity": "Actividad",
+    "settings": "Ajustes"
+  },
+  "groups": {
+    "title": "Grupos",
+    "empty": {
+      "title": "Aún no tienes grupos",
+      "description": "En un grupo llevas con tus amigos la cuenta de los gastos compartidos. Pronto podrás crear el primero."
+    }
+  },
+  "activity": {
+    "title": "Actividad",
+    "empty": {
+      "title": "Todavía no hay actividad",
+      "description": "Aquí verás los gastos, pagos y cambios de tus grupos."
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": {
+      "title": "Idioma",
+      "system": "Idioma del dispositivo",
+      "systemHint": "Ahora: {{language}}"
+    },
+    "theme": {
+      "title": "Apariencia",
+      "system": "Automático",
+      "systemHint": "Sigue la configuración del dispositivo",
+      "light": "Claro",
+      "dark": "Oscuro"
+    }
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "El enlace que abriste no existe o cambió de lugar.",
+    "action": "Ir a mis grupos"
+  }
+}
