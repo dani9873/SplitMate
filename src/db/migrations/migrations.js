@@ -1,0 +1,12 @@
+import journal from './meta/_journal.json';
+import m0000 from './0000_esquema_inicial.sql';
+import m0001 from './0001_categorias_predefinidas.sql';
+
+  export default {
+    journal,
+    migrations: {
+      m0000,
+m0001
+    }
+  }
+  
