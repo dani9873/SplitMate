@@ -25,6 +25,32 @@ module.exports = defineConfig([
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
+    // Las pantallas y los componentes solo usan repositorios y dominio: nada de SQL, Drizzle
+    // ni la conexión nativa. Las pruebas pueden preparar datos como necesiten.
+    files: ['app/**/*.{ts,tsx}', 'src/features/**/*.{ts,tsx}', 'src/ui/**/*.{ts,tsx}'],
+    ignores: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: 'expo-sqlite', message: 'Usa los repositorios de @/db/repositories.' }],
+          patterns: [
+            {
+              group: [
+                'drizzle-orm',
+                'drizzle-orm/*',
+                '@/db/schema',
+                '@/db/migrations/*',
+                '@/db/repositories/*',
+              ],
+              message: 'Usa los repositorios de @/db/repositories y las funciones de @/domain.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // CLAUDE.md: cero textos fijos en componentes. Todo texto visible pasa por i18n.
     files: ['app/**/*.tsx', 'src/**/*.tsx'],
     ignores: ['**/__tests__/**', '**/*.test.tsx'],

@@ -15,10 +15,11 @@ import { OptionGroup, type Option } from './components/OptionGroup';
 import type { ThemePreference } from './preferences';
 import { usePreferences } from './preferences-store';
 
-// Solo en desarrollo: en producción Metro elimina esta rama y el módulo de desarrollo.
-const DevSettingsLink: ComponentType | null = __DEV__
+// Solo en desarrollo: en producción Metro elimina esta rama y el módulo de datos de ejemplo.
+// `npm run check:bundle` lo verifica en CI.
+const SampleDataButton: ComponentType | null = __DEV__
   ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('@/features/dev').DevSettingsLink
+    require('@/features/sample-data').SampleDataButton
   : null;
 
 /** Ajustes de la app: idioma y apariencia. Los cambios se aplican al instante. */
@@ -67,7 +68,7 @@ export function SettingsScreen() {
         value={theme}
         onChange={setTheme}
       />
-      {DevSettingsLink ? <DevSettingsLink /> : null}
+      {SampleDataButton ? <SampleDataButton /> : null}
     </Screen>
   );
 }

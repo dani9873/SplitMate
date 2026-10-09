@@ -1,0 +1,24 @@
+{
+  "button": "Load sample data",
+  "hint": "Creates three groups with activity for testing and screenshots. Development only.",
+  "loaded": "Sample data loaded",
+  "trip": {
+    "name": "Cartagena trip",
+    "hotel": "Old town hotel",
+    "dinner": "Dinner in Getsemaní",
+    "boat": "Island boat tour",
+    "taxi": "Airport taxi",
+    "refund": "Hotel refund"
+  },
+  "home": {
+    "name": "Apartment",
+    "rent": "October rent",
+    "groceries": "Weekly groceries",
+    "utilities": "Utilities"
+  },
+  "party": {
+    "name": "Sofi's birthday",
+    "cake": "Cake and decorations",
+    "gift": "Gift"
+  }
+}
