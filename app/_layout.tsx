@@ -1,6 +1,6 @@
 import { Slot } from 'expo-router';
 
-import './global.css';
+import '@/ui/global.css';
 
 const RootLayout = () => {
   return <Slot />;
