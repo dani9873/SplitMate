@@ -9,6 +9,13 @@ export interface Money {
 
 const DECIMAL_PATTERN = /^-?\d+(\.\d+)?$/;
 
+/**
+ * Largo máximo del texto que acepta `parseMoney`. Un entero seguro tiene 16 dígitos; con
+ * signo, punto y hasta tres decimales sobra con 24. El límite se comprueba antes de la
+ * expresión regular y de `BigInt`, que con textos enormes se vuelven lentos.
+ */
+export const MAX_MONEY_TEXT_LENGTH = 24;
+
 /** Exige un entero seguro: los montos nunca son `float` ni pierden precisión. */
 export function checkAmount(amount: number): number {
   if (!Number.isInteger(amount)) {
@@ -71,6 +78,9 @@ export function isZero(a: Money): boolean {
  */
 export function parseMoney(input: string, currency: string): Money {
   const code = currencyCode(currency);
+  if (input.length > MAX_MONEY_TEXT_LENGTH) {
+    throw new DomainError('INVALID_AMOUNT', `Monto demasiado largo: ${input.length} caracteres`);
+  }
   if (!DECIMAL_PATTERN.test(input)) {
     throw new DomainError('INVALID_AMOUNT', `Monto mal formado: "${input}"`);
   }

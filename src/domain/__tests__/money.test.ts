@@ -85,6 +85,15 @@ describe('Money', () => {
       expect(() => parseMoney('99999999999999999999', 'USD')).toThrow(code('AMOUNT_OUT_OF_RANGE'));
     });
 
+    it('rechaza textos demasiado largos sin intentar convertirlos', () => {
+      // 24 caracteres alcanzan para cualquier entero seguro con signo y tres decimales.
+      expect(parseMoney('-' + '0'.repeat(19) + '1.23', 'USD')).toEqual(money(-123, 'USD'));
+      expect(() => parseMoney('1'.repeat(25), 'USD')).toThrow(code('INVALID_AMOUNT'));
+      const started = Date.now();
+      expect(() => parseMoney('9'.repeat(1_000_000), 'USD')).toThrow(code('INVALID_AMOUNT'));
+      expect(Date.now() - started).toBeLessThan(50);
+    });
+
     it('escribe montos en texto decimal canónico', () => {
       expect(toDecimalString(money(1234, 'USD'))).toBe('12.34');
       expect(toDecimalString(money(5, 'USD'))).toBe('0.05');
