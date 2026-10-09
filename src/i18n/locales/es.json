@@ -48,5 +48,41 @@
       "description": "Algo falló al preparar los datos guardados en este dispositivo. Puedes intentarlo de nuevo.",
       "retry": "Reintentar"
     }
+  },
+  "ui": {
+    "close": "Cerrar",
+    "loading": "Cargando",
+    "search": {
+      "clear": "Borrar búsqueda"
+    },
+    "error": {
+      "title": "No se pudo cargar",
+      "description": "Algo falló al leer tus datos en este dispositivo. Puedes intentarlo de nuevo.",
+      "retry": "Reintentar"
+    },
+    "stepper": {
+      "decrease": "Restar a {{label}}",
+      "increase": "Sumar a {{label}}"
+    },
+    "calendar": {
+      "previousMonth": "Mes anterior",
+      "nextMonth": "Mes siguiente",
+      "today": "hoy"
+    },
+    "keypad": {
+      "label": "Teclado del monto",
+      "decimal": "coma decimal",
+      "plus": "más",
+      "minus": "menos",
+      "times": "por",
+      "divide": "dividido entre",
+      "delete": "borrar",
+      "clear": "borrar todo",
+      "equals": "igual",
+      "done": "Listo"
+    },
+    "toast": {
+      "dismiss": "Cerrar aviso"
+    }
   }
 }

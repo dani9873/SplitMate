@@ -48,5 +48,41 @@
       "description": "Something went wrong while preparing the data stored on this device. You can try again.",
       "retry": "Try again"
     }
+  },
+  "ui": {
+    "close": "Close",
+    "loading": "Loading",
+    "search": {
+      "clear": "Clear search"
+    },
+    "error": {
+      "title": "Couldn't load this",
+      "description": "Something went wrong while reading your data on this device. You can try again.",
+      "retry": "Try again"
+    },
+    "stepper": {
+      "decrease": "Decrease {{label}}",
+      "increase": "Increase {{label}}"
+    },
+    "calendar": {
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "today"
+    },
+    "keypad": {
+      "label": "Amount keypad",
+      "decimal": "decimal point",
+      "plus": "plus",
+      "minus": "minus",
+      "times": "times",
+      "divide": "divided by",
+      "delete": "delete",
+      "clear": "clear all",
+      "equals": "equals",
+      "done": "Done"
+    },
+    "toast": {
+      "dismiss": "Dismiss"
+    }
   }
 }

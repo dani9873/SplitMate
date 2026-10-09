@@ -34,6 +34,9 @@ const pairs: [ColorToken, ColorToken, number][] = [
   ['fg', 'accentSoft', TEXT],
   ['accentStrong', 'accentSoft', TEXT],
   ...surfaces.map((bg): [ColorToken, ColorToken, number] => ['accentStrong', bg, TEXT]),
+  // Aviso con "Deshacer": colores invertidos del tema.
+  ['background', 'fg', TEXT],
+  ['primarySoft', 'fg', TEXT],
   ['onPrimary', 'primary', TEXT],
   ['onPrimary', 'primaryPressed', TEXT],
   ['onDanger', 'danger', TEXT],
