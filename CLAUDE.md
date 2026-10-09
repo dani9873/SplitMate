@@ -126,14 +126,26 @@ src/
   (Metro, Expo CLI, Tailwind y el prebuild de iOS) y no llegan al teléfono;
   decode-uri-component es el punto anterior. Ninguno se corrige sin `npm audit fix --force`,
   que rompería la alineación con Expo SDK 57. Revisar en cada actualización de SDK.
-- **Skills de CLAUDE.md no sincronizadas.** Durante la implementación de la Fase 0 ninguna
-  estaba disponible en la sesión y sus criterios se aplicaron a mano. Comprobar que estén
-  disponibles al empezar la Fase 1.
+- **Skills de CLAUDE.md: resuelto.** No estaban sincronizadas durante la Fase 0. Desde su cierre
+  están disponibles, y en la Fase 1 se usaron brainstorming, writing-plans,
+  test-driven-development, backend-api-database, security-code-review y
+  verification-before-completion.
 - **Build nativo local desde OneDrive.** Gradle y CMake fallan porque las rutas superan el
   límite de Windows (`LongPathsEnabled` está en 0). Los development builds se hacen con
   EAS Build (`eas build --profile development --platform android`).
+- **Clave de cifrado perdida.** Si se pierde la clave de expo-secure-store, la base cifrada
+  no se puede abrir y la app muestra su pantalla de error. La fase de sincronización debe
+  agregar la opción de reiniciar la base local y volver a descargar los datos.
+- **Copias de seguridad en iOS.** `android.allowBackup` está en `false`, pero en iOS el
+  archivo de la base puede entrar en las copias del dispositivo. Va cifrado y la clave no
+  viaja, así que una copia restaurada es ilegible. Evaluar excluir el archivo del respaldo.
+- **Longitud de `parseMoney`.** No limita el largo del texto; con entradas enormes `BigInt`
+  se vuelve lento. Hoy no recibe entrada del usuario. Limitarlo antes de conectarlo a los
+  formularios de gastos.
+- **Pantalla de desarrollo temporal.** `/dev` existe solo en desarrollo y `npm run
+  check:bundle` lo verifica en CI. Retirarla cuando existan los formularios de gastos.
 
 ## Estado
 
-- [x] Fase 0 — Limpieza y cimientos (rama `fase-0-limpieza-cimientos`, PR hacia `main` en revisión)
-- [ ] Fase 1 — Motor de cálculo (dominio) y base de datos local
+- [x] Fase 0 — Limpieza y cimientos (PR #1 integrado en `main`)
+- [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (rama `fase-1-dominio-db`, PR hacia `main` en revisión)
