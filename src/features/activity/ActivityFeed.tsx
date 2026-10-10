@@ -149,6 +149,7 @@ export function ActivityFeed({
           keyExtractor={(row) => row.key}
           getItemType={(row) => row.type}
           stickyHeaderIndices={stickyHeaderIndices}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: bottomInset }}
           renderItem={({ item: row }) =>
             row.type === 'day' ? (

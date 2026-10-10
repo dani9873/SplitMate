@@ -1,3 +1,6 @@
+import { eq } from 'drizzle-orm';
+
+import { groupMembers } from '../schema';
 import { createTestGroup, createTestRepositories, type TestRepositories } from '../test-utils';
 
 const code = (expected: string) => expect.objectContaining({ code: expected });
@@ -260,5 +263,41 @@ describe('miembros', () => {
     expect(() =>
       ctx.repos.members.setCurrentMember(first.group.id, second.ids[1] as string),
     ).toThrow(code('NOT_FOUND'));
+  });
+
+  it('"soy yo" adopta como usuario local al usuario de este dispositivo ya vinculado', async () => {
+    // Datos creados antes de existir el perfil local, como los de ejemplo de la Fase 1: el
+    // miembro apunta a un usuario de este dispositivo, pero aún no hay perfil.
+    const ctx = await createTestRepositories();
+    const earlier = ctx.repos.users.create({ displayName: 'Tú' });
+    const group = ctx.repos.groups.create({
+      name: 'Viaje',
+      currency: 'USD',
+      createdBy: earlier.id,
+      members: [{ displayName: 'Tú', userId: earlier.id }, { displayName: 'Beto' }],
+    });
+    const [you] = ctx.repos.members.listByGroup(group.id);
+    expect(ctx.repos.profile.get()).toBeNull();
+
+    ctx.repos.members.setCurrentMember(group.id, you?.id as string);
+
+    expect(ctx.repos.profile.get()?.id).toBe(earlier.id);
+    expect(ctx.repos.groups.listSummaries()[0]?.me?.id).toBe(you?.id);
+  });
+
+  it('"soy yo" no toma un miembro vinculado a otra persona', async () => {
+    const ctx = await createTestRepositories();
+    const { group } = createTestGroup(ctx);
+    const someone = ctx.repos.users.create({ displayName: 'Otra persona' });
+    const linked = ctx.repos.members.add(group.id, 'Eva');
+    // Así llegará en la sincronización un miembro que ya es la cuenta de otra persona.
+    ctx.db
+      .update(groupMembers)
+      .set({ userId: someone.id })
+      .where(eq(groupMembers.id, linked.id))
+      .run();
+    expect(() => ctx.repos.members.setCurrentMember(group.id, linked.id)).toThrow(
+      code('MEMBER_TAKEN'),
+    );
   });
 });

@@ -17,6 +17,8 @@
     "new": "Nuevo grupo",
     "memberCount_one": "{{count}} miembro",
     "memberCount_other": "{{count}} miembros",
+    "summaryLine": "{{members}} · {{currency}}",
+    "summaryLineArchived": "{{members}} · {{currency}} · {{archived}}",
     "chooseMe": "Elige quién eres",
     "archived": "Archivados ({{count}})",
     "archivedBadge": "Archivado",
@@ -412,6 +414,7 @@
       "VALIDATION": "Revisa los datos ingresados.",
       "MEMBER_HAS_BALANCE": "Esa persona tiene saldo pendiente.",
       "LAST_MEMBER": "Un grupo necesita al menos un miembro.",
+      "MEMBER_TAKEN": "Ese miembro ya está vinculado a otra persona.",
       "CURRENCY_LOCKED": "La moneda no cambia porque el grupo ya tiene movimientos.",
       "GROUP_ARCHIVED": "El grupo está archivado: restáuralo para hacer cambios."
     },

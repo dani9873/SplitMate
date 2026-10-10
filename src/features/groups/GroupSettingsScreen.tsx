@@ -105,6 +105,7 @@ function SettingsContent({ data }: { data: SettingsData }) {
   const { repos } = useDatabase();
   const { group } = data;
   const archived = group.archivedAt !== null;
+  const hasMe = data.members.some((m) => m.userId !== null && m.userId === data.localUserId);
 
   const unarchive = () => {
     try {
@@ -152,9 +153,12 @@ function SettingsContent({ data }: { data: SettingsData }) {
           }
         />
       ) : null}
+      {/* Si todavía no eligió quién es, esa pregunta va primero: es a lo que viene desde
+          "Elegir" en el grupo. */}
+      {hasMe ? null : <MeSection data={data} readOnly={archived} />}
       <DetailsSection data={data} readOnly={archived} />
       <MembersSection data={data} readOnly={archived} />
-      <MeSection data={data} readOnly={archived} />
+      {hasMe ? <MeSection data={data} readOnly={archived} /> : null}
       {archived ? null : (
         <View className="gap-2">
           <Button

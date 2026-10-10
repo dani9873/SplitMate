@@ -3,7 +3,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import { groupMembers } from '../schema';
 import { conflict, invalid, notFound, parse, ruleViolation } from './errors';
 import { computeGroupBalances } from './ledger';
-import { ensureLocalUser, readLocalUser } from './profile';
+import { adoptLocalUser, ensureLocalUser, readLocalUser } from './profile';
 import { listAllMembers, listMembers, requireWritableGroup, type Member } from './queries';
 import type { RepositoryContext } from './types';
 import { displayNameSchema, MAX_MEMBERS } from './validation';
@@ -130,13 +130,22 @@ export function createMembersRepository(ctx: RepositoryContext) {
       if (target && target.groupId !== group.id) {
         throw notFound('El miembro');
       }
-      if (target?.userId && target.userId !== readLocalUser(db)?.id) {
-        throw invalid('El miembro ya está vinculado a otra persona');
+      let user = readLocalUser(db);
+      if (target?.userId && target.userId !== user?.id) {
+        if (user) {
+          throw ruleViolation('MEMBER_TAKEN', 'El miembro ya está vinculado a otra persona');
+        }
+        // Todavía no hay perfil local y el miembro ya apunta a un usuario de este dispositivo
+        // (datos anteriores al perfil): ese usuario pasa a ser el local.
+        user = adoptLocalUser(ctx, target.userId);
       }
-      const user = target ? ensureLocalUser(ctx, target.displayName) : readLocalUser(db);
+      if (!user && target) {
+        user = ensureLocalUser(ctx, target.displayName);
+      }
       if (!user) {
         return;
       }
+      const localUser = user;
       db.transaction((tx) => {
         const now = deps.now();
         const bump = { updatedAt: now, version: sql`${groupMembers.version} + 1` };
@@ -145,14 +154,14 @@ export function createMembersRepository(ctx: RepositoryContext) {
           .where(
             and(
               eq(groupMembers.groupId, group.id),
-              eq(groupMembers.userId, user.id),
+              eq(groupMembers.userId, localUser.id),
               isNull(groupMembers.deletedAt),
             ),
           )
           .run();
         if (target) {
           tx.update(groupMembers)
-            .set({ ...bump, userId: user.id })
+            .set({ ...bump, userId: localUser.id })
             .where(eq(groupMembers.id, target.id))
             .run();
         }

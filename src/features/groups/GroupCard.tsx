@@ -41,8 +41,12 @@ export const GroupCard = memo(function GroupCard({ summary, onOpen }: GroupCardP
         </Text>
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {archived
-            ? `${members} · ${group.currency} · ${t('groups.archivedBadge')}`
-            : `${members} · ${group.currency}`}
+            ? t('groups.summaryLineArchived', {
+                members,
+                currency: group.currency,
+                archived: t('groups.archivedBadge'),
+              })
+            : t('groups.summaryLine', { members, currency: group.currency })}
         </Text>
         {myBalance ? (
           <BalanceText amount={myBalance} perspective="you" />

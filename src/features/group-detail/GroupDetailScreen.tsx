@@ -28,6 +28,7 @@ import {
   IconButton,
   LoadingState,
   SegmentedControl,
+  Text,
 } from '@/ui';
 
 import { ActivityFeed, type FeedMember } from '../activity';
@@ -43,6 +44,7 @@ interface DetailData {
   readonly meId: string | null;
   readonly myBalance: Money | null;
   readonly members: readonly FeedMember[];
+  readonly activeMemberCount: number;
   readonly items: readonly ActivityItem[];
 }
 
@@ -62,6 +64,7 @@ function readGroup(repos: Repositories, groupId: string): DetailData | null {
     meId: me?.id ?? null,
     myBalance: me ? (balance ?? zero(group.currency)) : null,
     members: all.map((m) => ({ id: m.id, label: m.displayName })),
+    activeMemberCount: all.filter((m) => m.deletedAt === null).length,
     items: repos.activity.list({ groupId }),
   };
 }
@@ -146,10 +149,16 @@ function GroupContent({ data }: { data: DetailData }) {
       />
       <View className="flex-row items-center gap-3 pb-4">
         <GroupAvatar name={group.name} emoji={group.emoji} color={group.color as GroupColor} />
-        <View className="flex-1">
+        <View className="flex-1 gap-0.5">
           {data.myBalance ? (
             <BalanceText amount={data.myBalance} perspective="you" variant="subheading" />
           ) : null}
+          <Text variant="caption" tone="muted">
+            {t('groups.summaryLine', {
+              members: t('groups.memberCount', { count: data.activeMemberCount }),
+              currency: group.currency,
+            })}
+          </Text>
         </View>
       </View>
 

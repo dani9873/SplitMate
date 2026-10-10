@@ -17,6 +17,8 @@
     "new": "New group",
     "memberCount_one": "{{count}} member",
     "memberCount_other": "{{count}} members",
+    "summaryLine": "{{members}} · {{currency}}",
+    "summaryLineArchived": "{{members}} · {{currency}} · {{archived}}",
     "chooseMe": "Choose who you are",
     "archived": "Archived ({{count}})",
     "archivedBadge": "Archived",
@@ -412,6 +414,7 @@
       "VALIDATION": "Check what you entered.",
       "MEMBER_HAS_BALANCE": "That person has an outstanding balance.",
       "LAST_MEMBER": "A group needs at least one member.",
+      "MEMBER_TAKEN": "That member is already linked to someone else.",
       "CURRENCY_LOCKED": "The currency can't change because the group already has activity.",
       "GROUP_ARCHIVED": "The group is archived: restore it to make changes."
     },

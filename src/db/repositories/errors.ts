@@ -8,6 +8,7 @@ export type RepositoryErrorCode =
   | 'VALIDATION'
   | 'MEMBER_HAS_BALANCE'
   | 'LAST_MEMBER'
+  | 'MEMBER_TAKEN'
   | 'CURRENCY_LOCKED'
   | 'GROUP_ARCHIVED';
 
@@ -29,6 +30,7 @@ export interface RepositoryErrorDetails {
  * - `VALIDATION`: la entrada no cumple el esquema; `issues` indica qué campos fallaron.
  * - `MEMBER_HAS_BALANCE`: no se quita a un miembro con saldo; `details.balance` lo indica.
  * - `LAST_MEMBER`: un grupo no se queda sin miembros.
+ * - `MEMBER_TAKEN`: el miembro ya está vinculado a la cuenta de otra persona.
  * - `CURRENCY_LOCKED`: la moneda del grupo no cambia cuando ya tiene movimientos.
  * - `GROUP_ARCHIVED`: un grupo archivado es de solo lectura.
  */

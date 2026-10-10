@@ -24,6 +24,23 @@ export function readLocalUser(db: AppDatabase): User | null {
 }
 
 /**
+ * Toma como usuario local a un usuario ya creado en este dispositivo, si sigue activo. Sirve
+ * para datos anteriores al perfil local, donde un miembro ya apunta a ese usuario. No emite.
+ */
+export function adoptLocalUser(ctx: RepositoryContext, userId: string): User | null {
+  const user = ctx.db
+    .select()
+    .from(users)
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .get();
+  if (!user) {
+    return null;
+  }
+  writeSetting(ctx.db, SETTING_KEYS.localUserId, user.id, ctx.deps.now());
+  return user;
+}
+
+/**
  * Crea el usuario local si no existe y devuelve el de siempre si ya existe. No emite: quien
  * lo llama avisa con las tablas que también escribió.
  */
