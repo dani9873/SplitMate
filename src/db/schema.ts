@@ -9,6 +9,9 @@ import {
   type AnySQLiteColumn,
 } from 'drizzle-orm/sqlite-core';
 
+// Ruta relativa: drizzle-kit carga este archivo sin los alias de tsconfig.
+import { DEFAULT_GROUP_COLOR, GROUP_COLORS } from '../lib/group-appearance';
+
 /**
  * Columnas comunes a toda tabla sincronizable:
  * - `id`: UUID v7 generado en el cliente.
@@ -55,6 +58,13 @@ export const groups = sqliteTable(
     createdBy: text('created_by')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
+    // Los CHECK de `emoji` y `color` viven en la migración 0002 como restricciones de columna.
+    /** Emoji del grupo; sin emoji, la UI muestra la inicial del nombre. */
+    emoji: text('emoji'),
+    /** Clave de la paleta de grupos, no un color literal: cada tema tiene su variante. */
+    color: text('color', { enum: GROUP_COLORS }).notNull().default(DEFAULT_GROUP_COLOR),
+    /** Instante en que se archivó. Un grupo archivado es de solo lectura. */
+    archivedAt: integer('archived_at'),
   },
   (t) => [
     check('groups_name_length', lengthBetween(t.name, 1, 80)),
@@ -82,6 +92,10 @@ export const groupMembers = sqliteTable(
     check('group_members_role', sql`${t.role} IN ('owner', 'member')`),
     check('group_members_version_positive', sql`${t.version} >= 1`),
     index('group_members_group_idx').on(t.groupId).where(isActive(t.deletedAt)),
+    // Un usuario es a lo sumo un miembro activo de cada grupo: hay un solo "yo".
+    uniqueIndex('group_members_user_unique')
+      .on(t.groupId, t.userId)
+      .where(sql`${t.userId} IS NOT NULL AND ${t.deletedAt} IS NULL`),
   ],
 );
 
@@ -245,6 +259,17 @@ export const transfers = sqliteTable(
   ],
 );
 
+/**
+ * Datos de este dispositivo que **no se sincronizan**: el id del usuario local y los
+ * borradores de formularios. Por eso no tiene las columnas de sincronización. Vive en la base
+ * cifrada porque los borradores contienen montos y descripciones.
+ */
+export const localSettings = sqliteTable('local_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
 export const schema = {
   users,
   groups,
@@ -254,6 +279,7 @@ export const schema = {
   expensePayers,
   expenseSplits,
   transfers,
+  localSettings,
 };
 
 export type Schema = typeof schema;

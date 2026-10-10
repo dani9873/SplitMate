@@ -2,6 +2,7 @@ import { allocate, type MemberAmount } from './allocate';
 import { currencyCode, minorUnits } from './currency';
 import { DomainError } from './errors';
 import { checkAmount, type Money } from './money';
+import { divideHalfEven } from './rounding';
 
 /** Tasa de cambio como fracción exacta: `"0.9214"` es 9214 / 10000. */
 export interface Rate {
@@ -25,18 +26,6 @@ export function parseRate(rate: string): Rate {
     throw new DomainError('INVALID_RATE', 'La tasa debe ser mayor que cero');
   }
   return { numerator, denominator: 10n ** BigInt(fraction.length) };
-}
-
-/** Divide `numerator / denominator` redondeando al entero más cercano y los empates al par. */
-function divideHalfEven(numerator: bigint, denominator: bigint): bigint {
-  const negative = numerator < 0n;
-  const magnitude = negative ? -numerator : numerator;
-  let quotient = magnitude / denominator;
-  const twiceRemainder = (magnitude % denominator) * 2n;
-  if (twiceRemainder > denominator || (twiceRemainder === denominator && quotient % 2n === 1n)) {
-    quotient += 1n;
-  }
-  return negative ? -quotient : quotient;
 }
 
 /**

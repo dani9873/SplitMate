@@ -169,6 +169,11 @@ export function isKnownCurrency(code: string): code is CurrencyCode {
   return Object.prototype.hasOwnProperty.call(MINOR_UNITS, code);
 }
 
+/** Todas las monedas admitidas, en orden alfabético de código. */
+export const KNOWN_CURRENCIES: readonly CurrencyCode[] = Object.freeze(
+  Object.keys(MINOR_UNITS).sort() as CurrencyCode[],
+);
+
 /** Valida un código ISO 4217 vigente, en mayúsculas. */
 export function currencyCode(code: string): CurrencyCode {
   if (!isKnownCurrency(code)) {

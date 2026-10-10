@@ -1,0 +1,22 @@
+{
+  "light": {
+    "teal": { "tile": "#D3ECE6", "ink": "#0B5247" },
+    "coral": { "tile": "#FADDD2", "ink": "#8A2E12" },
+    "amber": { "tile": "#F8E8C2", "ink": "#6B4700" },
+    "plum": { "tile": "#E8DBF1", "ink": "#5A2A75" },
+    "sky": { "tile": "#D9E8F6", "ink": "#1D4E7A" },
+    "olive": { "tile": "#E2EACB", "ink": "#46530F" },
+    "rose": { "tile": "#F7D9E2", "ink": "#8A1F44" },
+    "slate": { "tile": "#DFE3E8", "ink": "#37424F" }
+  },
+  "dark": {
+    "teal": { "tile": "#173B36", "ink": "#8FE0CF" },
+    "coral": { "tile": "#44241A", "ink": "#FFB59C" },
+    "amber": { "tile": "#3D3012", "ink": "#F5CF7A" },
+    "plum": { "tile": "#35233F", "ink": "#D9B3EE" },
+    "sky": { "tile": "#1A2D40", "ink": "#A9CDF2" },
+    "olive": { "tile": "#2C3317", "ink": "#C9D98F" },
+    "rose": { "tile": "#42202B", "ink": "#F5A9C0" },
+    "slate": { "tile": "#262E36", "ink": "#C3CCD6" }
+  }
+}

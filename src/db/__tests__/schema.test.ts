@@ -59,14 +59,16 @@ describe('esquema y migraciones', () => {
       'expenses',
       'group_members',
       'groups',
+      'local_settings',
       'transfers',
       'users',
     ]);
   });
 
-  it('todas las tablas tienen las columnas de sincronización', async () => {
+  it('todas las tablas sincronizables tienen las columnas de sincronización', async () => {
     const { sqlite } = await createTestDatabase();
-    for (const table of tableNames(sqlite)) {
+    // local_settings guarda datos de este dispositivo y nunca se sincroniza.
+    for (const table of tableNames(sqlite).filter((name) => name !== 'local_settings')) {
       const columns = (sqlite.exec(`PRAGMA table_info(${String(table)})`)[0]?.values ?? []).map(
         (row) => row[1],
       );
@@ -138,6 +140,39 @@ describe('esquema y migraciones', () => {
     expect(() => insertPayer(sqlite, 'p2')).toThrow(/UNIQUE constraint failed/);
     sqlite.run(`UPDATE expense_payers SET deleted_at = ? WHERE id = 'p1'`, [NOW]);
     expect(() => insertPayer(sqlite, 'p3')).not.toThrow();
+  });
+
+  it('limita el color del grupo a la paleta y el emoji a un largo razonable', async () => {
+    const { sqlite } = await createTestDatabase();
+    seedBase(sqlite);
+    const group = (sqlite.exec(`SELECT color, emoji, archived_at FROM groups WHERE id = 'g1'`)[0]
+      ?.values ?? [])[0];
+    expect(group).toEqual(['teal', null, null]);
+    expect(() =>
+      sqlite.run(`UPDATE groups SET color = 'plum', emoji = '🏖️' WHERE id = 'g1'`),
+    ).not.toThrow();
+    expect(() => sqlite.run(`UPDATE groups SET color = '#FF0000' WHERE id = 'g1'`)).toThrow(
+      /CHECK constraint failed/,
+    );
+    expect(() => sqlite.run(`UPDATE groups SET emoji = '' WHERE id = 'g1'`)).toThrow(
+      /CHECK constraint failed/,
+    );
+    expect(() =>
+      sqlite.run(`UPDATE groups SET emoji = ? WHERE id = 'g1'`, ['x'.repeat(17)]),
+    ).toThrow(/CHECK constraint failed/);
+  });
+
+  it('un usuario es a lo sumo un miembro activo de cada grupo', async () => {
+    const { sqlite } = await createTestDatabase();
+    seedBase(sqlite);
+    sqlite.run(`UPDATE group_members SET user_id = 'u1' WHERE id = 'm1'`);
+    expect(() => sqlite.run(`UPDATE group_members SET user_id = 'u1' WHERE id = 'm2'`)).toThrow(
+      /UNIQUE constraint failed/,
+    );
+    sqlite.run(`UPDATE group_members SET deleted_at = ? WHERE id = 'm1'`, [NOW]);
+    expect(() =>
+      sqlite.run(`UPDATE group_members SET user_id = 'u1' WHERE id = 'm2'`),
+    ).not.toThrow();
   });
 
   it('rechaza transferencias a uno mismo', async () => {

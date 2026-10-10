@@ -33,3 +33,5 @@ export async function changeLanguage(code: LanguageCode): Promise<void> {
 export { i18n };
 export * from './detect';
 export * from './languages';
+export * from './locale';
+export { useFormatters, type Formatters } from './use-formatters';

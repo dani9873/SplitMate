@@ -131,7 +131,8 @@ src/
 - **Skills de CLAUDE.md: resuelto.** No estaban sincronizadas durante la Fase 0. Desde su cierre
   están disponibles, y en la Fase 1 se usaron brainstorming, writing-plans,
   test-driven-development, backend-api-database, security-code-review y
-  verification-before-completion.
+  verification-before-completion. En la Fase 2 se sumaron frontend-design,
+  mobile-app-development y vercel-react-native-skills.
 - **Build nativo local desde OneDrive.** Gradle y CMake fallan porque las rutas superan el
   límite de Windows (`LongPathsEnabled` está en 0). Los development builds se hacen con
   EAS Build (`eas build --profile development --platform android`).
@@ -143,10 +144,25 @@ src/
   `plugins/with-backup-rules.js`. En iOS, el módulo local `modules/splitmate-backup` marca la
   carpeta con `isExcludedFromBackup`. Ese módulo en Swift todavía no se compiló: verificarlo
   en el próximo build de iOS, que puede ser un build de simulador en EAS sin cuenta de Apple.
-- **Pantalla de desarrollo temporal.** `/dev` existe solo en desarrollo y `npm run
-  check:bundle` lo verifica en CI. Retirarla cuando existan los formularios de gastos.
+- **Datos de ejemplo solo en desarrollo.** La pantalla `/dev` se retiró en la Fase 2. Queda el
+  botón "Cargar datos de ejemplo" en Ajustes, solo en desarrollo; `npm run check:bundle`
+  verifica en CI que ese módulo no llegue a producción.
+- **Encabezados fijos de FlashList.** FlashList 2.0.2, la versión que fija Expo SDK 57,
+  muestra un encabezado fijo con el día equivocado tras borrar o restaurar un movimiento,
+  hasta desplazar la lista. El historial usa encabezados dentro de la lista. Reevaluar los
+  fijos cuando Expo actualice FlashList.
+- **Adopción del usuario local.** Sin perfil local, elegir "soy yo" sobre un miembro ya
+  vinculado a un usuario de este dispositivo adopta ese usuario como el local (datos
+  anteriores al perfil). Con el login, reemplazarlo por la asociación de la cuenta; un miembro
+  vinculado a otra persona ya se rechaza con `MEMBER_TAKEN`.
+- **Maestro fuera de CI.** El flujo E2E de `.maestro/` corre en local contra el development
+  build y Metro (instrucciones en `.maestro/README.md`); en CI haría falta un emulador.
+- **Selector de moneda con teclado.** En Android, al abrir el teclado sobre la hoja del
+  selector de moneda, la lista no se reacomoda y sus últimas filas quedan debajo del teclado.
+  Los resultados de la búsqueda se ven arriba; mejorarlo con un cambio de alto de la hoja.
 
 ## Estado
 
 - [x] Fase 0 — Limpieza y cimientos (PR #1 integrado en `main`)
-- [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (rama `fase-1-dominio-db`, PR hacia `main` en revisión)
+- [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (PR #2 integrado en `main`)
+- [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (rama `fase-2-mvp-pantallas`, PR hacia `main` en revisión)

@@ -11,7 +11,84 @@
     "title": "Groups",
     "empty": {
       "title": "No groups yet",
-      "description": "A group is where you and your friends keep track of shared expenses. You will be able to create your first one soon."
+      "description": "Create a group to keep track of expenses for a trip, your home or any shared plan.",
+      "action": "Create group"
+    },
+    "new": "New group",
+    "memberCount_one": "{{count}} member",
+    "memberCount_other": "{{count}} members",
+    "summaryLine": "{{members}} · {{currency}}",
+    "summaryLineArchived": "{{members}} · {{currency}} · {{archived}}",
+    "chooseMe": "Choose who you are",
+    "archived": "Archived ({{count}})",
+    "archivedBadge": "Archived",
+    "cardA11y": "{{name}}, {{members}}, {{balance}}",
+    "form": {
+      "createTitle": "New group",
+      "name": "Group name",
+      "namePlaceholder": "Beach trip",
+      "currency": "Group currency",
+      "currencyHint": "Balances are calculated in this currency.",
+      "currencyLocked": "It can't change because the group already has activity.",
+      "emoji": "Icon",
+      "noEmoji": "Use the initial",
+      "emojiA11y": "Icon {{emoji}}",
+      "color": "Color",
+      "colors": {
+        "teal": "Teal",
+        "coral": "Coral",
+        "amber": "Amber",
+        "plum": "Plum",
+        "sky": "Sky",
+        "olive": "Olive",
+        "rose": "Rose",
+        "slate": "Slate"
+      },
+      "yourName": "Your name",
+      "yourNamePlaceholder": "What the group calls you",
+      "others": "Who else",
+      "memberLabel": "Person {{number}}",
+      "memberPlaceholder": "Name",
+      "addMember": "Add person",
+      "removeMember": "Remove person {{number}}",
+      "create": "Create group",
+      "save": "Save changes",
+      "errors": {
+        "nameRequired": "Enter a name for the group",
+        "tooLong": "80 characters at most",
+        "yourNameRequired": "Enter your name",
+        "duplicate": "Someone already has that name",
+        "tooMany": "A group can have up to 50 members"
+      }
+    },
+    "settings": {
+      "title": "Group settings",
+      "details": "Group details",
+      "saved": "Changes saved",
+      "members": "Members",
+      "addMember": "Add member",
+      "newMemberLabel": "New member's name",
+      "rename": "Rename {{name}}",
+      "renameTitle": "Rename member",
+      "renameLabel": "Name",
+      "remove": "Remove {{name}}",
+      "removeTitle": "Remove {{name}}?",
+      "removeMessage": "They won't appear in forms anymore, but will stay in the history.",
+      "removeConfirm": "Remove",
+      "cannotRemoveTitle": "{{name}} can't be removed",
+      "cannotRemoveOwes": "{{name}} owes {{amount}}. Settle their balance before removing them.",
+      "cannotRemoveOwed": "{{name}} is owed {{amount}}. Settle their balance before removing them.",
+      "cannotRemoveLast": "A group needs at least one member.",
+      "meTitle": "Who are you in this group?",
+      "meHint": "Your balance and your share are calculated from this member.",
+      "noneOfThem": "None of them",
+      "youTag": "You",
+      "archive": "Archive group",
+      "archiveHint": "It becomes read-only and leaves your list. You can restore it anytime.",
+      "archiveTitle": "Archive {{name}}?",
+      "archiveMessage": "Nobody can add or change activity until you restore it.",
+      "archiveConfirm": "Archive",
+      "unarchive": "Restore group"
     }
   },
   "activity": {
@@ -19,7 +96,38 @@
     "empty": {
       "title": "Nothing here yet",
       "description": "Expenses, payments and changes from your groups will show up here."
-    }
+    },
+    "emptyGroup": {
+      "title": "No activity yet",
+      "description": "Add the first expense: how much, who paid and who it's split between.",
+      "action": "Add expense"
+    },
+    "noResults": {
+      "title": "Nothing matches",
+      "description": "Try another search or clear the filters.",
+      "action": "Clear filters"
+    },
+    "search": "Search activity",
+    "filters": {
+      "category": "Category",
+      "member": "Member",
+      "anyCategory": "All",
+      "anyMember": "Everyone",
+      "categoryA11y": "Filter by category: {{value}}",
+      "memberA11y": "Filter by member: {{value}}",
+      "clear": "Clear filters"
+    },
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "paidBy": "{{name}} paid",
+    "receivedBy": "{{name}} received",
+    "paidByMany_one": "{{count}} person paid",
+    "paidByMany_other": "{{count}} people paid",
+    "receivedByMany_one": "{{count}} person received",
+    "receivedByMany_other": "{{count}} people received",
+    "yourShare": "your share {{amount}}",
+    "transfer": "{{from}} paid {{to}}",
+    "rowA11y": "{{title}}, {{amount}}, {{detail}}"
   },
   "settings": {
     "title": "Settings",
@@ -47,6 +155,280 @@
       "title": "Couldn't open your data",
       "description": "Something went wrong while preparing the data stored on this device. You can try again.",
       "retry": "Try again"
+    }
+  },
+  "ui": {
+    "close": "Close",
+    "loading": "Loading",
+    "search": {
+      "clear": "Clear search"
+    },
+    "error": {
+      "title": "Couldn't load this",
+      "description": "Something went wrong while reading your data on this device. You can try again.",
+      "retry": "Try again"
+    },
+    "stepper": {
+      "decrease": "Decrease {{label}}",
+      "increase": "Increase {{label}}"
+    },
+    "calendar": {
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "today"
+    },
+    "keypad": {
+      "label": "Amount keypad",
+      "decimal": "decimal point",
+      "plus": "plus",
+      "minus": "minus",
+      "times": "times",
+      "divide": "divided by",
+      "delete": "delete",
+      "clear": "clear all",
+      "equals": "equals",
+      "done": "Done"
+    },
+    "toast": {
+      "dismiss": "Dismiss"
+    }
+  },
+  "common": {
+    "youSuffix": "{{name}} (you)",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "edit": "Edit",
+    "delete": "Delete",
+    "removedSuffix": "{{name}} (left the group)",
+    "notFound": {
+      "title": "We couldn't find this",
+      "description": "It may have been deleted, or the link is wrong.",
+      "action": "Go to my groups"
+    }
+  },
+  "groupDetail": {
+    "sections": "Group sections",
+    "activity": "Activity",
+    "balances": "Balances",
+    "settings": "Group settings",
+    "archived": "This group is archived: it's read-only.",
+    "restore": "Restore",
+    "chooseMe": "Choose who you are to see your balance.",
+    "chooseMeAction": "Choose"
+  },
+  "balance": {
+    "youAreOwed": "You're owed {{amount}}",
+    "youOwe": "You owe {{amount}}",
+    "youAreSettled": "You're settled up",
+    "isOwed": "is owed {{amount}}",
+    "owes": "owes {{amount}}",
+    "settled": "settled up",
+    "memberA11y": "{{name}}, {{status}}",
+    "suggested": "Suggested payments",
+    "suggestedHint": "The fewest payments to square everyone up.",
+    "transfer": "{{from}} → {{to}}",
+    "transferA11y": "{{from}} pays {{amount}} to {{to}}",
+    "markPaid": "Mark as paid",
+    "markPaidA11y": "Mark as paid: {{from}} pays {{amount}} to {{to}}",
+    "paid": "Payment recorded: {{from}} paid {{amount}} to {{to}}",
+    "allSettled": {
+      "title": "Everyone is settled up",
+      "description": "Nobody owes anything in this group."
+    }
+  },
+  "undo": {
+    "action": "Undo",
+    "hint": "You can undo it.",
+    "failed": "Couldn't undo: the entry has changed."
+  },
+  "entries": {
+    "add": "Add",
+    "addA11y": "Add an expense, income or payment",
+    "newTitle": {
+      "expense": "New expense",
+      "income": "New income",
+      "transfer": "New payment"
+    },
+    "editTitle": {
+      "expense": "Edit expense",
+      "income": "Edit income",
+      "transfer": "Edit payment"
+    },
+    "type": {
+      "label": "Entry type",
+      "expense": "Expense",
+      "income": "Income",
+      "transfer": "Payment"
+    },
+    "amount": {
+      "label": "Amount",
+      "a11y": "Amount: {{amount}}",
+      "a11yEmpty": "Amount: empty",
+      "hint": "Opens the calculator keypad"
+    },
+    "problems": {
+      "EMPTY": "Enter an amount",
+      "INCOMPLETE": "Finish the calculation",
+      "MALFORMED": "Check the amount",
+      "TOO_MANY_DECIMALS_zero": "This currency has no decimals",
+      "TOO_MANY_DECIMALS_one": "This currency allows {{count}} decimal",
+      "TOO_MANY_DECIMALS_other": "This currency allows {{count}} decimals",
+      "DIVISION_BY_ZERO": "You can't divide by zero",
+      "NOT_POSITIVE": "The amount must be greater than zero",
+      "TOO_LARGE": "The maximum amount is {{max}}",
+      "TOO_LONG": "The calculation is too long"
+    },
+    "title": {
+      "label": "Description",
+      "placeholder": "Dinner, taxi, hotel…",
+      "required": "Enter a description",
+      "tooLong": "120 characters at most"
+    },
+    "category": {
+      "label": "Category"
+    },
+    "date": {
+      "label": "Date",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "other": "Other date",
+      "pick": "Choose a date"
+    },
+    "currency": {
+      "label": "Currency",
+      "change": "Change currency, now {{currency}}",
+      "rateLabel": "1 {{from}} in {{to}}",
+      "rateHint": "How many {{to}} 1 {{from}} is worth",
+      "converted": "Equals {{amount}}",
+      "rateRequired": "Enter the exchange rate",
+      "rateInvalid": "Enter a number greater than zero"
+    },
+    "payer": {
+      "label": {
+        "expense": "Paid by",
+        "income": "Received by"
+      },
+      "pick": {
+        "expense": "Choose who paid",
+        "income": "Choose who received it"
+      },
+      "change": "{{label}}: {{name}}. Change",
+      "multiple": {
+        "expense": "Several payers",
+        "income": "Several receivers"
+      },
+      "amountLabel": "Amount for {{name}}",
+      "remaining": "{{amount}} left",
+      "excess": "{{amount}} too much",
+      "matches": "Matches the total"
+    },
+    "split": {
+      "label": {
+        "expense": "Split between",
+        "income": "For whom"
+      },
+      "method": {
+        "label": "How to split",
+        "equal": "Equally",
+        "exact": "Amounts",
+        "percentage": "%",
+        "shares": "Shares"
+      },
+      "methodA11y": {
+        "percentage": "Percentages"
+      },
+      "shareA11y": "their share is {{amount}}",
+      "amountLabel": "Amount for {{name}}",
+      "percentLabel": "Percentage for {{name}}",
+      "sharesLabel": "shares for {{name}}",
+      "remaining": "{{amount}} left",
+      "excess": "{{amount}} too much",
+      "percentRemaining": "{{value}}% left",
+      "percentExcess": "{{value}}% too much",
+      "matches": "Matches the total",
+      "noParticipants": "Choose at least one person",
+      "noShares": "Give at least one share",
+      "percentInvalid": "Use up to two decimals"
+    },
+    "transfer": {
+      "from": "From",
+      "to": "To",
+      "pickFrom": "Choose who pays",
+      "pickTo": "Choose who receives",
+      "sameMember": "Choose two different people"
+    },
+    "save": "Save",
+    "cannotSave": "Can't save yet: {{reason}}",
+    "draft": {
+      "found": "You have a draft: {{summary}}",
+      "foundUntitled": "You have an unfinished draft.",
+      "restore": "Restore",
+      "discard": "Discard"
+    },
+    "detail": {
+      "paidBy": "Paid by",
+      "receivedBy": "Received by",
+      "splitAmong": "Split between",
+      "for": "For whom",
+      "from": "From",
+      "to": "To",
+      "method": "Split: {{method}}",
+      "original": "Original amount: {{amount}}",
+      "rate": "Rate: 1 {{from}} = {{rate}} {{to}}",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleted": {
+        "expense": "Expense deleted",
+        "income": "Income deleted",
+        "transfer": "Payment deleted"
+      }
+    }
+  },
+  "categories": {
+    "food": "Food",
+    "groceries": "Groceries",
+    "transport": "Transport",
+    "lodging": "Lodging",
+    "entertainment": "Fun",
+    "shopping": "Shopping",
+    "utilities": "Bills",
+    "health": "Health",
+    "other": "Other"
+  },
+  "currencyPicker": {
+    "title": "Choose currency",
+    "search": "Search currency",
+    "suggested": "Suggested",
+    "all": "All currencies",
+    "noResults": "No currency matches."
+  },
+  "memberPicker": {
+    "title": "Choose a person"
+  },
+  "errors": {
+    "unknown": "Something went wrong. Try again.",
+    "repository": {
+      "NOT_FOUND": "This doesn't exist anymore: it may have been deleted.",
+      "CONFLICT": "This changed while you were editing it. Open it again to see the latest version.",
+      "VALIDATION": "Check what you entered.",
+      "MEMBER_HAS_BALANCE": "That person has an outstanding balance.",
+      "LAST_MEMBER": "A group needs at least one member.",
+      "MEMBER_TAKEN": "That member is already linked to someone else.",
+      "CURRENCY_LOCKED": "The currency can't change because the group already has activity.",
+      "GROUP_ARCHIVED": "The group is archived: restore it to make changes."
+    },
+    "domain": {
+      "UNKNOWN_CURRENCY": "That currency isn't available.",
+      "CURRENCY_MISMATCH": "Currencies can't be mixed.",
+      "INVALID_AMOUNT": "Check the amount.",
+      "AMOUNT_OUT_OF_RANGE": "The amount is too large.",
+      "INVALID_SPLIT": "The split doesn't match the total.",
+      "INVALID_PAYERS": "What was paid doesn't add up to the total.",
+      "INVALID_RATE": "Check the exchange rate.",
+      "INVALID_TRANSFER": "Check the payment.",
+      "DUPLICATE_MEMBER": "Someone appears twice.",
+      "UNBALANCED": "The amounts don't add up."
     }
   }
 }

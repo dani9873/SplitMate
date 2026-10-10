@@ -10,6 +10,7 @@ import { useCallback, useEffect } from 'react';
 import { openAppDatabase } from '@/db/client';
 import { DatabaseGate, useDatabaseSetup } from '@/db/DatabaseProvider';
 import { usePreferences, useSystemLanguageSync } from '@/features/settings';
+import { UndoProvider } from '@/features/undo';
 import { logger } from '@/lib/logger';
 import { fontAssets, ThemeProvider } from '@/ui';
 
@@ -50,7 +51,18 @@ export default function RootLayout() {
   return (
     <ThemeProvider onLayout={hideSplash}>
       <DatabaseGate database={database}>
-        <Stack screenOptions={{ headerShown: false }} />
+        <UndoProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            {/* Los formularios suben como modales: se cierran y vuelven a donde estabas. */}
+            <Stack.Screen name="groups/new" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="groups/[groupId]/entries/new" options={{ presentation: 'modal' }} />
+            <Stack.Screen
+              name="groups/[groupId]/entries/[entryId]/edit"
+              options={{ presentation: 'modal' }}
+            />
+          </Stack>
+        </UndoProvider>
       </DatabaseGate>
     </ThemeProvider>
   );

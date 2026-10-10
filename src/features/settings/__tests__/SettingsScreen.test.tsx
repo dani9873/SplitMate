@@ -1,7 +1,8 @@
-import { act, render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, screen, userEvent, waitFor } from '@testing-library/react-native';
 import { colorScheme } from 'nativewind';
 
 import { i18n } from '@/i18n';
+import { renderWithDatabase } from '@/test/render';
 
 import { usePreferences } from '../preferences-store';
 import { SettingsScreen } from '../SettingsScreen';
@@ -28,7 +29,7 @@ describe('SettingsScreen', () => {
   });
 
   it('indica qué idioma usa el dispositivo cuando se sigue al sistema', async () => {
-    await render(<SettingsScreen />);
+    await renderWithDatabase(<SettingsScreen />);
 
     const system = screen.getByRole('radio', { name: 'Idioma del dispositivo' });
     expect(system).toBeChecked();
@@ -37,7 +38,7 @@ describe('SettingsScreen', () => {
 
   it('cambia el idioma de la interfaz al instante y marca la opción', async () => {
     const user = userEvent.setup();
-    await render(<SettingsScreen />);
+    await renderWithDatabase(<SettingsScreen />);
     expect(screen.getByRole('header', { name: 'Ajustes' })).toBeOnTheScreen();
 
     await user.press(screen.getByRole('radio', { name: 'English' }));
@@ -50,7 +51,7 @@ describe('SettingsScreen', () => {
 
   it('cambia el tema al instante y marca la opción', async () => {
     const user = userEvent.setup();
-    await render(<SettingsScreen />);
+    await renderWithDatabase(<SettingsScreen />);
 
     await user.press(screen.getByRole('radio', { name: 'Oscuro' }));
 
