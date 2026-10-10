@@ -79,11 +79,13 @@ describe('SegmentedControl', () => {
         segments={[
           { value: 'expense', label: 'Gasto' },
           { value: 'income', label: 'Ingreso' },
+          { value: 'percent', label: '%', accessibilityLabel: 'Porcentajes' },
         ]}
       />,
     );
     expect(screen.getByRole('tab', { name: 'Gasto' })).toBeSelected();
     expect(screen.getByRole('tab', { name: 'Ingreso' })).not.toBeSelected();
+    expect(screen.getByRole('tab', { name: 'Porcentajes' })).toHaveTextContent('%');
     await user.press(screen.getByRole('tab', { name: 'Ingreso' }));
     expect(onChange).toHaveBeenCalledWith('income');
   });

@@ -230,10 +230,9 @@ export function SplitSection({
         segments={SPLIT_METHODS.map((method) => ({
           value: method,
           testID: `split-${method}`,
-          label:
-            method === 'percentage'
-              ? t('entries.split.methodA11y.percentage')
-              : t(`entries.split.method.${method}`),
+          label: t(`entries.split.method.${method}`),
+          accessibilityLabel:
+            method === 'percentage' ? t('entries.split.methodA11y.percentage') : undefined,
         }))}
       />
       <View className="gap-1">

@@ -7,6 +7,8 @@ export interface Segment<T extends string> {
   readonly value: T;
   /** Texto visible, ya traducido. */
   readonly label: string;
+  /** Nombre para lectores de pantalla si el texto visible es un símbolo, como "%". */
+  readonly accessibilityLabel?: string;
   readonly testID?: string;
 }
 
@@ -40,7 +42,7 @@ export function SegmentedControl<T extends string>({
             key={segment.value}
             testID={segment.testID}
             accessibilityRole="tab"
-            accessibilityLabel={segment.label}
+            accessibilityLabel={segment.accessibilityLabel ?? segment.label}
             accessibilityState={{ selected }}
             onPress={() => onChange(segment.value)}
             className={cn(

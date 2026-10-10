@@ -145,7 +145,8 @@ const KeypadButton = memo(function KeypadButton({
           allowFontScaling={false}
           style={{
             fontFamily: kind === 'operator' ? fontFamily.bold : fontFamily.semibold,
-            fontSize: 26,
+            // Los signos de operación son glifos más pequeños que los dígitos: se compensan.
+            fontSize: kind === 'operator' ? 32 : 26,
             fontVariant: ['tabular-nums'],
             color: kind === 'operator' ? colors.accentStrong : colors.fg,
           }}
