@@ -86,6 +86,7 @@ describe('grupos', () => {
     const base = { name: group.name, emoji: null, color: 'teal' as const };
     const inEur = ctx.repos.groups.update(group.id, 1, { ...base, currency: 'EUR' });
     expect(inEur.currency).toBe('EUR');
+    expect(ctx.repos.groups.hasMovements(group.id)).toBe(false);
     ctx.repos.transfers.add({
       groupId: group.id,
       fromMemberId: ids[1] as string,
@@ -94,6 +95,7 @@ describe('grupos', () => {
       currency: 'EUR',
       occurredOn: '2026-10-09',
     });
+    expect(ctx.repos.groups.hasMovements(group.id)).toBe(true);
     expect(() => ctx.repos.groups.update(group.id, 2, { ...base, currency: 'USD' })).toThrow(
       code('CURRENCY_LOCKED'),
     );

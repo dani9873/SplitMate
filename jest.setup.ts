@@ -13,3 +13,6 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 
 // expo-sqlite es nativo: las pruebas usan sql.js. Los avisos de cambios van por el bus propio.
 jest.mock('expo-sqlite', () => ({}));
+
+// FlashList mide el tamaño real de la pantalla; en Jest usa medidas fijas.
+require('@shopify/flash-list/jestSetup');

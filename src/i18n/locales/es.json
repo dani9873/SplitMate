@@ -11,7 +11,82 @@
     "title": "Grupos",
     "empty": {
       "title": "Aún no tienes grupos",
-      "description": "En un grupo llevas con tus amigos la cuenta de los gastos compartidos. Pronto podrás crear el primero."
+      "description": "Crea un grupo para llevar los gastos de un viaje, la casa o cualquier plan compartido.",
+      "action": "Crear grupo"
+    },
+    "new": "Nuevo grupo",
+    "memberCount_one": "{{count}} miembro",
+    "memberCount_other": "{{count}} miembros",
+    "chooseMe": "Elige quién eres",
+    "archived": "Archivados ({{count}})",
+    "archivedBadge": "Archivado",
+    "cardA11y": "{{name}}, {{members}}, {{balance}}",
+    "form": {
+      "createTitle": "Nuevo grupo",
+      "name": "Nombre del grupo",
+      "namePlaceholder": "Viaje a la costa",
+      "currency": "Moneda del grupo",
+      "currencyHint": "Los saldos se calculan en esta moneda.",
+      "currencyLocked": "No cambia porque el grupo ya tiene movimientos.",
+      "emoji": "Ícono",
+      "noEmoji": "Usar la inicial",
+      "emojiA11y": "Ícono {{emoji}}",
+      "color": "Color",
+      "colors": {
+        "teal": "Verde azulado",
+        "coral": "Coral",
+        "amber": "Ámbar",
+        "plum": "Ciruela",
+        "sky": "Cielo",
+        "olive": "Oliva",
+        "rose": "Rosa",
+        "slate": "Pizarra"
+      },
+      "yourName": "Tu nombre",
+      "yourNamePlaceholder": "Cómo te llaman en el grupo",
+      "others": "Con quién",
+      "memberLabel": "Persona {{number}}",
+      "memberPlaceholder": "Nombre",
+      "addMember": "Agregar persona",
+      "removeMember": "Quitar a la persona {{number}}",
+      "create": "Crear grupo",
+      "save": "Guardar cambios",
+      "errors": {
+        "nameRequired": "Escribe un nombre para el grupo",
+        "tooLong": "Máximo 80 caracteres",
+        "yourNameRequired": "Escribe tu nombre",
+        "duplicate": "Ya hay alguien con ese nombre",
+        "tooMany": "Un grupo tiene como máximo 50 miembros"
+      }
+    },
+    "settings": {
+      "title": "Ajustes del grupo",
+      "details": "Datos del grupo",
+      "saved": "Cambios guardados",
+      "members": "Miembros",
+      "addMember": "Agregar miembro",
+      "newMemberLabel": "Nombre del nuevo miembro",
+      "rename": "Renombrar a {{name}}",
+      "renameTitle": "Renombrar miembro",
+      "renameLabel": "Nombre",
+      "remove": "Quitar a {{name}}",
+      "removeTitle": "¿Quitar a {{name}}?",
+      "removeMessage": "Dejará de aparecer en los formularios, pero seguirá en el historial.",
+      "removeConfirm": "Quitar",
+      "cannotRemoveTitle": "No se puede quitar a {{name}}",
+      "cannotRemoveOwes": "{{name}} debe {{amount}}. Liquida su saldo antes de quitarlo.",
+      "cannotRemoveOwed": "A {{name}} le deben {{amount}}. Liquida su saldo antes de quitarlo.",
+      "cannotRemoveLast": "Un grupo necesita al menos un miembro.",
+      "meTitle": "¿Quién eres en este grupo?",
+      "meHint": "Tu saldo y tu parte se calculan desde este miembro.",
+      "noneOfThem": "No soy ninguno",
+      "youTag": "Tú",
+      "archive": "Archivar grupo",
+      "archiveHint": "Queda en solo lectura y sale de tu lista. Puedes restaurarlo cuando quieras.",
+      "archiveTitle": "¿Archivar {{name}}?",
+      "archiveMessage": "Nadie podrá agregar ni cambiar movimientos hasta que lo restaures.",
+      "archiveConfirm": "Archivar",
+      "unarchive": "Restaurar grupo"
     }
   },
   "activity": {
@@ -19,7 +94,38 @@
     "empty": {
       "title": "Todavía no hay actividad",
       "description": "Aquí verás los gastos, pagos y cambios de tus grupos."
-    }
+    },
+    "emptyGroup": {
+      "title": "Sin movimientos todavía",
+      "description": "Añade el primer gasto: cuánto fue, quién pagó y entre quiénes se divide.",
+      "action": "Añadir gasto"
+    },
+    "noResults": {
+      "title": "Nada coincide",
+      "description": "Prueba con otra búsqueda o quita los filtros.",
+      "action": "Quitar filtros"
+    },
+    "search": "Buscar movimientos",
+    "filters": {
+      "category": "Categoría",
+      "member": "Miembro",
+      "anyCategory": "Todas",
+      "anyMember": "Todos",
+      "categoryA11y": "Filtrar por categoría: {{value}}",
+      "memberA11y": "Filtrar por miembro: {{value}}",
+      "clear": "Quitar filtros"
+    },
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "paidBy": "Pagó {{name}}",
+    "receivedBy": "Recibió {{name}}",
+    "paidByMany_one": "Pagó {{count}} persona",
+    "paidByMany_other": "Pagaron {{count}} personas",
+    "receivedByMany_one": "Recibió {{count}} persona",
+    "receivedByMany_other": "Recibieron {{count}} personas",
+    "yourShare": "tu parte {{amount}}",
+    "transfer": "{{from}} le pagó a {{to}}",
+    "rowA11y": "{{title}}, {{amount}}, {{detail}}"
   },
   "settings": {
     "title": "Ajustes",
@@ -83,6 +189,243 @@
     },
     "toast": {
       "dismiss": "Cerrar aviso"
+    }
+  },
+  "common": {
+    "youSuffix": "{{name}} (tú)",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "back": "Volver",
+    "edit": "Editar",
+    "delete": "Borrar",
+    "removedSuffix": "{{name}} (ya no está)",
+    "notFound": {
+      "title": "No encontramos esto",
+      "description": "Puede que se haya borrado o que el enlace esté mal.",
+      "action": "Ir a mis grupos"
+    }
+  },
+  "groupDetail": {
+    "sections": "Secciones del grupo",
+    "activity": "Movimientos",
+    "balances": "Saldos",
+    "settings": "Ajustes del grupo",
+    "archived": "Este grupo está archivado: es de solo lectura.",
+    "restore": "Restaurar",
+    "chooseMe": "Elige quién eres para ver tu saldo.",
+    "chooseMeAction": "Elegir"
+  },
+  "balance": {
+    "youAreOwed": "Te deben {{amount}}",
+    "youOwe": "Debes {{amount}}",
+    "youAreSettled": "Estás al día",
+    "isOwed": "le deben {{amount}}",
+    "owes": "debe {{amount}}",
+    "settled": "al día",
+    "memberA11y": "{{name}}, {{status}}",
+    "suggested": "Transferencias sugeridas",
+    "suggestedHint": "El mínimo de pagos para quedar a mano.",
+    "transfer": "{{from}} → {{to}}",
+    "transferA11y": "{{from}} le paga {{amount}} a {{to}}",
+    "markPaid": "Marcar como pagada",
+    "markPaidA11y": "Marcar como pagada: {{from}} le paga {{amount}} a {{to}}",
+    "paid": "Pago registrado: {{from}} le pagó {{amount}} a {{to}}",
+    "allSettled": {
+      "title": "Todos están al día",
+      "description": "Nadie le debe nada a nadie en este grupo."
+    }
+  },
+  "undo": {
+    "action": "Deshacer",
+    "hint": "Puedes deshacerlo.",
+    "failed": "No se pudo deshacer: el movimiento cambió."
+  },
+  "entries": {
+    "add": "Añadir",
+    "addA11y": "Añadir gasto, ingreso o transferencia",
+    "newTitle": {
+      "expense": "Nuevo gasto",
+      "income": "Nuevo ingreso",
+      "transfer": "Nueva transferencia"
+    },
+    "editTitle": {
+      "expense": "Editar gasto",
+      "income": "Editar ingreso",
+      "transfer": "Editar transferencia"
+    },
+    "type": {
+      "label": "Tipo de movimiento",
+      "expense": "Gasto",
+      "income": "Ingreso",
+      "transfer": "Transferencia"
+    },
+    "amount": {
+      "label": "Monto",
+      "a11y": "Monto: {{amount}}",
+      "a11yEmpty": "Monto: vacío",
+      "hint": "Abre el teclado de la calculadora"
+    },
+    "problems": {
+      "EMPTY": "Escribe un monto",
+      "INCOMPLETE": "Completa la operación",
+      "MALFORMED": "Revisa el monto",
+      "TOO_MANY_DECIMALS_zero": "Esta moneda no usa decimales",
+      "TOO_MANY_DECIMALS_one": "Esta moneda admite {{count}} decimal",
+      "TOO_MANY_DECIMALS_other": "Esta moneda admite {{count}} decimales",
+      "DIVISION_BY_ZERO": "No se puede dividir entre cero",
+      "NOT_POSITIVE": "El monto debe ser mayor que cero",
+      "TOO_LARGE": "El monto máximo es {{max}}",
+      "TOO_LONG": "La operación es demasiado larga"
+    },
+    "title": {
+      "label": "Descripción",
+      "placeholder": "Cena, taxi, hotel…",
+      "required": "Escribe una descripción",
+      "tooLong": "Máximo 120 caracteres"
+    },
+    "category": {
+      "label": "Categoría"
+    },
+    "date": {
+      "label": "Fecha",
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "other": "Otra fecha",
+      "pick": "Elegir fecha"
+    },
+    "currency": {
+      "label": "Moneda",
+      "change": "Cambiar moneda, ahora {{currency}}",
+      "rateLabel": "1 {{from}} en {{to}}",
+      "rateHint": "Cuántos {{to}} vale 1 {{from}}",
+      "converted": "Equivale a {{amount}}",
+      "rateRequired": "Escribe la tasa de cambio",
+      "rateInvalid": "Escribe un número mayor que cero"
+    },
+    "payer": {
+      "label": {
+        "expense": "Pagó",
+        "income": "Recibió"
+      },
+      "pick": {
+        "expense": "Elegir quién pagó",
+        "income": "Elegir quién recibió"
+      },
+      "change": "{{label}}: {{name}}. Cambiar",
+      "multiple": {
+        "expense": "Varios pagadores",
+        "income": "Varios receptores"
+      },
+      "amountLabel": "Monto de {{name}}",
+      "remaining": "Faltan {{amount}}",
+      "excess": "Sobran {{amount}}",
+      "matches": "Cuadra con el total"
+    },
+    "split": {
+      "label": {
+        "expense": "Dividir entre",
+        "income": "Para quién"
+      },
+      "method": {
+        "label": "Forma de dividir",
+        "equal": "Igual",
+        "exact": "Montos",
+        "percentage": "%",
+        "shares": "Partes"
+      },
+      "methodA11y": {
+        "percentage": "Porcentajes"
+      },
+      "shareA11y": "le toca {{amount}}",
+      "amountLabel": "Monto de {{name}}",
+      "percentLabel": "Porcentaje de {{name}}",
+      "sharesLabel": "partes de {{name}}",
+      "remaining": "Faltan {{amount}}",
+      "excess": "Sobran {{amount}}",
+      "percentRemaining": "Falta {{value}} %",
+      "percentExcess": "Sobra {{value}} %",
+      "matches": "Cuadra con el total",
+      "noParticipants": "Elige al menos una persona",
+      "noShares": "Asigna al menos una parte",
+      "percentInvalid": "Usa hasta dos decimales"
+    },
+    "transfer": {
+      "from": "De",
+      "to": "Para",
+      "pickFrom": "Elegir quién paga",
+      "pickTo": "Elegir quién recibe",
+      "sameMember": "Elige dos personas distintas"
+    },
+    "save": "Guardar",
+    "cannotSave": "No se puede guardar todavía: {{reason}}",
+    "draft": {
+      "found": "Tienes un borrador: {{summary}}",
+      "foundUntitled": "Tienes un borrador sin terminar.",
+      "restore": "Recuperar",
+      "discard": "Descartar"
+    },
+    "detail": {
+      "paidBy": "Pagado por",
+      "receivedBy": "Recibido por",
+      "splitAmong": "Dividido entre",
+      "for": "Para quién",
+      "from": "De",
+      "to": "Para",
+      "method": "Forma de dividir: {{method}}",
+      "original": "Monto original: {{amount}}",
+      "rate": "Tasa: 1 {{from}} = {{rate}} {{to}}",
+      "edit": "Editar",
+      "delete": "Borrar",
+      "deleted": {
+        "expense": "Gasto borrado",
+        "income": "Ingreso borrado",
+        "transfer": "Transferencia borrada"
+      }
+    }
+  },
+  "categories": {
+    "food": "Comida",
+    "groceries": "Mercado",
+    "transport": "Transporte",
+    "lodging": "Alojamiento",
+    "entertainment": "Ocio",
+    "shopping": "Compras",
+    "utilities": "Servicios",
+    "health": "Salud",
+    "other": "Otros"
+  },
+  "currencyPicker": {
+    "title": "Elegir moneda",
+    "search": "Buscar moneda",
+    "suggested": "Sugeridas",
+    "all": "Todas las monedas",
+    "noResults": "Ninguna moneda coincide."
+  },
+  "memberPicker": {
+    "title": "Elegir persona"
+  },
+  "errors": {
+    "unknown": "Algo salió mal. Inténtalo de nuevo.",
+    "repository": {
+      "NOT_FOUND": "Esto ya no existe: puede que se haya borrado.",
+      "CONFLICT": "Esto cambió mientras lo editabas. Vuelve a abrirlo para ver la última versión.",
+      "VALIDATION": "Revisa los datos ingresados.",
+      "MEMBER_HAS_BALANCE": "Esa persona tiene saldo pendiente.",
+      "LAST_MEMBER": "Un grupo necesita al menos un miembro.",
+      "CURRENCY_LOCKED": "La moneda no cambia porque el grupo ya tiene movimientos.",
+      "GROUP_ARCHIVED": "El grupo está archivado: restáuralo para hacer cambios."
+    },
+    "domain": {
+      "UNKNOWN_CURRENCY": "Esa moneda no está disponible.",
+      "CURRENCY_MISMATCH": "No se pueden mezclar monedas.",
+      "INVALID_AMOUNT": "Revisa el monto.",
+      "AMOUNT_OUT_OF_RANGE": "El monto es demasiado grande.",
+      "INVALID_SPLIT": "La división no cuadra con el total.",
+      "INVALID_PAYERS": "Lo pagado no suma el total.",
+      "INVALID_RATE": "Revisa la tasa de cambio.",
+      "INVALID_TRANSFER": "Revisa la transferencia.",
+      "DUPLICATE_MEMBER": "Hay una persona repetida.",
+      "UNBALANCED": "Los montos no cuadran."
     }
   }
 }

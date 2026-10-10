@@ -1,7 +1,13 @@
 export { allocate, compareIds, type MemberAmount, type MemberId, type Weight } from './allocate';
 export { computeBalances, type Balance, type LedgerEntry } from './balances';
 export { convert, convertParts, parseRate, type Rate } from './convert';
-export { currencyCode, isKnownCurrency, minorUnits, type CurrencyCode } from './currency';
+export {
+  currencyCode,
+  isKnownCurrency,
+  KNOWN_CURRENCIES,
+  minorUnits,
+  type CurrencyCode,
+} from './currency';
 export { DomainError, type DomainErrorCode } from './errors';
 export {
   evaluateAmount,

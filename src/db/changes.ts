@@ -11,6 +11,18 @@ export type TableName =
   | 'expense_splits'
   | 'transfers';
 
+/** Todas las tablas sincronizables: para lecturas que dependen de cualquier dato de un grupo. */
+export const ALL_TABLES: readonly TableName[] = [
+  'users',
+  'groups',
+  'group_members',
+  'categories',
+  'expenses',
+  'expense_payers',
+  'expense_splits',
+  'transfers',
+];
+
 /**
  * Quién escribió: la app (`local`) o la sincronización (`sync`, Fase 4). La cola de envío
  * de la sincronización ignorará sus propios cambios por este campo.

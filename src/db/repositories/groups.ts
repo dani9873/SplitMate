@@ -187,6 +187,9 @@ export function createGroupsRepository(ctx: RepositoryContext) {
 
     list,
 
+    /** Verdadero si el grupo tiene gastos, ingresos o transferencias activos. */
+    hasMovements,
+
     get(id: string): Group | undefined {
       return db
         .select()
