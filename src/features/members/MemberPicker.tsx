@@ -32,11 +32,12 @@ export function MemberPicker({
   return (
     <Sheet visible={visible} onClose={onClose} title={title} testID="member-picker">
       <ScrollView accessibilityRole="radiogroup" contentContainerClassName="pb-2">
-        {members.map((member) => {
+        {members.map((member, index) => {
           const selected = member.id === value;
           return (
             <Pressable
               key={member.id}
+              testID={`member-option-${index}`}
               accessibilityRole="radio"
               accessibilityLabel={member.label}
               accessibilityState={{ checked: selected }}

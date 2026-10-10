@@ -157,7 +157,7 @@ export function PayersSection({
       </View>
       {values.multiplePayers ? (
         <View className="gap-2">
-          {members.map((member) => {
+          {members.map((member, index) => {
             const field = `payer:${member.id}`;
             return (
               <View key={member.id} className="flex-row items-center gap-3">
@@ -167,7 +167,7 @@ export function PayersSection({
                 </Text>
                 <AmountField
                   size="compact"
-                  testID={`payer-amount-${member.id}`}
+                  testID={`payer-amount-${index}`}
                   label={t('entries.payer.amountLabel', { name: member.label })}
                   expression={values.payerExpressions[member.id] ?? ''}
                   currency={values.currency}
@@ -236,13 +236,13 @@ export function SplitSection({
         }))}
       />
       <View className="gap-1">
-        {members.map((member) => {
+        {members.map((member, index) => {
           switch (values.splitMethod) {
             case 'equal':
               return (
                 <Checkbox
                   key={member.id}
-                  testID={`participant-${member.id}`}
+                  testID={`participant-${index}`}
                   label={member.label}
                   checked={Boolean(values.participants[member.id])}
                   onChange={(checked) =>
@@ -265,7 +265,7 @@ export function SplitSection({
                   </Text>
                   <AmountField
                     size="compact"
-                    testID={`exact-amount-${member.id}`}
+                    testID={`exact-amount-${index}`}
                     label={t('entries.split.amountLabel', { name: member.label })}
                     expression={values.exactExpressions[member.id] ?? ''}
                     currency={values.currency}
@@ -287,7 +287,7 @@ export function SplitSection({
                   </Text>
                   <View className="flex-row items-center gap-1">
                     <TextInput
-                      testID={`percent-${member.id}`}
+                      testID={`percent-${index}`}
                       accessibilityLabel={t('entries.split.percentLabel', { name: member.label })}
                       value={values.percents[member.id] ?? ''}
                       onChangeText={(text) =>
@@ -315,6 +315,7 @@ export function SplitSection({
                     {shareText(member.id)}
                   </Text>
                   <Stepper
+                    testID={`shares-${index}`}
                     label={t('entries.split.sharesLabel', { name: member.label })}
                     value={values.shares[member.id] ?? 0}
                     min={0}

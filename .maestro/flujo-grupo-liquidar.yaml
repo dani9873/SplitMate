@@ -1,0 +1,243 @@
+# Recorrido completo de la Fase 2, el mismo de src/features/__tests__/flujo-grupo.test.tsx:
+# crear grupo, agregar personas, cuatro gastos (igual, montos, porcentajes y partes), ver
+# saldos, marcar las transferencias sugeridas como pagadas y comprobar que todo queda en cero.
+# Usa ids de prueba, así funciona con el teléfono en cualquier idioma. Instrucciones en README.md.
+appId: com.dani9873.splitmate
+name: Crear grupo, gastos con los cuatro métodos y liquidar hasta cero
+tags:
+  - fase-2
+---
+# Estado limpio y la app abierta directamente con la dirección de Metro: si se abre primero
+# el lanzador del cliente de desarrollo, ignora el enlace mientras arranca.
+- clearState
+# Dirección de Metro, codificada para URL: `-e METRO_URL=...` o, por defecto, el puerto 8081
+# local, que sirve en el emulador y en un teléfono por USB tras `adb reverse tcp:8081 tcp:8081`.
+# `disableAutoLaunch=1` evita que el menú de desarrollo se abra solo (y su bienvenida), y
+# `disableFab=1` oculta su botón flotante, que puede tapar elementos de la app.
+- openLink: splitmate://expo-development-client/?url=${METRO_URL || 'http%3A%2F%2F127.0.0.1%3A8081'}&disableAutoLaunch=1&disableFab=1
+
+- extendedWaitUntil:
+    visible:
+      id: new-group
+    timeout: 120000
+
+# 1. Grupo con tres personas. El formulario es largo: cada campo se busca desplazando.
+- tapOn:
+    id: new-group
+- tapOn:
+    id: group-name
+- inputText: Viaje
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: your-name
+- tapOn:
+    id: your-name
+- inputText: Ana
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: member-name-0
+- tapOn:
+    id: member-name-0
+- inputText: Beto
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: member-name-1
+- tapOn:
+    id: member-name-1
+- inputText: Carla
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: create-group
+- tapOn:
+    id: create-group
+- extendedWaitUntil:
+    visible:
+      id: add-entry
+    timeout: 15000
+
+# 2. Hotel: 90, pagó Ana, por igual entre los tres.
+- tapOn:
+    id: add-entry
+- tapOn:
+    id: keypad-9
+- tapOn:
+    id: keypad-0
+- tapOn:
+    id: keypad-done
+- tapOn:
+    id: entry-title
+- inputText: Hotel
+- hideKeyboard
+- tapOn:
+    id: save-entry
+
+# 3. Cena: 60, pagó Beto, por montos: 10, 20 y 30.
+- tapOn:
+    id: add-entry
+- tapOn:
+    id: keypad-6
+- tapOn:
+    id: keypad-0
+- tapOn:
+    id: keypad-done
+- tapOn:
+    id: entry-title
+- inputText: Cena
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: payer-select
+- tapOn:
+    id: payer-select
+- tapOn:
+    id: member-option-1
+- scrollUntilVisible:
+    element:
+      id: split-exact
+- tapOn:
+    id: split-exact
+- scrollUntilVisible:
+    element:
+      id: exact-amount-2
+- tapOn:
+    id: exact-amount-0
+- tapOn:
+    id: keypad-1
+- tapOn:
+    id: keypad-0
+- scrollUntilVisible:
+    element:
+      id: exact-amount-1
+- tapOn:
+    id: exact-amount-1
+- tapOn:
+    id: keypad-2
+- tapOn:
+    id: keypad-0
+- scrollUntilVisible:
+    element:
+      id: exact-amount-2
+- tapOn:
+    id: exact-amount-2
+- tapOn:
+    id: keypad-3
+- tapOn:
+    id: keypad-0
+- tapOn:
+    id: keypad-done
+- tapOn:
+    id: save-entry
+
+# 4. Taxi: 100, pagó Carla, por porcentajes: 50, 25 y 25.
+- tapOn:
+    id: add-entry
+- tapOn:
+    id: keypad-1
+- tapOn:
+    id: keypad-0
+- tapOn:
+    id: keypad-0
+- tapOn:
+    id: keypad-done
+- tapOn:
+    id: entry-title
+- inputText: Taxi
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: payer-select
+- tapOn:
+    id: payer-select
+- tapOn:
+    id: member-option-2
+- scrollUntilVisible:
+    element:
+      id: split-percentage
+- tapOn:
+    id: split-percentage
+- scrollUntilVisible:
+    element:
+      id: percent-2
+- tapOn:
+    id: percent-0
+- inputText: '50'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: percent-1
+- tapOn:
+    id: percent-1
+- inputText: '25'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: percent-2
+- tapOn:
+    id: percent-2
+- inputText: '25'
+- hideKeyboard
+- tapOn:
+    id: save-entry
+
+# 5. Museo: 40, pagó Ana, por partes: 1, 2 y 1.
+- tapOn:
+    id: add-entry
+- tapOn:
+    id: keypad-4
+- tapOn:
+    id: keypad-0
+- tapOn:
+    id: keypad-done
+- tapOn:
+    id: entry-title
+- inputText: Museo
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: split-shares
+- tapOn:
+    id: split-shares
+- scrollUntilVisible:
+    element:
+      id: shares-1-increase
+- tapOn:
+    id: shares-1-increase
+- tapOn:
+    id: save-entry
+
+# 6. Saldos: Ana +30, Beto −35 y Carla +5. Las cifras no dependen del idioma.
+- tapOn:
+    id: section-balances
+- assertVisible:
+    id: balance-0
+    text: '.*30[.,]00.*'
+- assertVisible:
+    id: balance-1
+    text: '.*35[.,]00.*'
+- assertVisible:
+    id: balance-2
+    text: '.*5[.,]00.*'
+
+# 7. Liquidar con las dos transferencias sugeridas.
+- scrollUntilVisible:
+    element:
+      id: mark-paid-0
+- tapOn:
+    id: mark-paid-0
+- scrollUntilVisible:
+    element:
+      id: mark-paid-0
+- tapOn:
+    id: mark-paid-0
+
+# 8. Todos en cero.
+- extendedWaitUntil:
+    visible:
+      id: all-settled
+    timeout: 10000
+- assertNotVisible:
+    id: mark-paid-0

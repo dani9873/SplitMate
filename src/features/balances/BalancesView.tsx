@@ -125,7 +125,13 @@ function BalancesContent({ groupId, data }: { groupId: string; data: BalancesDat
     <ScrollView contentContainerClassName="gap-6 pb-28 pt-2" testID="balances-view">
       <Card padded={false}>
         {data.rows.map((row, index) => (
-          <BalanceRow key={row.memberId} row={row} max={max} divider={index > 0} />
+          <BalanceRow
+            key={row.memberId}
+            row={row}
+            max={max}
+            divider={index > 0}
+            testID={`balance-${index}`}
+          />
         ))}
       </Card>
 
@@ -155,6 +161,7 @@ function BalancesContent({ groupId, data }: { groupId: string; data: BalancesDat
                 divider={index > 0}
                 readOnly={data.archived}
                 onMarkPaid={() => markPaid(transfer)}
+                testID={`mark-paid-${index}`}
               />
             ))}
           </Card>
@@ -168,10 +175,12 @@ const BalanceRow = memo(function BalanceRow({
   row,
   max,
   divider,
+  testID,
 }: {
   row: BalanceRowData;
   max: number;
   divider: boolean;
+  testID: string;
 }) {
   const { t } = useTranslation();
   const { money } = useFormatters();
@@ -187,7 +196,7 @@ const BalanceRow = memo(function BalanceRow({
     <View
       accessible
       accessibilityLabel={t('balance.memberA11y', { name, status })}
-      testID={`balance-${row.memberId}`}
+      testID={testID}
       className={cn('gap-2 px-4 py-3', divider && 'border-t border-line')}
     >
       <View className="flex-row items-center gap-3">
@@ -237,6 +246,7 @@ function SettlementRow({
   divider,
   readOnly,
   onMarkPaid,
+  testID,
 }: {
   from: string;
   to: string;
@@ -244,6 +254,7 @@ function SettlementRow({
   divider: boolean;
   readOnly: boolean;
   onMarkPaid: () => void;
+  testID: string;
 }) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
@@ -267,6 +278,7 @@ function SettlementRow({
       </View>
       {readOnly ? null : (
         <Button
+          testID={testID}
           label={t('balance.markPaid')}
           accessibilityLabel={t('balance.markPaidA11y', { from, to, amount })}
           icon={CheckCheck}

@@ -71,17 +71,6 @@ async function choosePayer(user: User, name: string) {
   await user.press(within(picker).getByRole('radio', { name }));
 }
 
-/** Id del miembro con ese nombre en el único grupo de la prueba. */
-function memberId(name: string): string {
-  const [group] = ctx.repos.groups.list();
-  const member =
-    group && ctx.repos.members.listByGroup(group.id).find((m) => m.displayName === name);
-  if (!member) {
-    throw new Error(`No hay un miembro llamado ${name}`);
-  }
-  return member.id;
-}
-
 describe('flujo completo de un grupo', () => {
   beforeEach(async () => {
     ctx = await createTestRepositories();
@@ -116,12 +105,8 @@ describe('flujo completo de un grupo', () => {
     await startExpense(user, 'Cena', '60');
     await choosePayer(user, 'Beto');
     await press(user, 'split-exact');
-    for (const [name, amount] of [
-      ['Ana', '10'],
-      ['Beto', '20'],
-      ['Carla', '30'],
-    ] as const) {
-      await press(user, `exact-amount-${memberId(name)}`);
+    for (const [index, amount] of ['10', '20', '30'].entries()) {
+      await press(user, `exact-amount-${index}`);
       await typeAmount(user, amount);
     }
     await press(user, 'keypad-done');
@@ -133,11 +118,11 @@ describe('flujo completo de un grupo', () => {
     await startExpense(user, 'Taxi', '100');
     await choosePayer(user, 'Carla');
     await press(user, 'split-percentage');
-    await user.type(screen.getByTestId(`percent-${memberId('Ana')}`), '50');
-    await user.type(screen.getByTestId(`percent-${memberId('Beto')}`), '25');
+    await user.type(screen.getByTestId('percent-0'), '50');
+    await user.type(screen.getByTestId('percent-1'), '25');
     expect(screen.getByText('Falta 25 %')).toBeOnTheScreen();
     expect(screen.getByTestId('save-entry')).toBeDisabled();
-    await user.type(screen.getByTestId(`percent-${memberId('Carla')}`), '25');
+    await user.type(screen.getByTestId('percent-2'), '25');
     await press(user, 'save-entry');
     await screen.findByTestId('group-detail-screen');
 
@@ -151,11 +136,12 @@ describe('flujo completo de un grupo', () => {
     // 6. Saldos: Ana +30, Beto −35, Carla +5.
     await press(user, 'section-balances');
     await screen.findByTestId('balances-view');
-    const balance = (name: string) =>
-      screen.getByTestId(`balance-${memberId(name)}`).props.accessibilityLabel as string;
-    expect(balance('Ana')).toMatch(/^Ana \(tú\), le deben .*30,00/);
-    expect(balance('Beto')).toMatch(/^Beto, debe .*35,00/);
-    expect(balance('Carla')).toMatch(/^Carla, le deben .*5,00/);
+    // Las filas van con "tú" primero y después en orden de creación.
+    const balance = (index: number) =>
+      screen.getByTestId(`balance-${index}`).props.accessibilityLabel as string;
+    expect(balance(0)).toMatch(/^Ana \(tú\), le deben .*30,00/);
+    expect(balance(1)).toMatch(/^Beto, debe .*35,00/);
+    expect(balance(2)).toMatch(/^Carla, le deben .*5,00/);
 
     // 7. Liquidar con las dos transferencias sugeridas.
     const suggested = screen.getAllByRole('button', { name: /^Marcar como pagada: Beto le paga/ });
@@ -166,8 +152,8 @@ describe('flujo completo de un grupo', () => {
 
     // 8. Todos en cero.
     expect(await screen.findByTestId('all-settled')).toBeOnTheScreen();
-    for (const name of ['Ana', 'Beto', 'Carla']) {
-      expect(balance(name)).toMatch(/al día$/);
+    for (const index of [0, 1, 2]) {
+      expect(balance(index)).toMatch(/al día$/);
     }
     const { balances } = ctx.repos.balances.forGroup(ctx.repos.groups.list()[0]?.id as string);
     expect(balances.every((b) => b.amount.amount === 0)).toBe(true);

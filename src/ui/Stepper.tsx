@@ -14,13 +14,23 @@ export interface StepperProps {
   min?: number;
   max?: number;
   className?: string;
+  /** Base para los ids de prueba: `<testID>-decrease` y `<testID>-increase`. */
+  testID?: string;
 }
 
 /**
  * Número entero con botones − y +. Para lectores de pantalla es un control ajustable: se
  * desliza hacia arriba o abajo para cambiarlo.
  */
-export function Stepper({ value, onChange, label, min = 0, max = 99, className }: StepperProps) {
+export function Stepper({
+  value,
+  onChange,
+  label,
+  min = 0,
+  max = 99,
+  className,
+  testID,
+}: StepperProps) {
   const { t } = useTranslation();
   const change = (next: number) => onChange(Math.min(max, Math.max(min, next)));
   return (
@@ -36,6 +46,7 @@ export function Stepper({ value, onChange, label, min = 0, max = 99, className }
       className={cn('flex-row items-center', className)}
     >
       <IconButton
+        testID={testID && `${testID}-decrease`}
         icon={Minus}
         label={t('ui.stepper.decrease', { label })}
         tone="primary"
@@ -46,6 +57,7 @@ export function Stepper({ value, onChange, label, min = 0, max = 99, className }
         {String(value)}
       </Text>
       <IconButton
+        testID={testID && `${testID}-increase`}
         icon={Plus}
         label={t('ui.stepper.increase', { label })}
         tone="primary"
