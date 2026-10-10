@@ -1,5 +1,5 @@
 import { CalendarDays, ChevronDown } from 'lucide-react-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
 
@@ -396,10 +396,15 @@ export function CategoryField({
   onChange: (id: string | null) => void;
 }) {
   const { t } = useTranslation();
+  const scrollRef = useRef<ScrollView>(null);
+  // Al abrir con una categoría elegida (al editar), la fila se desplaza hasta ella una vez.
+  const [initial] = useState(value);
+  const scrolled = useRef(false);
   return (
     <View className="gap-2">
       <SectionLabel>{t('entries.category.label')}</SectionLabel>
       <ScrollView
+        ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerClassName="gap-2"
@@ -414,6 +419,17 @@ export function CategoryField({
             icon={categoryIcon(category.icon)}
             selected={category.id === value}
             onPress={() => onChange(category.id === value ? null : category.id)}
+            onLayout={
+              category.id === initial
+                ? (event) => {
+                    if (!scrolled.current) {
+                      scrolled.current = true;
+                      const x = Math.max(0, event.nativeEvent.layout.x - 20);
+                      scrollRef.current?.scrollTo({ x, animated: false });
+                    }
+                  }
+                : undefined
+            }
           />
         ))}
       </ScrollView>

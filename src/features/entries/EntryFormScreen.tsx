@@ -237,7 +237,11 @@ function EntryForm({ data, today }: { data: FormData; today: CalendarDate }) {
   );
   const { control, setValue, getValues, reset, handleSubmit } = useForm<EntryFormValues>({
     resolver: zodResolver(schema) as Resolver<EntryFormValues>,
-    defaultValues: data.initial,
+    // La tasa guardada usa punto; se edita con el separador decimal del idioma.
+    defaultValues: {
+      ...data.initial,
+      rate: data.initial.rate.replace('.', formatters.decimalSeparator),
+    },
   });
   const values = useWatch({ control }) as EntryFormValues;
   const evaluation = useMemo(() => evaluateEntry(values, context), [values, context]);

@@ -91,7 +91,7 @@ function DetailContent({ data }: { data: DetailData }) {
   const router = useRouter();
   const { repos } = useDatabase();
   const { offerUndo } = useUndo();
-  const { money, day } = useFormatters();
+  const { money, day, decimalSeparator } = useFormatters();
   const { colors } = useAppTheme();
   const categoryLabel = useCategoryLabel();
   const { item, archived, category } = data;
@@ -184,7 +184,8 @@ function DetailContent({ data }: { data: DetailData }) {
         <Text variant="caption" tone="muted">
           {t('entries.detail.rate', {
             from: item.amount.currency,
-            rate: item.exchangeRate,
+            // La tasa se guarda con punto; se muestra con el separador del idioma.
+            rate: item.exchangeRate.replace('.', decimalSeparator),
             to: item.groupAmount.currency,
           })}
         </Text>
