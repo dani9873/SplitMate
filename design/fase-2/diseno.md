@@ -231,13 +231,18 @@ al instante y muestra el aviso con "Deshacer".
 
 ### Actividad
 
-- En el grupo: lista agrupada por día con encabezados fijos ("Hoy", "Ayer", fecha larga),
+- En el grupo: lista agrupada por día con un encabezado por día ("Hoy", "Ayer", fecha larga),
   búsqueda por texto sin distinguir mayúsculas ni tildes y filtros por categoría y por
   miembro (participa como pagador, en la división o en la transferencia).
 - En la pestaña: lo mismo para todos los grupos, con el grupo en cada fila y sin filtro de
   miembro.
 - **Nunca se suman ni se comparan montos de monedas distintas.** Cada fila muestra su
   propia moneda; no hay totales entre grupos y el orden es por fecha.
+
+Los encabezados iban a ser fijos. En el emulador, los fijos de FlashList 2.0.2 mostraban un
+día equivocado tras borrar o restaurar un movimiento, hasta desplazar la lista: se recalculan
+antes de medir las filas nuevas. Quedan dentro de la lista, y la lista no mantiene su
+posición al insertar arriba, para que un movimiento nuevo o restaurado se vea.
 
 ## Deshacer
 

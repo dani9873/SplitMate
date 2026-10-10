@@ -92,8 +92,8 @@ describe('filtros de actividad', () => {
     expect(hasFilters({ ...NO_FILTERS, memberId: 'carla' })).toBe(true);
   });
 
-  it('agrupa por día con encabezados fijos', () => {
-    const { rows, stickyHeaderIndices } = groupByDay(items);
+  it('agrupa por día con un encabezado antes de cada día', () => {
+    const rows = groupByDay(items);
     expect(rows.map((row) => (row.type === 'day' ? row.date : row.item.id))).toEqual([
       '2026-10-09',
       't1',
@@ -101,7 +101,6 @@ describe('filtros de actividad', () => {
       '2026-10-08',
       'e1',
     ]);
-    expect(stickyHeaderIndices).toEqual([0, 3]);
-    expect(groupByDay([])).toEqual({ rows: [], stickyHeaderIndices: [] });
+    expect(groupByDay([])).toEqual([]);
   });
 });

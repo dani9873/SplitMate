@@ -72,6 +72,8 @@ export function GroupsScreen() {
           keyExtractor={(row) => (row.type === 'group' ? row.summary.group.id : 'archived')}
           getItemType={(row) => row.type}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 24 }}
+          // Un grupo nuevo aparece arriba y debe verse, no quedar fuera de la vista.
+          maintainVisibleContentPosition={{ disabled: true }}
           renderItem={({ item }) =>
             item.type === 'group' ? (
               <GroupCard summary={item.summary} onOpen={openGroup} />

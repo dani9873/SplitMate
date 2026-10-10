@@ -64,7 +64,7 @@ export function ActivityFeed({
     () => filterActivity(items, filters, categoryLabel),
     [items, filters, categoryLabel],
   );
-  const { rows, stickyHeaderIndices } = useMemo(() => groupByDay(filtered), [filtered]);
+  const rows = useMemo(() => groupByDay(filtered), [filtered]);
   const openItem = useCallback(
     (item: ActivityItem) => router.push(`/groups/${item.groupId}/entries/${item.id}`),
     [router],
@@ -148,12 +148,14 @@ export function ActivityFeed({
           data={rows}
           keyExtractor={(row) => row.key}
           getItemType={(row) => row.type}
-          stickyHeaderIndices={stickyHeaderIndices}
           showsVerticalScrollIndicator={false}
+          // Lo más reciente va arriba: un movimiento nuevo o restaurado debe verse. Mantener la
+          // posición, activo por defecto en FlashList 2, lo escondería por encima.
+          maintainVisibleContentPosition={{ disabled: true }}
           contentContainerStyle={{ paddingBottom: bottomInset }}
           renderItem={({ item: row }) =>
             row.type === 'day' ? (
-              <View className="bg-background pb-1 pt-3">
+              <View className="pb-1 pt-3">
                 <Text
                   variant="caption"
                   tone="muted"

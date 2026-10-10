@@ -74,22 +74,18 @@ export type ActivityRow =
 
 /**
  * Filas para la lista: un encabezado por día seguido de sus movimientos, ya ordenados del
- * más reciente al más antiguo. Devuelve también los índices de los encabezados fijos.
+ * más reciente al más antiguo. Los encabezados van dentro de la lista, no fijos: los fijos
+ * de FlashList 2.0.2 muestran un día equivocado tras borrar o restaurar hasta que se desplaza.
  */
-export function groupByDay(items: readonly ActivityItem[]): {
-  rows: ActivityRow[];
-  stickyHeaderIndices: number[];
-} {
+export function groupByDay(items: readonly ActivityItem[]): ActivityRow[] {
   const rows: ActivityRow[] = [];
-  const stickyHeaderIndices: number[] = [];
   let current: CalendarDate | null = null;
   for (const item of items) {
     if (item.occurredOn !== current) {
       current = item.occurredOn;
-      stickyHeaderIndices.push(rows.length);
       rows.push({ type: 'day', key: `day-${current}`, date: current });
     }
     rows.push({ type: 'item', key: item.id, item });
   }
-  return { rows, stickyHeaderIndices };
+  return rows;
 }

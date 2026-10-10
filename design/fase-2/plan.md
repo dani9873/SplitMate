@@ -232,7 +232,7 @@ drafts.get(groupId): EntryDraft | null;  drafts.save(groupId, draft);  drafts.di
 **Archivos:** `src/features/activity/*`, `app/(tabs)/activity.tsx`.
 
 - [ ] Filtro puro (`filterActivity`) con pruebas: texto sin tildes, categoría, miembro.
-- [ ] Agrupación por día con encabezados fijos.
+- [ ] Agrupación por día con un encabezado por día (ver la nota del diseño sobre los fijos).
 - [ ] Pestaña global con el grupo en cada fila y la moneda de cada fila, sin totales.
 - [ ] Commit.
 
