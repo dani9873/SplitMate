@@ -78,7 +78,9 @@ export const AmountField = memo(function AmountField({
         onPress={onActivate}
         className="gap-1 py-2"
       >
-        {hasOperator(expression) ? (
+        {/* Con un resultado válido, la operación va arriba en pequeño; si no, la cifra grande
+            ya muestra la operación y no se repite. */}
+        {formatted && hasOperator(expression) ? (
           <Text tone="muted" tabular numberOfLines={1}>
             {displayExpression(expression, decimalSeparator)}
           </Text>
