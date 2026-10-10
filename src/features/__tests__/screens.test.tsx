@@ -4,6 +4,7 @@ import { ActivityScreen } from '@/features/activity';
 import { GroupsScreen } from '@/features/groups';
 import { NotFoundScreen } from '@/features/navigation';
 import { changeLanguage } from '@/i18n';
+import { renderWithDatabase } from '@/test/render';
 
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
@@ -18,18 +19,18 @@ describe('pantallas base', () => {
 
   it('Grupos muestra su título y el estado vacío traducidos', async () => {
     await act(() => changeLanguage('es'));
-    await render(<GroupsScreen />);
+    await renderWithDatabase(<GroupsScreen />);
 
     expect(screen.getByRole('header', { name: 'Grupos' })).toBeOnTheScreen();
-    expect(screen.getByRole('header', { name: 'Aún no tienes grupos' })).toBeOnTheScreen();
+    expect(await screen.findByRole('header', { name: 'Aún no tienes grupos' })).toBeOnTheScreen();
   });
 
   it('Actividad muestra su título y el estado vacío traducidos', async () => {
     await act(() => changeLanguage('en'));
-    await render(<ActivityScreen />);
+    await renderWithDatabase(<ActivityScreen />);
 
     expect(screen.getByRole('header', { name: 'Activity' })).toBeOnTheScreen();
-    expect(screen.getByRole('header', { name: 'Nothing here yet' })).toBeOnTheScreen();
+    expect(await screen.findByRole('header', { name: 'Nothing here yet' })).toBeOnTheScreen();
   });
 
   it('la ruta inexistente lleva de vuelta a los grupos', async () => {

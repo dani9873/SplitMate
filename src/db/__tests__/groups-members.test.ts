@@ -228,6 +228,17 @@ describe('miembros', () => {
     expect(ctx.repos.groups.listSummaries()[0]?.me).toBeNull();
   });
 
+  it('lista los miembros que son "yo" en cada grupo', async () => {
+    const ctx = await createTestRepositories();
+    expect(ctx.repos.members.listMine()).toEqual([]);
+    const first = createTestGroup(ctx);
+    const second = createTestGroup(ctx);
+    expect(ctx.repos.members.listMine().map((m) => [m.groupId, m.id])).toEqual([
+      [first.group.id, first.ids[0]],
+      [second.group.id, second.ids[0]],
+    ]);
+  });
+
   it('"soy yo" crea el usuario local con el nombre del miembro si aún no existe', async () => {
     const ctx = await createTestRepositories();
     const creator = ctx.repos.users.create({ displayName: 'Importado' });

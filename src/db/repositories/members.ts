@@ -53,6 +53,19 @@ export function createMembersRepository(ctx: RepositoryContext) {
       return listMembers(db, groupId);
     },
 
+    /** Miembros activos vinculados al usuario local: "yo" en cada grupo. */
+    listMine(): Member[] {
+      const user = readLocalUser(db);
+      if (!user) {
+        return [];
+      }
+      return db
+        .select()
+        .from(groupMembers)
+        .where(and(eq(groupMembers.userId, user.id), isNull(groupMembers.deletedAt)))
+        .all();
+    },
+
     /** Todos los miembros, incluidos los quitados, para nombrarlos en el historial. */
     listAll(groupId: string): Member[] {
       return listAllMembers(db, groupId);
