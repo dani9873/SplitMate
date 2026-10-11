@@ -232,7 +232,7 @@ function PartyRow({
         divider && 'border-t border-line',
       )}
     >
-      <Text variant="label" tone="muted" className="w-16">
+      <Text variant="label" tone="muted" className="min-w-16 shrink-0">
         {label}
       </Text>
       <MemberAvatar name={name} />

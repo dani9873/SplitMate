@@ -89,7 +89,7 @@ export function MemberSelect({
         onPress={() => setOpen(true)}
         className="min-h-[52px] flex-row items-center gap-3 rounded-md border-[1.5px] border-line-strong bg-surface px-3 active:bg-surface-muted"
       >
-        <Text variant="label" tone="muted" className="w-16">
+        <Text variant="label" tone="muted" className="min-w-16 shrink-0">
           {label}
         </Text>
         {selected ? <MemberAvatar name={selected.label} highlight={selected.isMe} /> : null}
