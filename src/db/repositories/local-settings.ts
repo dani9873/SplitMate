@@ -9,6 +9,8 @@ import type { AppDatabase } from './types';
  */
 export const SETTING_KEYS = {
   localUserId: 'profile.userId',
+  /** Cuenta dueña de esta base. Una base con otro dueño no se abre. */
+  accountOwnerId: 'account.ownerId',
   entryDraft: (groupId: string) => `draft.entry.${groupId}`,
 } as const;
 

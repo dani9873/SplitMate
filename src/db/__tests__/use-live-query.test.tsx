@@ -47,7 +47,7 @@ function Harness(props: {
   scope: LiveQueryScope;
 }) {
   // `open` estable: una función nueva en cada render volvería a abrir la base sin fin.
-  const [open] = useState(() => async () => props.db);
+  const [open] = useState(() => async () => ({ db: props.db, close: () => {} }));
   const database = useDatabaseSetup(open, deps);
   return (
     <DatabaseGate database={database}>

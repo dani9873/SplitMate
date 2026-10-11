@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as Crypto from 'expo-crypto';
-import { SQLiteStorage } from 'expo-sqlite/kv-store';
 
+import { deviceStore } from '@/lib/device-store';
 import { secureKeyStore } from '@/lib/secure-key-store';
 
 import { createSupabaseClient } from './create-client';
@@ -10,12 +10,6 @@ import { expoAesGcm } from './expo-aes-gcm';
 import { createSessionCipher } from './session-cipher';
 import { createEncryptedStorage, type SupportedStorage } from './session-storage';
 import { installAuthWebCrypto } from './web-crypto';
-
-/**
- * Base del kv-store de expo-sqlite para la sesión cifrada. Vive en la carpeta de SQLite, que está
- * fuera del respaldo (reglas de Android y marca de iOS).
- */
-const AUTH_STORE_NAME = 'splitmate-auth.db';
 
 let app: { client: SupabaseClient; storage: SupportedStorage } | null = null;
 
@@ -44,7 +38,7 @@ export function getSupabase(): { client: SupabaseClient; storage: SupportedStora
       randomBytes: (length) => Crypto.getRandomBytes(length),
       aes: expoAesGcm,
     }),
-    store: new SQLiteStorage(AUTH_STORE_NAME),
+    store: deviceStore,
   });
   app = { client: createSupabaseClient({ env, storage }), storage };
   return app;

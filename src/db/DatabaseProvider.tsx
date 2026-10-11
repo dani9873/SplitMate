@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { logger } from '@/lib/logger';
 import { EmptyState, Screen, useAppTheme } from '@/ui';
 
+import type { OpenedDatabase } from './accounts';
 import { appRepositoryDeps } from './app-deps';
 import {
   createRepositories,
@@ -33,9 +34,12 @@ export interface DatabaseSetup {
 
 const DatabaseContext = createContext<DatabaseContextValue | null>(null);
 
-/** Abre la base al montar y permite reintentar si falla la apertura o una migración. */
+/**
+ * Abre la base al montar y permite reintentar si falla la apertura o una migración. La cierra al
+ * desmontar (al cerrar sesión) o al abrir otra.
+ */
 export function useDatabaseSetup(
-  open: () => Promise<AppDatabase>,
+  open: () => Promise<OpenedDatabase>,
   deps: RepositoryDeps = appRepositoryDeps,
 ): DatabaseSetup {
   const [state, setState] = useState<SetupState>({ status: 'loading' });
@@ -44,12 +48,19 @@ export function useDatabaseSetup(
 
   useEffect(() => {
     let cancelled = false;
+    let opened: OpenedDatabase | null = null;
     open().then(
-      (db) => {
-        if (!cancelled) {
-          setState({ status: 'ready', value: { db, repos: createRepositories(db, deps) } });
-          setSettledOnce(true);
+      (result) => {
+        if (cancelled) {
+          result.close();
+          return;
         }
+        opened = result;
+        setState({
+          status: 'ready',
+          value: { db: result.db, repos: createRepositories(result.db, deps) },
+        });
+        setSettledOnce(true);
       },
       (error: unknown) => {
         if (!cancelled) {
@@ -61,6 +72,11 @@ export function useDatabaseSetup(
     );
     return () => {
       cancelled = true;
+      const toClose = opened;
+      if (toClose) {
+        // Después de que las pantallas terminen de desmontarse: sus efectos aún pueden escribir.
+        setTimeout(() => toClose.close(), 0);
+      }
     };
   }, [open, deps, attempt]);
 

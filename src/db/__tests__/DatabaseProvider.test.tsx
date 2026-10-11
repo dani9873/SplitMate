@@ -3,8 +3,8 @@ import { Text } from 'react-native';
 
 import { changeLanguage } from '@/i18n';
 
+import type { OpenedDatabase } from '../accounts';
 import { DatabaseGate, useDatabase, useDatabaseSetup } from '../DatabaseProvider';
-import type { AppDatabase } from '../repositories';
 import { createTestDatabase } from '../test-utils';
 
 function GroupCount() {
@@ -12,13 +12,18 @@ function GroupCount() {
   return <Text>{`Grupos: ${repos.groups.list().length}`}</Text>;
 }
 
-function Harness({ open }: { open: () => Promise<AppDatabase> }) {
+function Harness({ open }: { open: () => Promise<OpenedDatabase> }) {
   const database = useDatabaseSetup(open);
   return (
     <DatabaseGate database={database}>
       <GroupCount />
     </DatabaseGate>
   );
+}
+
+async function openedTestDatabase() {
+  const { db } = await createTestDatabase();
+  return { db, close: jest.fn() };
 }
 
 describe('arranque de la base de datos', () => {
@@ -28,23 +33,24 @@ describe('arranque de la base de datos', () => {
   });
 
   afterEach(async () => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
     await act(() => changeLanguage('en'));
   });
 
   it('muestra la app cuando la base abre bien', async () => {
-    const { db } = await createTestDatabase();
-    await render(<Harness open={async () => db} />);
+    const opened = await openedTestDatabase();
+    await render(<Harness open={async () => opened} />);
     expect(await screen.findByText('Grupos: 0')).toBeOnTheScreen();
   });
 
   it('si la apertura o las migraciones fallan, muestra el error traducido y permite reintentar', async () => {
     const user = userEvent.setup();
-    const { db } = await createTestDatabase();
+    const opened = await openedTestDatabase();
     const open = jest
-      .fn<Promise<AppDatabase>, []>()
+      .fn<Promise<OpenedDatabase>, []>()
       .mockRejectedValueOnce(new Error('migración rota'))
-      .mockResolvedValueOnce(db);
+      .mockResolvedValueOnce(opened);
     await render(<Harness open={open} />);
 
     expect(
@@ -54,5 +60,28 @@ describe('arranque de la base de datos', () => {
 
     expect(await screen.findByText('Grupos: 0')).toBeOnTheScreen();
     expect(open).toHaveBeenCalledTimes(2);
+  });
+
+  it('cierra la base al desmontar, después de que las pantallas terminan', async () => {
+    jest.useFakeTimers();
+    const opened = await openedTestDatabase();
+    const { unmount } = await render(<Harness open={async () => opened} />);
+    expect(await screen.findByText('Grupos: 0')).toBeOnTheScreen();
+
+    await act(async () => unmount());
+    expect(opened.close).not.toHaveBeenCalled();
+    await act(async () => jest.runOnlyPendingTimers());
+    expect(opened.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('si la base termina de abrir después de desmontar, la cierra', async () => {
+    const opened = await openedTestDatabase();
+    let finish: (value: OpenedDatabase) => void = () => {};
+    const open = () => new Promise<OpenedDatabase>((resolve) => (finish = resolve));
+    const { unmount } = await render(<Harness open={open} />);
+
+    await act(async () => unmount());
+    await act(async () => finish(opened));
+    expect(opened.close).toHaveBeenCalledTimes(1);
   });
 });

@@ -3,9 +3,10 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 6, base por cuenta (`src/db/accounts.ts`): registro del dispositivo,
-adopción de la base de las Fases 1 y 2, dueño en `local_settings` y borrar los datos de una
-cuenta. Pendiente del usuario: permiso y contraseña para `supabase db push`.
+**Siguiente paso:** tarea 7, rutas protegidas y enlaces: `Stack.Protected` con `(auth)` y
+`(app)`, mover `(tabs)` y `groups` a `(app)`, `+native-intent` y `deep-links.ts`. Retirar
+`openLegacyDatabase` (transición del paso 6). Pendiente del usuario: permiso y contraseña para
+`supabase db push`.
 
 ## Pasos
 
@@ -21,7 +22,8 @@ cuenta. Pendiente del usuario: permiso y contraseña para `supabase db push`.
       expo-crypto (`expo-aes-gcm.ts`) se prueba en el emulador al cerrar la fase.
 - [x] 5. Cliente, servicio y proveedor de auth: supabase-js 2.117.3, 48 pruebas nuevas con un
       servidor de Auth falso (`src/lib/supabase/test-utils.ts`).
-- [ ] 6. Base por cuenta.
+- [x] 6. Base por cuenta: 13 pruebas con sql.js y un teléfono falso (archivos que solo abren
+      con su clave, como SQLCipher), más el cierre de la base al desmontar.
 - [ ] 7. Rutas protegidas y enlaces.
 - [ ] 8. Pantallas de auth y plantillas.
 - [ ] Punto de control: lista de ajustes de Auth para el panel de Supabase.
@@ -54,3 +56,11 @@ cuenta. Pendiente del usuario: permiso y contraseña para `supabase db push`.
 - Sin red, `signOut({ scope: 'local' })` de supabase-js no borra la sesión: el servicio la borra
   igual, como pide el diseño.
 - En RNTL 14, `render` y `act` son asíncronos: `await render(...)`.
+- expo-sqlite comparte la conexión de un mismo archivo (conteo de referencias) y no borra una
+  base abierta; `deleteDatabaseSync` borra solo el archivo, sin WAL ni SHM. Por eso
+  `deleteAccountData` cierra primero la base abierta de esa cuenta y pasa a
+  `journal_mode = DELETE` antes de borrar.
+- Nombres fijos por cuenta (`account-<userId>.db`, clave `splitmate.db.key.<userId>`): si el
+  registro del dispositivo se pierde, la cuenta igual encuentra su base. La base de las Fases
+  1 y 2 se detecta por su clave en el almacén seguro.
+- La sesión cifrada y el registro de cuentas comparten el kv-store `splitmate-device.db`.

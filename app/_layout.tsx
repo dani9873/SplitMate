@@ -7,7 +7,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect } from 'react';
 
-import { openAppDatabase } from '@/db/client';
+import { openLegacyDatabase } from '@/db/client';
 import { DatabaseGate, useDatabaseSetup } from '@/db/DatabaseProvider';
 import { usePreferences, useSystemLanguageSync } from '@/features/settings';
 import { UndoProvider } from '@/features/undo';
@@ -24,7 +24,7 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const preferencesReady = usePreferences((state) => state.hydrated);
-  const database = useDatabaseSetup(openAppDatabase);
+  const database = useDatabaseSetup(openLegacyDatabase);
   useSystemLanguageSync();
 
   useEffect(() => {
