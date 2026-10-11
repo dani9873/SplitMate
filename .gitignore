@@ -47,15 +47,10 @@ tsconfig.tsbuildinfo
 # ----------------------------------------
 # ARCHIVOS DE CONFIGURACIÓN DEL ENTORNO
 # (dotenv)
+# Ninguna variante se versiona, salvo el ejemplo con los nombres de las variables.
 .env
-.env*.local
-.env.development
-.env.test
-.env.production
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+.env.*
+!.env.example
 
 # ----------------------------------------
 # LOGS Y DEBUG
@@ -100,3 +95,14 @@ __snapshots__/
 # ----------------------------------------
 # DOCUMENTACIÓN
 /docs
+
+# ----------------------------------------
+# CAPTURAS SUELTAS EN LA RAÍZ
+# Las de adb o Maestro (takeScreenshot) caen en la carpeta actual. Las imágenes de la app
+# viven en assets/ y las capturas para el PR en design/capturas/.
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.gif
+/*.mp4

@@ -15,6 +15,13 @@
       "when": 1791555676633,
       "tag": "0001_categorias_predefinidas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791587823139,
+      "tag": "0002_grupos_apariencia_y_ajustes_locales",
+      "breakpoints": true
     }
   ]
 }

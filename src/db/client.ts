@@ -38,7 +38,7 @@ export async function openAppDatabase(): Promise<AppDatabase> {
     store: keyStore,
     randomBytes: (length) => Crypto.getRandomBytes(length),
   });
-  const sqlite = openDatabaseSync(DATABASE_NAME, { enableChangeListener: true });
+  const sqlite = openDatabaseSync(DATABASE_NAME);
   try {
     excludeFromBackup(sqlite.databasePath);
     unlock(sqlite, key);

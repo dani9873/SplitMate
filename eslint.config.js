@@ -25,6 +25,48 @@ module.exports = defineConfig([
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
+    // Las pantallas y los componentes solo usan repositorios y dominio: nada de SQL, Drizzle
+    // ni la conexión nativa. Las pruebas pueden preparar datos como necesiten.
+    files: ['app/**/*.{ts,tsx}', 'src/features/**/*.{ts,tsx}', 'src/ui/**/*.{ts,tsx}'],
+    ignores: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: 'expo-sqlite', message: 'Usa los repositorios de @/db/repositories.' }],
+          patterns: [
+            {
+              group: [
+                'drizzle-orm',
+                'drizzle-orm/*',
+                '@/db/schema',
+                '@/db/migrations/*',
+                '@/db/repositories/*',
+              ],
+              message: 'Usa los repositorios de @/db/repositories y las funciones de @/domain.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // NativeWind convierte en Pressable un View o Text con clases active:, focus: o hover:.
+    // Dentro de un botón, ese Pressable sin acción se queda con el toque (le pasó al
+    // calendario). El estado presionado va en el Pressable: active: o ({ pressed }) => ...
+    files: ['app/**/*.tsx', 'src/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...['Literal[value', 'TemplateElement[value.raw'].map((node) => ({
+          selector: `JSXOpeningElement[name.name=/^(View|Text)$/] > JSXAttribute[name.name='className'] ${node}=/(^|\\s)(active|focus|hover):/]`,
+          message:
+            'NativeWind convierte este View o Text en un Pressable que roba el toque. Pon el estado presionado en el Pressable (active: o su función ({ pressed })).',
+        })),
+      ],
+    },
+  },
+  {
     // CLAUDE.md: cero textos fijos en componentes. Todo texto visible pasa por i18n.
     files: ['app/**/*.tsx', 'src/**/*.tsx'],
     ignores: ['**/__tests__/**', '**/*.test.tsx'],

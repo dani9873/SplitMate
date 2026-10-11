@@ -1,8 +1,11 @@
 import { z } from 'zod';
 
 import { isKnownCurrency } from '@/domain';
+import { isCalendarDate } from '@/lib/calendar-date';
+import { GROUP_COLORS, MAX_EMOJI_LENGTH } from '@/lib/group-appearance';
 
-const MAX_MEMBERS = 50;
+/** Máximo de miembros activos por grupo. */
+export const MAX_MEMBERS = 50;
 
 const id = z.string().trim().min(1).max(64);
 const label = (max: number) => z.string().trim().min(1).max(max);
@@ -11,14 +14,11 @@ export const currencySchema = z.string().refine(isKnownCurrency, 'Moneda ISO 421
 
 export const minorAmountSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 
-/** Día del calendario `YYYY-MM-DD`, comprobando que la fecha exista. */
+/** Día de calendario `YYYY-MM-DD`, sin hora ni zona, que existe en el calendario. */
 export const isoDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha con formato YYYY-MM-DD')
-  .refine((value) => {
-    const date = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
-  }, 'Fecha inexistente');
+  .refine(isCalendarDate, 'Fecha inexistente');
 
 export const rateSchema = z
   .string()
@@ -54,9 +54,16 @@ export const createUserSchema = z.object({
   email: z.email().optional(),
 });
 
+export const displayNameSchema = label(80);
+
+const emojiSchema = z.string().trim().min(1).max(MAX_EMOJI_LENGTH);
+const colorSchema = z.enum(GROUP_COLORS);
+
 export const createGroupSchema = z.object({
   name: label(80),
   currency: currencySchema,
+  emoji: emojiSchema.nullish(),
+  color: colorSchema.optional(),
   createdBy: id,
   members: z
     .array(z.object({ displayName: label(80), userId: id.optional() }))
@@ -65,6 +72,13 @@ export const createGroupSchema = z.object({
 });
 
 export const groupNameSchema = label(80);
+
+export const updateGroupSchema = z.object({
+  name: label(80),
+  currency: currencySchema,
+  emoji: emojiSchema.nullable(),
+  color: colorSchema,
+});
 
 export const addExpenseSchema = z.object({
   groupId: id,
@@ -99,5 +113,6 @@ export const addTransferSchema = z
 
 export type CreateUserInput = z.input<typeof createUserSchema>;
 export type CreateGroupInput = z.input<typeof createGroupSchema>;
+export type UpdateGroupInput = z.input<typeof updateGroupSchema>;
 export type AddExpenseInput = z.input<typeof addExpenseSchema>;
 export type AddTransferInput = z.input<typeof addTransferSchema>;

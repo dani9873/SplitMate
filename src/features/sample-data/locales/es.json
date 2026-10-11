@@ -1,0 +1,24 @@
+{
+  "button": "Cargar datos de ejemplo",
+  "hint": "Crea tres grupos con movimientos para probar y tomar capturas. Solo en desarrollo.",
+  "loaded": "Datos de ejemplo cargados",
+  "trip": {
+    "name": "Viaje a Cartagena",
+    "hotel": "Hotel en el centro histórico",
+    "dinner": "Cena en Getsemaní",
+    "boat": "Tour en lancha a las islas",
+    "taxi": "Taxi al aeropuerto",
+    "refund": "Reembolso del hotel"
+  },
+  "home": {
+    "name": "Apartamento",
+    "rent": "Arriendo de octubre",
+    "groceries": "Mercado de la semana",
+    "utilities": "Servicios públicos"
+  },
+  "party": {
+    "name": "Cumpleaños de Sofi",
+    "cake": "Torta y decoración",
+    "gift": "Regalo"
+  }
+}

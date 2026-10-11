@@ -1,4 +1,4 @@
-import { currencyCode, isKnownCurrency, minorUnits } from '../currency';
+import { currencyCode, isKnownCurrency, KNOWN_CURRENCIES, minorUnits } from '../currency';
 import { DomainError } from '../errors';
 
 describe('monedas ISO 4217', () => {
@@ -16,6 +16,13 @@ describe('monedas ISO 4217', () => {
     expect(isKnownCurrency('usd')).toBe(false);
     expect(isKnownCurrency('ZZZ')).toBe(false);
     expect(isKnownCurrency('XAU')).toBe(false);
+  });
+
+  it('lista todas las monedas admitidas en orden', () => {
+    expect(KNOWN_CURRENCIES).toHaveLength(155);
+    expect(KNOWN_CURRENCIES[0]).toBe('AED');
+    expect(KNOWN_CURRENCIES.every(isKnownCurrency)).toBe(true);
+    expect([...KNOWN_CURRENCIES].sort()).toEqual(KNOWN_CURRENCIES);
   });
 
   it('lanza UNKNOWN_CURRENCY ante un código desconocido', () => {
