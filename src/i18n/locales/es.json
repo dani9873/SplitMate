@@ -430,5 +430,17 @@
       "DUPLICATE_MEMBER": "Hay una persona repetida.",
       "UNBALANCED": "Los montos no cuadran."
     }
+  },
+  "auth": {
+    "welcome": {
+      "title": "SplitMate",
+      "tagline": "Registra gastos compartidos y deja las cuentas claras."
+    }
+  },
+  "config": {
+    "error": {
+      "title": "Falta configurar la app",
+      "description": "A esta versión le faltan los datos para conectarse con el servidor. Revisa el archivo .env y vuelve a abrir la app."
+    }
   }
 }

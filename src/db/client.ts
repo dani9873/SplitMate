@@ -9,14 +9,8 @@ import { deviceStore } from '@/lib/device-store';
 import { logger } from '@/lib/logger';
 import { secureKeyStore } from '@/lib/secure-key-store';
 
-import {
-  createAccountDatabases,
-  LEGACY_DATABASE,
-  type Account,
-  type OpenedDatabase,
-} from './accounts';
+import { createAccountDatabases, type Account, type OpenedDatabase } from './accounts';
 import { excludeDatabaseFromBackup } from './backup-exclusion';
-import { getOrCreateDatabaseKey } from './encryption-key';
 import { DatabaseSetupError } from './errors';
 import migrations from './migrations/migrations';
 import { schema } from './schema';
@@ -140,13 +134,4 @@ export async function deleteAccountData(userId: string): Promise<void> {
     closeAccountDatabase();
   }
   await accountDatabases.deleteData(userId);
-}
-
-/** Transición hasta las rutas con sesión (tarea 7): la base de las Fases 1 y 2, sin cuenta. */
-export async function openLegacyDatabase(): Promise<OpenedDatabase> {
-  const key = await getOrCreateDatabaseKey(
-    { store: secureKeyStore, randomBytes: (length) => Crypto.getRandomBytes(length) },
-    LEGACY_DATABASE.keyName,
-  );
-  return openDatabaseFile(LEGACY_DATABASE.file, key);
 }

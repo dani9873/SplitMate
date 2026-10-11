@@ -1,3 +1,4 @@
+import { SupabaseConfigError } from '@/lib/supabase/env';
 import { getSupabase } from '@/lib/supabase/client';
 
 import { createSupabaseAuthService, type AuthService } from './auth-service';
@@ -11,4 +12,16 @@ export function getAppAuthService(): AuthService {
     service = createSupabaseAuthService(client, storage);
   }
   return service;
+}
+
+/** El servicio, o el error de configuración para mostrarlo en lugar de cerrar la app. */
+export function loadAppAuthService(): { service: AuthService } | { error: SupabaseConfigError } {
+  try {
+    return { service: getAppAuthService() };
+  } catch (error) {
+    if (error instanceof SupabaseConfigError) {
+      return { error };
+    }
+    throw error;
+  }
 }

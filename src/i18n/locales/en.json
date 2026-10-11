@@ -430,5 +430,17 @@
       "DUPLICATE_MEMBER": "Someone appears twice.",
       "UNBALANCED": "The amounts don't add up."
     }
+  },
+  "auth": {
+    "welcome": {
+      "title": "SplitMate",
+      "tagline": "Track shared expenses and keep accounts clear."
+    }
+  },
+  "config": {
+    "error": {
+      "title": "The app is not set up",
+      "description": "This build is missing the settings to connect to the server. Check the .env file and open the app again."
+    }
   }
 }
