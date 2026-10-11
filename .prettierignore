@@ -9,3 +9,5 @@ assets
 CLAUDE.md
 expo-env.d.ts
 src/db/migrations
+# Plantillas de correo de Supabase: sintaxis de plantillas de Go.
+supabase/templates

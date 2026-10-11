@@ -434,7 +434,85 @@
   "auth": {
     "welcome": {
       "title": "SplitMate",
-      "tagline": "Registra gastos compartidos y deja las cuentas claras."
+      "tagline": "Registra gastos compartidos y deja las cuentas claras.",
+      "createAccount": "Crear cuenta",
+      "signIn": "Ya tengo cuenta"
+    },
+    "fields": {
+      "name": "Tu nombre",
+      "namePlaceholder": "Como te verán en tus grupos",
+      "email": "Correo",
+      "emailPlaceholder": "tu@correo.com",
+      "password": "Contraseña",
+      "newPassword": "Contraseña nueva",
+      "passwordHint": "Al menos 8 caracteres.",
+      "showPassword": "Mostrar contraseña",
+      "hidePassword": "Ocultar contraseña",
+      "code": "Código de 6 dígitos"
+    },
+    "signUp": {
+      "title": "Crea tu cuenta",
+      "submit": "Crear cuenta",
+      "haveAccount": "Ya tengo cuenta"
+    },
+    "signIn": {
+      "title": "Entra a tu cuenta",
+      "submit": "Entrar",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "noAccount": "Crear una cuenta",
+      "resendConfirmation": "Reenviar el correo de confirmación"
+    },
+    "checkEmail": {
+      "title": "Revisa tu correo",
+      "signupBody": "Te enviamos un correo a {{email}}. Toca el enlace o escribe el código para confirmar tu cuenta.",
+      "recoveryBody": "Si existe una cuenta con {{email}}, te enviamos un correo. Toca el enlace o escribe el código para elegir una contraseña nueva.",
+      "submit": "Confirmar",
+      "resend": "Reenviar correo",
+      "resendIn": "Reenviar en {{seconds}} s",
+      "resent": "Te enviamos otro correo.",
+      "otherEmail": "Usar otro correo"
+    },
+    "forgot": {
+      "title": "Recupera tu contraseña",
+      "body": "Escribe el correo de tu cuenta y te enviaremos un enlace y un código.",
+      "submit": "Enviar"
+    },
+    "reset": {
+      "title": "Elige una contraseña nueva",
+      "body": "La usarás para entrar desde ahora.",
+      "submit": "Guardar contraseña"
+    },
+    "callback": {
+      "loading": "Confirmando el enlace",
+      "errorTitle": "El enlace no sirve",
+      "errorBody": "Puede que haya vencido o que ya se haya usado. Pide otro correo o escribe el código que te enviamos.",
+      "back": "Volver"
+    },
+    "validation": {
+      "nameRequired": "Escribe tu nombre.",
+      "nameTooLong": "Usa 80 caracteres como máximo.",
+      "emailRequired": "Escribe tu correo.",
+      "emailInvalid": "Revisa el correo: parece incompleto.",
+      "emailTooLong": "El correo es demasiado largo.",
+      "passwordRequired": "Escribe la contraseña.",
+      "passwordTooShort": "Usa al menos 8 caracteres.",
+      "passwordTooLong": "La contraseña es demasiado larga.",
+      "codeInvalid": "El código tiene 6 dígitos."
+    },
+    "errors": {
+      "invalidCredentials": "Correo o contraseña incorrectos.",
+      "emailNotConfirmed": "Confirma tu correo antes de entrar.",
+      "tooManyAttempts": "Demasiados intentos. Espera unos minutos.",
+      "weakPassword": "Esa contraseña es fácil de adivinar. Prueba con una más larga.",
+      "samePassword": "La contraseña nueva tiene que ser distinta de la anterior.",
+      "invalidEmail": "Revisa el correo: no parece válido.",
+      "emailNotAllowed": "Todavía no podemos enviar correos a esa dirección.",
+      "invalidCode": "El código no es correcto o ya venció.",
+      "linkExpired": "El enlace venció o se abrió en otro teléfono. Escribe el código del correo.",
+      "sessionExpired": "Tu sesión venció. Empieza de nuevo.",
+      "offline": "Sin conexión. Revisa tu internet e intenta de nuevo.",
+      "unavailable": "El servicio no responde. Intenta de nuevo en un rato.",
+      "unknown": "Algo falló. Intenta de nuevo."
     }
   },
   "config": {

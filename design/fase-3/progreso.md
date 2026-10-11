@@ -3,10 +3,10 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 8, pantallas de auth y plantillas: registro, entrar, revisa tu correo
-(código y reenviar), recuperar, `auth/callback` y `reset-password`, con pruebas RNTL y un
-servicio falso; plantillas es/en y `[auth]` en `config.toml`. Pendiente del usuario: permiso y
-contraseña para `supabase db push`.
+**Siguiente paso:** tarea 9, perfil remoto (`src/features/auth/profile-sync.ts`): tras el login,
+asegurar la fila de `profiles` con el nombre del registro o de Google; sin red, reintentar en el
+siguiente arranque. Pendientes del usuario: permiso y contraseña para `supabase db push`, y los
+ajustes del panel de `ajustes-panel.md`.
 
 ## Pasos
 
@@ -27,8 +27,11 @@ contraseña para `supabase db push`.
 - [x] 7. Rutas protegidas y enlaces: `Stack.Protected`, las pantallas de las Fases 1 y 2 en
       `(app)` (abre la base de la cuenta), bienvenida en `/welcome`, `+native-intent` con 27
       pruebas de enlaces, 4 de rutas protegidas y el flujo de la Fase 2 con sesión falsa.
-- [ ] 8. Pantallas de auth y plantillas.
-- [ ] Punto de control: lista de ajustes de Auth para el panel de Supabase.
+- [x] 8. Pantallas de auth y plantillas: bienvenida, registro, entrar, revisa tu correo,
+      recuperar, contraseña nueva y `auth/callback`; 25 pruebas nuevas; plantillas es/en y
+      `[auth]` en `config.toml`.
+- [x] Punto de control: lista de ajustes de Auth para el panel en `ajustes-panel.md` (falta
+      que el usuario la aplique).
 - [ ] 9. Perfil remoto.
 - [ ] 10. Google (Android).
 - [ ] Punto de control: Google Cloud Console, proveedor Google en Supabase y
@@ -70,3 +73,12 @@ contraseña para `supabase db push`.
   `Stack.Protected` lleva de `/` a la bienvenida (lo prueba `protected-routes.test.tsx`).
 - `renderRouter` con temporizadores falsos de Jest se cuelga: usar `waitFor` con los reales.
 - Un Metro viejo (`expo start --port 8083`) bloqueaba renombrar carpetas de `app/`: se detuvo.
+- Recuperar la contraseña: `signIn(session, { recovery: true })` deja disponible solo
+  `reset-password`; `finishRecovery()` pasa a `(app)`. Sin navegar a mano.
+- Sin sesión, `router.replace('/')` no navega (la ruta está protegida): ir a `/welcome`.
+- Las preferencias aplican el idioma del dispositivo al hidratarse, a mitad de la primera prueba
+  de un archivo: las pruebas con `renderRouter` simulan un teléfono en español.
+- Plantillas de correo: `{{ if eq (print .Data.locale) "en" }}`; sin `print`, una cuenta sin
+  `locale` rompería la plantilla.
+- `secure_password_change` activado (no estaba en la lista del diseño): la app solo cambia la
+  contraseña con la sesión recién creada por el correo de recuperación.

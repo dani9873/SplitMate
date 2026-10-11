@@ -10,4 +10,10 @@ export {
 } from './auth-service';
 export { AuthProvider, useAuth, type AuthState } from './AuthProvider';
 export { ConfigErrorScreen } from './ConfigErrorScreen';
+export { AuthCallbackScreen } from './screens/AuthCallbackScreen';
+export { CheckEmailScreen } from './screens/CheckEmailScreen';
+export { ForgotPasswordScreen } from './screens/ForgotPasswordScreen';
+export { ResetPasswordScreen } from './screens/ResetPasswordScreen';
+export { SignInScreen } from './screens/SignInScreen';
+export { SignUpScreen } from './screens/SignUpScreen';
 export { WelcomeScreen } from './screens/WelcomeScreen';

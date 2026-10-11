@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Confirmación del registro. El idioma sale de user_metadata.locale, que guarda la app al
+     registrarse; sin él, español. `print` evita que una cuenta sin locale rompa la plantilla. -->
+<html lang="{{ if eq (print .Data.locale) "en" }}en{{ else }}es{{ end }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SplitMate</title>
+  </head>
+  <body style="margin: 0; padding: 24px 12px; background: #f7f4ee; color: #17211f; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd2">
+            <tr>
+              <td style="padding: 32px 28px">
+                <p style="margin: 0 0 20px; font-size: 15px; font-weight: 800; color: #0e6b5e">SplitMate</p>
+                {{ if eq (print .Data.locale) "en" }}
+                <h1 style="margin: 0 0 12px; font-size: 22px; line-height: 1.3">Confirm your email</h1>
+                <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5; color: #4e5a57">Tap the button to confirm your account. It opens the SplitMate app on your phone.</p>
+                <p style="margin: 0 0 28px">
+                  <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 14px 24px; border-radius: 12px; background: #0e6b5e; color: #ffffff; font-size: 16px; font-weight: 700; text-decoration: none">Confirm my email</a>
+                </p>
+                <p style="margin: 0 0 8px; font-size: 15px; color: #4e5a57">Or enter this code in the app:</p>
+                <p style="margin: 0 0 24px; font-size: 32px; font-weight: 800; letter-spacing: 6px; font-family: 'SFMono-Regular', Consolas, monospace">{{ .Token }}</p>
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4e5a57">The link and the code expire in 1 hour. If you did not create a SplitMate account, you can ignore this email.</p>
+                {{ else }}
+                <h1 style="margin: 0 0 12px; font-size: 22px; line-height: 1.3">Confirma tu correo</h1>
+                <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5; color: #4e5a57">Toca el botón para confirmar tu cuenta. Se abre la app de SplitMate en tu teléfono.</p>
+                <p style="margin: 0 0 28px">
+                  <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 14px 24px; border-radius: 12px; background: #0e6b5e; color: #ffffff; font-size: 16px; font-weight: 700; text-decoration: none">Confirmar mi correo</a>
+                </p>
+                <p style="margin: 0 0 8px; font-size: 15px; color: #4e5a57">O escribe este código en la app:</p>
+                <p style="margin: 0 0 24px; font-size: 32px; font-weight: 800; letter-spacing: 6px; font-family: 'SFMono-Regular', Consolas, monospace">{{ .Token }}</p>
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4e5a57">El enlace y el código vencen en 1 hora. Si no creaste una cuenta en SplitMate, puedes ignorar este correo.</p>
+                {{ end }}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

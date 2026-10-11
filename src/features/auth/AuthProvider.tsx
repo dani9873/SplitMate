@@ -14,13 +14,20 @@ import type { AuthService, AuthSession } from './auth-service';
 export type AuthState =
   | { readonly status: 'restoring' }
   | { readonly status: 'signedOut' }
-  | { readonly status: 'signedIn'; readonly session: AuthSession };
+  | {
+      readonly status: 'signedIn';
+      readonly session: AuthSession;
+      /** Entró con un correo de recuperación: falta elegir la contraseña nueva. */
+      readonly recovering: boolean;
+    };
 
 interface AuthContextValue {
   readonly state: AuthState;
   readonly service: AuthService;
   /** Pasa a la sesión que devolvió el servicio: entrar, código o enlace del correo. */
-  signIn(session: AuthSession): void;
+  signIn(session: AuthSession, options?: { recovery?: boolean }): void;
+  /** Ya eligió la contraseña nueva: sigue a la app. */
+  finishRecovery(): void;
   /** Cierra la sesión de este teléfono. */
   signOut(): Promise<void>;
 }
@@ -42,7 +49,10 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
     const settle = (next: AuthState) =>
       mounted && setState((current) => (current.status === 'restoring' ? next : current));
     service.restore().then(
-      (session) => settle(session ? { status: 'signedIn', session } : { status: 'signedOut' }),
+      (session) =>
+        settle(
+          session ? { status: 'signedIn', session, recovering: false } : { status: 'signedOut' },
+        ),
       () => settle({ status: 'signedOut' }),
     );
     return () => {
@@ -67,7 +77,15 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
   }, [service, signedIn]);
 
   const signIn = useCallback(
-    (session: AuthSession) => setState({ status: 'signedIn', session }),
+    (session: AuthSession, options?: { recovery?: boolean }) =>
+      setState({ status: 'signedIn', session, recovering: options?.recovery ?? false }),
+    [],
+  );
+  const finishRecovery = useCallback(
+    () =>
+      setState((current) =>
+        current.status === 'signedIn' ? { ...current, recovering: false } : current,
+      ),
     [],
   );
   const signOut = useCallback(async () => {
@@ -76,8 +94,8 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
   }, [service]);
 
   const value = useMemo(
-    () => ({ state, service, signIn, signOut }),
-    [state, service, signIn, signOut],
+    () => ({ state, service, signIn, finishRecovery, signOut }),
+    [state, service, signIn, finishRecovery, signOut],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

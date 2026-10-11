@@ -4,8 +4,11 @@ import { useTranslation } from 'react-i18next';
 
 import { EmptyState, Screen } from '@/ui';
 
-/** Ruta inexistente, por ejemplo un enlace viejo o mal escrito. */
-export function NotFoundScreen() {
+/**
+ * Ruta inexistente, por ejemplo un enlace viejo o mal escrito. `home` es a dónde volver: sin
+ * sesión, `/` está protegida y la app no navegaría.
+ */
+export function NotFoundScreen({ home = '/' }: { home?: '/' | '/welcome' }) {
   const { t } = useTranslation();
   const router = useRouter();
   return (
@@ -14,7 +17,7 @@ export function NotFoundScreen() {
         icon={Compass}
         title={t('notFound.title')}
         description={t('notFound.description')}
-        action={{ label: t('notFound.action'), onPress: () => router.replace('/') }}
+        action={{ label: t('notFound.action'), onPress: () => router.replace(home) }}
       />
     </Screen>
   );
