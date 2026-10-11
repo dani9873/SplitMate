@@ -3,9 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 5, cliente, servicio y proveedor de auth: instalar
-`@supabase/supabase-js` 2.117, pruebas de variables, errores, registro y `restore` sin red.
-Pendiente del usuario: permiso y contraseña para `supabase db push`.
+**Siguiente paso:** tarea 6, base por cuenta (`src/db/accounts.ts`): registro del dispositivo,
+adopción de la base de las Fases 1 y 2, dueño en `local_settings` y borrar los datos de una
+cuenta. Pendiente del usuario: permiso y contraseña para `supabase db push`.
 
 ## Pasos
 
@@ -19,7 +19,8 @@ Pendiente del usuario: permiso y contraseña para `supabase db push`.
       tareas 4 a 7 no dependen de él).
 - [x] 4. Almacenamiento cifrado de la sesión: 11 pruebas con node:crypto. El adaptador de
       expo-crypto (`expo-aes-gcm.ts`) se prueba en el emulador al cerrar la fase.
-- [ ] 5. Cliente, servicio y proveedor de auth.
+- [x] 5. Cliente, servicio y proveedor de auth: supabase-js 2.117.3, 48 pruebas nuevas con un
+      servidor de Auth falso (`src/lib/supabase/test-utils.ts`).
 - [ ] 6. Base por cuenta.
 - [ ] 7. Rutas protegidas y enlaces.
 - [ ] 8. Pantallas de auth y plantillas.
@@ -43,3 +44,13 @@ Pendiente del usuario: permiso y contraseña para `supabase db push`.
   verdad: PGlite usa Postgres 18 y Supabase, 17.
 - Comprobado en PGlite: un trigger se dispara aunque el rol no tenga `EXECUTE` sobre su
   función, así que la función del trigger de categoría no necesita ese permiso.
+- PKCE en auth-js 2.117: agregar `sb_flow_id` a la redirección es experimental y viene apagado.
+  Se deja así: la redirección es exactamente `splitmate://auth/callback` (Supabase la compara
+  con la lista permitida, query incluida) y el canje usa el verificador del último flujo.
+  `exchangeCode` acepta un `flowId` por si un día llega en el enlace.
+- Hermes no trae Web Crypto: `src/lib/supabase/web-crypto.ts` instala `getRandomValues` y
+  `subtle.digest` (SHA-256) con expo-crypto, para que PKCE use S256 y un verificador aleatorio
+  de verdad. No hay `importKey`: no usar `auth.getClaims()` en la app.
+- Sin red, `signOut({ scope: 'local' })` de supabase-js no borra la sesión: el servicio la borra
+  igual, como pide el diseño.
+- En RNTL 14, `render` y `act` son asíncronos: `await render(...)`.

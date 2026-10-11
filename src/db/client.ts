@@ -2,10 +2,10 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Crypto from 'expo-crypto';
-import * as SecureStore from 'expo-secure-store';
 import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 
 import { logger } from '@/lib/logger';
+import { secureKeyStore } from '@/lib/secure-key-store';
 
 import { excludeDatabaseFromBackup } from './backup-exclusion';
 import { getOrCreateDatabaseKey } from './encryption-key';
@@ -19,23 +19,13 @@ export const DATABASE_NAME = 'splitmate.db';
 /** Expo Go no incluye SQLCipher. Solo ahí se permite una base sin cifrar, para desarrollo. */
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-const keyStore = {
-  getItemAsync: (key: string) => SecureStore.getItemAsync(key),
-  setItemAsync: (key: string, value: string) =>
-    SecureStore.setItemAsync(key, value, {
-      // Solo en este dispositivo y disponible tras el primer desbloqueo: no viaja en copias
-      // de seguridad ni a otros dispositivos.
-      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
-    }),
-};
-
 /**
  * Abre la base local cifrada, aplica los pragmas y las migraciones pendientes.
  * Si algo falla, cierra la conexión y relanza el error para que la app ofrezca reintentar.
  */
 export async function openAppDatabase(): Promise<AppDatabase> {
   const key = await getOrCreateDatabaseKey({
-    store: keyStore,
+    store: secureKeyStore,
     randomBytes: (length) => Crypto.getRandomBytes(length),
   });
   const sqlite = openDatabaseSync(DATABASE_NAME);
