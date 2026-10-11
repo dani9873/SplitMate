@@ -3,8 +3,8 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 3, job de CI "Base de datos y RLS": `supabase db start` y
-`supabase test db` con la CLI 2.120.0; push de la rama e iterar hasta verde.
+**Siguiente paso:** tarea 4, almacenamiento cifrado de la sesión (pruebas escritas, falta la
+implementación). Pendiente del usuario: permiso y contraseña para `supabase db push`.
 
 ## Pasos
 
@@ -12,8 +12,10 @@
 - [x] 1. Supabase local y esquema (`1e5ac04`).
 - [x] 2. Seguridad y pruebas pgTAP: 123 pruebas en verde en PGlite; 12 mutaciones de la
       migración detectadas.
-- [ ] 3. Job de CI "Base de datos y RLS".
-- [ ] Punto de control: permiso para `supabase db push` al proyecto remoto.
+- [x] 3. Job de CI "Base de datos y RLS": verde al primer intento en el run 38182028758
+      (`Files=6, Tests=123, Result: PASS`).
+- [ ] Punto de control: permiso para `supabase db push` al proyecto remoto (pedido; las
+      tareas 4 a 7 no dependen de él).
 - [ ] 4. Almacenamiento cifrado de la sesión.
 - [ ] 5. Cliente, servicio y proveedor de auth.
 - [ ] 6. Base por cuenta.
