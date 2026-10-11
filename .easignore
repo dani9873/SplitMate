@@ -84,6 +84,10 @@ __snapshots__
 /.maestro
 /.github
 
+# Supabase: migraciones, pruebas pgTAP, plantillas de correo y Edge Functions. Viven en la
+# nube, no en el teléfono.
+/supabase
+
 # El historial de git: EAS lo copia con todos los archivos versionados, capturas incluidas.
 # El build no lo usa; el commit se envía aparte como dato del build.
 .git
