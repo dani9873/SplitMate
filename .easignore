@@ -1,0 +1,89 @@
+# Archivos que EAS Build no sube a sus servidores.
+# Cuando este archivo existe, EAS lo usa EN LUGAR de .gitignore: por eso repite sus reglas.
+# Las carpetas van sin barra final: con ella, EAS quita sus archivos pero sube las carpetas vacías.
+# Comprobar qué se sube: npx -y eas-cli@24.12.1 build:inspect -p android -e development --stage archive --output <carpeta>
+
+# ----------------------------------------
+# LAS MISMAS REGLAS DE .gitignore
+# ----------------------------------------
+node_modules
+.pnp
+.pnp.js
+yarn.lock
+.yarn-integrity
+.npm
+
+/build
+/dist
+/web-build
+/coverage
+/out
+
+.expo
+expo-env.d.ts
+/android
+/ios
+.gradle
+.idea
+.kotlin
+*.apk
+*.aab
+*.ipa
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+*.tgz
+
+*.tsbuildinfo
+
+logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.metro-health-check*
+
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.orig.*
+
+.node_repl_history
+.eslintcache
+.vscode
+.jest
+__snapshots__
+
+/docs
+
+# ----------------------------------------
+# SOLO PARA EAS: NO SON PARTE DE LA APP
+# ----------------------------------------
+# Variables de entorno, también el ejemplo. Los builds con el bundle incluido leen las
+# variables de entorno de EAS; el development build las toma de Metro en tu PC.
+.env
+.env.*
+
+# Diseño, capturas y documentación (las imágenes de la app viven en assets/).
+/design
+/*.md
+
+# Imágenes y videos sueltos en la raíz, como capturas de pantalla.
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.gif
+/*.mp4
+
+# Pruebas E2E de Maestro con sus capturas y resultados, y la configuración del CI.
+/.maestro
+/.github
+
+# El historial de git: EAS lo copia con todos los archivos versionados, capturas incluidas.
+# El build no lo usa; el commit se envía aparte como dato del build.
+.git
