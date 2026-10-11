@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconButton } from './IconButton';
 import { Text } from './Text';
+import { useKeyboardHeight } from './use-keyboard-height';
 
 export interface SheetProps {
   visible: boolean;
@@ -19,10 +20,14 @@ export interface SheetProps {
 /**
  * Hoja que sube desde abajo para elegir algo sin salir del formulario: fecha, moneda o
  * miembro. Modal para los lectores de pantalla; el botón atrás de Android la cierra.
+ *
+ * Con el teclado abierto, la hoja se apoya encima de él: su alto máximo no cambia, así que el
+ * contenido flexible (como la lista de monedas) se achica en lugar de quedar debajo.
  */
 export function Sheet({ visible, onClose, title, children, testID }: SheetProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardHeight();
   return (
     <Modal
       visible={visible}
@@ -42,7 +47,7 @@ export function Sheet({ visible, onClose, title, children, testID }: SheetProps)
           testID={testID}
           accessibilityViewIsModal
           className="max-h-[85%] rounded-t-2xl bg-surface"
-          style={{ paddingBottom: insets.bottom + 8 }}
+          style={{ paddingBottom: Math.max(insets.bottom, keyboard) + 8 }}
         >
           <View className="flex-row items-center gap-2 py-2 pl-5 pr-2">
             <Text variant="heading" className="flex-1">

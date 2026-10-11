@@ -92,7 +92,8 @@ export function CurrencyPicker({
           testID="currency-search"
         />
       </View>
-      <View style={{ height: height * 0.55 }}>
+      {/* Con el teclado abierto, la hoja se apoya encima de él y la lista se achica. */}
+      <View style={{ height: height * 0.55, flexShrink: 1 }}>
         {rows.length === 0 ? (
           <Text tone="muted" className="px-5 py-6 text-center">
             {t('currencyPicker.noResults')}

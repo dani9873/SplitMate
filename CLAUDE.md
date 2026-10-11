@@ -157,9 +157,9 @@ src/
   vinculado a otra persona ya se rechaza con `MEMBER_TAKEN`.
 - **Maestro fuera de CI.** El flujo E2E de `.maestro/` corre en local contra el development
   build y Metro (instrucciones en `.maestro/README.md`); en CI haría falta un emulador.
-- **Selector de moneda con teclado.** En Android, al abrir el teclado sobre la hoja del
-  selector de moneda, la lista no se reacomoda y sus últimas filas quedan debajo del teclado.
-  Los resultados de la búsqueda se ven arriba; mejorarlo con un cambio de alto de la hoja.
+- **Foco automático dentro de las hojas.** En Android, el campo para renombrar un miembro
+  recibe el foco al abrir la hoja, pero el teclado no se abre solo dentro del Modal: hay que
+  tocar el campo. Revisarlo cuando otra hoja necesite escribir apenas se abre.
 
 ## Estado
 
