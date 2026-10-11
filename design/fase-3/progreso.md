@@ -3,14 +3,15 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 2, seguridad y pruebas pgTAP: primero las pruebas, después la
-migración `20261011123739_seguridad.sql` (hoy vacía y sin versionar).
+**Siguiente paso:** tarea 3, job de CI "Base de datos y RLS": `supabase db start` y
+`supabase test db` con la CLI 2.120.0; push de la rama e iterar hasta verde.
 
 ## Pasos
 
 - [x] Diseño y plan aprobados con los cuatro ajustes de la revisión (`a950b86`).
 - [x] 1. Supabase local y esquema (`1e5ac04`).
-- [ ] 2. Seguridad y pruebas pgTAP.
+- [x] 2. Seguridad y pruebas pgTAP: 123 pruebas en verde en PGlite; 12 mutaciones de la
+      migración detectadas.
 - [ ] 3. Job de CI "Base de datos y RLS".
 - [ ] Punto de control: permiso para `supabase db push` al proyecto remoto.
 - [ ] 4. Almacenamiento cifrado de la sesión.

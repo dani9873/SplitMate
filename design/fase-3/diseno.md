@@ -287,6 +287,9 @@ Las mismas tablas que la base local, con los mismos ids UUID v7 generados en el 
   `DELETE` y `TRUNCATE`, en ninguna.
 - **Privilegios por omisión:** se revocan en `public` para `anon` y `authenticated`. Una tabla
   nueva no queda expuesta sin un `GRANT` explícito.
+- **`service_role`** conserva `SELECT`, `INSERT` y `UPDATE`, pero tampoco tiene `DELETE` ni
+  `TRUNCATE`, también por omisión. Borrar una cuenta limpia sus filas con las FKs, que corren
+  con los permisos del dueño de las tablas.
 - **Funciones de apoyo** en el esquema `private`, que la API no expone. Todas son `SECURITY
 DEFINER`, `STABLE`, con `search_path = ''` y nombres calificados; solo `authenticated` las
   ejecuta. Evitan que las políticas se consulten a sí mismas:
@@ -310,6 +313,16 @@ DEFINER`, `STABLE`, con `search_path = ''` y nombres calificados; solo `authenti
 - **Borrar** es marcar `deleted_at` con `UPDATE`, como en local.
 - **Revisiones pendientes para la Fase 4**, todavía solo en el cliente: grupo archivado de solo
   lectura, moneda bloqueada y bloqueo optimista con `version`.
+- **Para la sincronización de la Fase 4** (hallado al escribir las políticas):
+  - Un grupo nuevo no se puede leer hasta que existe su primer miembro. Un upsert
+    (`ON CONFLICT DO UPDATE`) y un `INSERT ... RETURNING` aplican la política `SELECT` a la
+    fila nueva y fallarían: subir el grupo y su primer miembro con `INSERT` simple, en ese
+    orden.
+  - En local, "soy yo" puede pasar a otro miembro (`setCurrentMember`): el dueño queda sin
+    cuenta y "yo" con rol `member`. Ese dueño sin cuenta no entra con la política de `INSERT`
+    (solo `member`); subirlo pide un RPC o ajustar la política.
+  - `ON DELETE SET NULL` (borrar una cuenta) no cambia `updated_at` ni `version` de
+    `group_members` y `groups`: el cursor de sincronización no vería ese cambio.
 
 ### Pruebas pgTAP (`supabase/tests/database`)
 
