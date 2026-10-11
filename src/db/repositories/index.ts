@@ -71,7 +71,7 @@ export type {
   ActivityShare,
   ActivityTransfer,
 } from './activity';
-export type { Category } from './categories';
+export { OTHER_CATEGORY_ID, type Category } from './categories';
 export type { Expense, ExpensePayer, ExpenseSplit, ExpenseWithParts } from './expenses';
 export type { GroupSummary } from './groups';
 export type { GroupBalances } from './ledger';

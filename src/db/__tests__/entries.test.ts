@@ -1,4 +1,4 @@
-import type { AddExpenseInput } from '../repositories';
+import { OTHER_CATEGORY_ID, type AddExpenseInput } from '../repositories';
 import { createTestGroup, createTestRepositories } from '../test-utils';
 
 const code = (expected: string) => expect.objectContaining({ code: expected });
@@ -169,6 +169,31 @@ describe('gastos: leer, editar, borrar y restaurar', () => {
     expect(() =>
       ctx.repos.expenses.update(expense.id, 1, dinner(second.group.id, second.ids)),
     ).toThrow(code('VALIDATION'));
+  });
+});
+
+describe('categoría de un gasto', () => {
+  it('sin categoría elegida, el gasto o el ingreso queda en Otros, también al editarlo', async () => {
+    const ctx = await createTestRepositories();
+    const { group, ids } = createTestGroup(ctx);
+    const expense = ctx.repos.expenses.add(dinner(group.id, ids));
+    const income = ctx.repos.expenses.add(
+      dinner(group.id, ids, { kind: 'income', title: 'Reembolso' }),
+    );
+    expect(ctx.repos.expenses.get(expense.id)?.categoryId).toBe(OTHER_CATEGORY_ID);
+    expect(ctx.repos.expenses.get(income.id)?.categoryId).toBe(OTHER_CATEGORY_ID);
+
+    const food = ctx.repos.categories.list().find((category) => category.key === 'food');
+    ctx.repos.expenses.update(expense.id, 1, dinner(group.id, ids, { categoryId: food?.id }));
+    expect(ctx.repos.expenses.get(expense.id)?.categoryId).toBe(food?.id);
+    ctx.repos.expenses.update(expense.id, 2, dinner(group.id, ids, { categoryId: null }));
+    expect(ctx.repos.expenses.get(expense.id)?.categoryId).toBe(OTHER_CATEGORY_ID);
+  });
+
+  it('Otros es la categoría predefinida con la clave other', async () => {
+    const ctx = await createTestRepositories();
+    const other = ctx.repos.categories.list().find((category) => category.key === 'other');
+    expect(other?.id).toBe(OTHER_CATEGORY_ID);
   });
 });
 

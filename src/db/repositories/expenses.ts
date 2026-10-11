@@ -13,6 +13,7 @@ import {
 
 import type { TableName } from '../changes';
 import { categories, expensePayers, expenseSplits, expenses } from '../schema';
+import { OTHER_CATEGORY_ID } from './categories';
 import { conflict, invalid, notFound, parse } from './errors';
 import { listMembers, requireWritableGroup, type Group } from './queries';
 import type { AppDatabase, RepositoryContext } from './types';
@@ -161,7 +162,8 @@ function prepareExpense(
       exchangeRate: rate,
       rateDate: sameCurrency ? null : (data.rateDate ?? null),
       splitMethod: data.split.method,
-      categoryId: data.categoryId ?? null,
+      // Sin categoría elegida, el movimiento va a Otros: así aparece al filtrar por ella.
+      categoryId: data.categoryId ?? OTHER_CATEGORY_ID,
       occurredOn: data.occurredOn,
       notes: data.notes ?? null,
     },

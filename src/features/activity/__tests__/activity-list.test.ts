@@ -1,4 +1,5 @@
-import type { ActivityItem } from '@/db/repositories';
+import { OTHER_CATEGORY_ID, type ActivityItem } from '@/db/repositories';
+import { createTestGroup, createTestRepositories } from '@/db/test-utils';
 import { money } from '@/domain';
 
 import { filterActivity, groupByDay, hasFilters, NO_FILTERS } from '../activity-list';
@@ -82,6 +83,23 @@ describe('filtros de actividad', () => {
     expect(ids(filterActivity(items, { ...NO_FILTERS, categoryId: 'food' }, label))).toEqual([
       'e2',
     ]);
+  });
+
+  it('filtrar por Otros encuentra un gasto guardado sin elegir categoría', async () => {
+    const ctx = await createTestRepositories();
+    const { group, ids: memberIds } = createTestGroup(ctx);
+    const gift = ctx.repos.expenses.add({
+      groupId: group.id,
+      title: 'Regalo',
+      amount: 3000,
+      currency: 'USD',
+      payers: [{ memberId: memberIds[0] as string, amount: 3000 }],
+      split: { method: 'equal', participants: [...memberIds] },
+      occurredOn: '2026-10-09',
+    });
+    const history = ctx.repos.activity.list({ groupId: group.id });
+    const others = { ...NO_FILTERS, categoryId: OTHER_CATEGORY_ID };
+    expect(ids(filterActivity(history, others, label))).toEqual([gift.id]);
   });
 
   it('filtra por miembro según participe con algo', () => {
