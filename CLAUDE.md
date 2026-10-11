@@ -112,6 +112,7 @@ src/
    tomadas y pendientes para la siguiente fase. Actualiza el "Estado" de abajo.
 6. Cuando el usuario confirme que probó la fase en su teléfono y el CI esté en verde, haz
    merge del PR con merge commit sin volver a preguntar.
+7. Toda la comunicación con el usuario, los planes, los PR y los commits van en español.
 
 ## Pendientes técnicos
 
@@ -160,9 +161,25 @@ src/
 - **Foco automático dentro de las hojas.** En Android, el campo para renombrar un miembro
   recibe el foco al abrir la hoja, pero el teclado no se abre solo dentro del Modal: hay que
   tocar el campo. Revisarlo cuando otra hoja necesite escribir apenas se abre.
+- **MFA.** Supabase Auth admite un segundo factor (TOTP). Ofrecerlo en Ajustes, al menos
+  como opción, antes de la publicación.
+- **CAPTCHA en el registro si hay abuso.** Supabase admite hCaptcha y Cloudflare Turnstile en
+  registro, inicio de sesión y recuperación. Activarlo si aparecen registros automatizados;
+  hasta entonces bastan los límites de intentos de Auth.
+- **Sign in with Apple para iOS.** En la Fase 3, Google solo se ofrece en Android: en iOS, la
+  regla 4.8 de la App Store exige ofrecer también un inicio de sesión equivalente con
+  privacidad, como Sign in with Apple. Agregar ambos cuando se pueda probar iOS.
+- **SMTP propio antes de invitar a otras personas.** El correo integrado de Supabase solo
+  envía a miembros de la organización y unos pocos por hora. Antes de que otras personas se
+  registren, configurar un proveedor SMTP (Resend, Brevo u otro) y subir el límite de envíos.
+- **SHA-1 del keystore de EAS para builds reales.** El perfil `development` firma con la
+  clave de depuración pública de React Native, y esa es la SHA-1 registrada en Google Cloud.
+  Para builds de prueba o de tienda, usar el keystore privado que administra EAS, registrar
+  su SHA-1 en un cliente OAuth de Android propio y retirar el de depuración.
 
 ## Estado
 
 - [x] Fase 0 — Limpieza y cimientos (PR #1 integrado en `main`)
 - [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (PR #2 integrado en `main`)
-- [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (rama `fase-2-mvp-pantallas`, PR hacia `main` en revisión)
+- [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (PR #3 integrado en `main`)
+- [ ] Fase 3 — Cuentas y nube con Supabase: login obligatorio, esquema en Postgres con RLS, sin sincronizar todavía (rama `fase-3-supabase-auth`, en curso)
