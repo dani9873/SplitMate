@@ -3,8 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 4, almacenamiento cifrado de la sesión (pruebas escritas, falta la
-implementación). Pendiente del usuario: permiso y contraseña para `supabase db push`.
+**Siguiente paso:** tarea 5, cliente, servicio y proveedor de auth: instalar
+`@supabase/supabase-js` 2.117, pruebas de variables, errores, registro y `restore` sin red.
+Pendiente del usuario: permiso y contraseña para `supabase db push`.
 
 ## Pasos
 
@@ -16,7 +17,8 @@ implementación). Pendiente del usuario: permiso y contraseña para `supabase db
       (`Files=6, Tests=123, Result: PASS`).
 - [ ] Punto de control: permiso para `supabase db push` al proyecto remoto (pedido; las
       tareas 4 a 7 no dependen de él).
-- [ ] 4. Almacenamiento cifrado de la sesión.
+- [x] 4. Almacenamiento cifrado de la sesión: 11 pruebas con node:crypto. El adaptador de
+      expo-crypto (`expo-aes-gcm.ts`) se prueba en el emulador al cerrar la fase.
 - [ ] 5. Cliente, servicio y proveedor de auth.
 - [ ] 6. Base por cuenta.
 - [ ] 7. Rutas protegidas y enlaces.
