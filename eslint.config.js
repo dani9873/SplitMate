@@ -51,6 +51,22 @@ module.exports = defineConfig([
     },
   },
   {
+    // NativeWind convierte en Pressable un View o Text con clases active:, focus: o hover:.
+    // Dentro de un botón, ese Pressable sin acción se queda con el toque (le pasó al
+    // calendario). El estado presionado va en el Pressable: active: o ({ pressed }) => ...
+    files: ['app/**/*.tsx', 'src/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...['Literal[value', 'TemplateElement[value.raw'].map((node) => ({
+          selector: `JSXOpeningElement[name.name=/^(View|Text)$/] > JSXAttribute[name.name='className'] ${node}=/(^|\\s)(active|focus|hover):/]`,
+          message:
+            'NativeWind convierte este View o Text en un Pressable que roba el toque. Pon el estado presionado en el Pressable (active: o su función ({ pressed })).',
+        })),
+      ],
+    },
+  },
+  {
     // CLAUDE.md: cero textos fijos en componentes. Todo texto visible pasa por i18n.
     files: ['app/**/*.tsx', 'src/**/*.tsx'],
     ignores: ['**/__tests__/**', '**/*.test.tsx'],

@@ -151,21 +151,29 @@ const CalendarDay = memo(function CalendarDay({
       onPress={() => onSelect(day)}
       className="h-11 flex-1 items-center justify-center"
     >
-      <View
-        className={cn(
-          'h-10 w-10 items-center justify-center rounded-full',
-          selected ? 'bg-primary' : isToday ? 'border-2 border-primary' : 'active:bg-surface-muted',
-        )}
-      >
-        <Text
-          variant="body"
-          tabular
-          tone={selected ? 'onPrimary' : isToday ? 'primary' : 'default'}
-          className={selected || isToday ? 'font-sans-bold' : undefined}
+      {/* El estado presionado llega del botón: con active: en el círculo, NativeWind lo
+          convertía en otro Pressable que se quedaba con el toque. */}
+      {({ pressed }) => (
+        <View
+          className={cn(
+            'h-10 w-10 items-center justify-center rounded-full',
+            selected
+              ? 'bg-primary'
+              : isToday
+                ? 'border-2 border-primary'
+                : pressed && 'bg-surface-muted',
+          )}
         >
-          {String(parseCalendarDate(day).day)}
-        </Text>
-      </View>
+          <Text
+            variant="body"
+            tabular
+            tone={selected ? 'onPrimary' : isToday ? 'primary' : 'default'}
+            className={selected || isToday ? 'font-sans-bold' : undefined}
+          >
+            {String(parseCalendarDate(day).day)}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 });
