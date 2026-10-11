@@ -113,6 +113,9 @@ src/
 6. Cuando el usuario confirme que probó la fase en su teléfono y el CI esté en verde, haz
    merge del PR con merge commit sin volver a preguntar.
 7. Toda la comunicación con el usuario, los planes, los PR y los commits van en español.
+8. Para no perder avance si la sesión se corta: commit al terminar cada paso del plan, aunque
+   sea pequeño, y `design/fase-N/progreso.md` al día, con la lista de pasos (los terminados
+   con `[x]`) y una línea de "Siguiente paso". Al retomar, se empieza por ese archivo.
 
 ## Pendientes técnicos
 

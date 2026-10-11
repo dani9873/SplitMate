@@ -3,7 +3,11 @@
 Aprobado el 2026-10-11 con cuatro ajustes de la revisión, ya incorporados: borrar la cuenta
 con reautenticación y sesión reciente, cerrar sesión con la opción de borrar los datos del
 teléfono, la lista de ajustes de Auth (versionados en `supabase/config.toml` cuando se
-puede) y los pendientes nuevos en CLAUDE.md.
+puede) y los pendientes nuevos en CLAUDE.md: MFA, CAPTCHA en el registro si hay abuso, Sign
+in with Apple para iOS, SMTP propio antes de invitar a otras personas y la SHA-1 del keystore
+de EAS para builds reales.
+
+El avance paso a paso está en `progreso.md`.
 
 ## Objetivo
 
@@ -353,7 +357,8 @@ Corre en GitHub Actions porque en la PC no hay Docker.
   apagados;
 - plantillas de correo.
 
-El proyecto remoto se configura en el panel, con la lista exacta que se entrega en el paso 4.
+El proyecto remoto se configura en el panel, con la lista exacta que se entrega en el punto de
+control de la tarea 8 del plan.
 `supabase config push` podría aplicarla, pero escribe todo `[auth]` en el remoto: no se usa sin
 permiso.
 
