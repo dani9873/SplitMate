@@ -1,7 +1,9 @@
 import {
   FunctionsFetchError,
   FunctionsHttpError,
+  type Session,
   type SupabaseClient,
+  type User,
 } from '@supabase/supabase-js';
 import { z } from 'zod';
 
@@ -66,10 +68,16 @@ export interface AuthService {
   canUseGoogle(): boolean;
   /** Entra con Google. `null` si el usuario cerró la hoja de Google. */
   signInWithGoogle(): Promise<AuthSession | null>;
-  /** Vuelve a pedir la contraseña: una sesión nueva y reciente para borrar la cuenta. */
-  reauthenticateWithPassword(email: string, password: string): Promise<void>;
-  /** Vuelve a elegir la cuenta de Google. `false` si el usuario cerró la hoja. */
-  reauthenticateWithGoogle(): Promise<boolean>;
+  /**
+   * Vuelve a pedir la contraseña: una sesión nueva y reciente para borrar la cuenta. Si entra
+   * otra cuenta, deja la sesión como estaba y lanza `wrongAccount`.
+   */
+  reauthenticateWithPassword(session: AuthSession, password: string): Promise<void>;
+  /**
+   * Vuelve a elegir la cuenta de Google, con la misma comprobación de la cuenta. `false` si el
+   * usuario cerró la hoja.
+   */
+  reauthenticateWithGoogle(session: AuthSession): Promise<boolean>;
   /** Borra la cuenta en Supabase (Edge Function `delete-account`). Pide una sesión reciente. */
   deleteAccount(): Promise<void>;
 }
@@ -136,6 +144,53 @@ export function createSupabaseAuthService(
       throw toAuthError(error);
     }
     return toAuthSession(data.user);
+  }
+
+  async function signOutHere(): Promise<void> {
+    const { error } = await auth.signOut({ scope: 'local' });
+    if (error) {
+      // Sin red, supabase-js no borra la sesión. Se borra igual: la revocación en el servidor se
+      // pierde, pero el refresh token ya no queda en el teléfono.
+      await storage.removeItem(SESSION_STORAGE_KEY);
+    }
+  }
+
+  /**
+   * Vuelve a entrar para borrar la cuenta y comprueba que siga siendo la de la sesión. Con otra
+   * cuenta (otra cuenta de Google del teléfono), revoca esa sesión en el servidor sin avisar a la
+   * app, devuelve la original y lanza `wrongAccount`: nada se borra. Si la original ya no sirve,
+   * cierra la sesión de este teléfono.
+   */
+  async function reauthenticate(
+    expectedUserId: string,
+    signIn: () => Promise<{
+      data: { user: User | null; session: Session | null };
+      error: unknown;
+    }>,
+  ): Promise<void> {
+    const {
+      data: { session: original },
+    } = await auth.getSession();
+    const { data, error } = await signIn();
+    if (error) {
+      throw toAuthError(error);
+    }
+    if (data.user?.id === expectedUserId) {
+      return;
+    }
+    if (data.session) {
+      await auth.admin.signOut(data.session.access_token, 'local');
+    }
+    const restored = original
+      ? await auth.setSession({
+          access_token: original.access_token,
+          refresh_token: original.refresh_token,
+        })
+      : null;
+    if (!restored || restored.error) {
+      await signOutHere();
+    }
+    throw new AuthError('wrongAccount');
   }
 
   async function requestPasswordReset(email: string): Promise<void> {
@@ -228,14 +283,7 @@ export function createSupabaseAuthService(
       }
     },
 
-    async signOut() {
-      const { error } = await auth.signOut({ scope: 'local' });
-      if (error) {
-        // Sin red, supabase-js no borra la sesión. Se borra igual: la revocación en el servidor se
-        // pierde, pero el refresh token ya no queda en el teléfono.
-        await storage.removeItem(SESSION_STORAGE_KEY);
-      }
-    },
+    signOut: signOutHere,
 
     setAutoRefresh(active) {
       void (active ? auth.startAutoRefresh() : auth.stopAutoRefresh());
@@ -258,15 +306,21 @@ export function createSupabaseAuthService(
 
     signInWithGoogle,
 
-    async reauthenticateWithPassword(email, password) {
-      const { error } = await auth.signInWithPassword({ email, password });
-      if (error) {
-        throw toAuthError(error);
-      }
+    async reauthenticateWithPassword(session, password) {
+      await reauthenticate(session.userId, () =>
+        auth.signInWithPassword({ email: session.email, password }),
+      );
     },
 
-    async reauthenticateWithGoogle() {
-      return (await signInWithGoogle()) !== null;
+    async reauthenticateWithGoogle(session) {
+      const token = await requestGoogleIdToken(google);
+      if (!token) {
+        return false;
+      }
+      await reauthenticate(session.userId, () =>
+        auth.signInWithIdToken({ provider: 'google', token: token.idToken, nonce: token.nonce }),
+      );
+      return true;
     },
 
     async deleteAccount() {

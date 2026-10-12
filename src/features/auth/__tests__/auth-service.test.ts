@@ -14,6 +14,7 @@ import {
 
 import { AuthError } from '../auth-errors';
 import { AUTH_REDIRECT_URL, createSupabaseAuthService, type AuthService } from '../auth-service';
+import { TEST_SESSION as SESSION } from '../test-utils';
 
 const EMAIL = 'ana@example.com';
 const PASSWORD = 'una contraseña larga';
@@ -322,10 +323,54 @@ describe('servicio de auth con supabase-js', () => {
     it('reautenticar con la contraseña crea una sesión nueva', async () => {
       const { server, service } = setup();
       server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
-      await service.reauthenticateWithPassword(EMAIL, PASSWORD);
+      await service.reauthenticateWithPassword(SESSION, PASSWORD);
       expect(server.calls('POST', '/auth/v1/token')[0]!.body).toMatchObject({
         email: EMAIL,
         password: PASSWORD,
+      });
+    });
+
+    describe('si al reautenticar entra otra cuenta', () => {
+      const OTHER = fakeSessionBody(
+        fakeUser({ id: '01928f3a-7b2c-7d4e-9f10-1a2b3c4d5e6f', email: 'beto@example.com' }),
+        { refreshToken: 'refresco-otra' },
+      );
+
+      function setupWithOther() {
+        const context = setup();
+        const responses = [ok(fakeSessionBody()), ok(OTHER)];
+        context.server.on('POST', '/auth/v1/token', () => responses.shift()!);
+        context.server.on('POST', '/auth/v1/logout', { status: 204, body: undefined });
+        const signedOut = jest.fn();
+        context.service.onSignedOut(signedOut);
+        return { ...context, signedOut };
+      }
+
+      it('revoca la sesión de la otra cuenta, devuelve la original y avisa sin cerrar sesión', async () => {
+        const { server, service, signedOut } = setupWithOther();
+        server.on('GET', '/auth/v1/user', ok(fakeUser()));
+        await service.signIn(EMAIL, PASSWORD);
+
+        await expect(
+          rejection(service.reauthenticateWithPassword(SESSION, PASSWORD)),
+        ).resolves.toMatchObject({ code: 'wrongAccount' });
+        const [logout] = server.calls('POST', '/auth/v1/logout');
+        expect(logout!.headers.get('authorization')).toBe(`Bearer ${OTHER.access_token}`);
+        expect(logout!.query.get('scope')).toBe('local');
+        await expect(service.restore()).resolves.toMatchObject({ userId: SESSION.userId });
+        expect(signedOut).not.toHaveBeenCalled();
+      });
+
+      it('si la sesión original ya no sirve, cierra la sesión de este teléfono', async () => {
+        const { server, service, signedOut } = setupWithOther();
+        server.on('GET', '/auth/v1/user', apiError(401, 'bad_jwt', 'Invalid JWT'));
+        await service.signIn(EMAIL, PASSWORD);
+
+        await expect(
+          rejection(service.reauthenticateWithPassword(SESSION, PASSWORD)),
+        ).resolves.toMatchObject({ code: 'wrongAccount' });
+        await expect(service.restore()).resolves.toBeNull();
+        expect(signedOut).toHaveBeenCalled();
       });
     });
 
@@ -333,7 +378,7 @@ describe('servicio de auth con supabase-js', () => {
       const { server, service } = setup();
       server.on('POST', '/auth/v1/token', apiError(400, 'invalid_credentials', 'Invalid'));
       await expect(
-        rejection(service.reauthenticateWithPassword(EMAIL, 'otra')),
+        rejection(service.reauthenticateWithPassword(SESSION, 'otra')),
       ).resolves.toMatchObject({ code: 'invalidCredentials' });
     });
 

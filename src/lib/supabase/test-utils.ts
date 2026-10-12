@@ -88,7 +88,7 @@ const base64url = (value: unknown) =>
 
 /** JWT con la forma de los de Supabase. La firma no se verifica en el cliente. */
 export function fakeJwt(claims: Record<string, unknown>): string {
-  return `${base64url({ alg: 'HS256', typ: 'JWT' })}.${base64url(claims)}.firma`;
+  return `${base64url({ alg: 'HS256', typ: 'JWT' })}.${base64url(claims)}.firma-falsa`;
 }
 
 export interface FakeUserOptions {

@@ -63,8 +63,8 @@ function DeleteAccount({ session }: { session: AuthSession }) {
     setSubmitError(null);
     try {
       if (usesPassword) {
-        await service.reauthenticateWithPassword(session.email, password);
-      } else if (!(await service.reauthenticateWithGoogle())) {
+        await service.reauthenticateWithPassword(session, password);
+      } else if (!(await service.reauthenticateWithGoogle(session))) {
         // Cerró la hoja de Google: no pasa nada.
         return;
       }

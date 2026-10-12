@@ -515,7 +515,8 @@
       "unknown": "Something went wrong. Try again.",
       "googleNoAccount": "There are no Google accounts on this phone. Add one in the phone settings or use your email.",
       "googleFailed": "Could not sign in with Google. Try again or use your email.",
-      "reauthenticationRequired": "For your security, confirm it is you again."
+      "reauthenticationRequired": "For your security, confirm it is you again.",
+      "wrongAccount": "You picked a different account. Nothing was deleted: try again with the account you are signed in with."
     },
     "google": {
       "button": "Continue with Google",

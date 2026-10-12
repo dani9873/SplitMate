@@ -158,6 +158,58 @@ describe('Google', () => {
       await expect(service.signInWithGoogle()).rejects.toMatchObject({ code: 'tooManyAttempts' });
     });
 
+    describe('reautenticar para borrar la cuenta', () => {
+      const ana = fakeUser({ providers: ['google'], userMetadata: { full_name: 'Ana' } });
+      const otra = fakeSessionBody(
+        fakeUser({
+          id: '01928f3a-7b2c-7d4e-9f10-1a2b3c4d5e6f',
+          email: 'beto@example.com',
+          providers: ['google'],
+        }),
+        { refreshToken: 'refresco-otra' },
+      );
+
+      function setupReauth(second: unknown) {
+        const module = fakeModule(async () => ({ idToken: 'token-de-google', displayName: null }));
+        const context = setup(module);
+        const responses = [ok(fakeSessionBody(ana)), ok(second)];
+        context.server.on('POST', '/auth/v1/token', () => responses.shift()!);
+        context.server.on('POST', '/auth/v1/logout', { status: 204, body: undefined });
+        context.server.on('GET', '/auth/v1/user', ok(ana));
+        return { ...context, module };
+      }
+
+      it('con la misma cuenta sigue y no toca la sesión', async () => {
+        const { server, service } = setupReauth(fakeSessionBody(ana, { refreshToken: 'nuevo' }));
+        const session = (await service.signInWithGoogle())!;
+
+        await expect(service.reauthenticateWithGoogle(session)).resolves.toBe(true);
+        expect(server.calls('POST', '/auth/v1/logout')).toHaveLength(0);
+      });
+
+      it('con otra cuenta de Google avisa, revoca esa sesión y vuelve la original', async () => {
+        const { server, service } = setupReauth(otra);
+        const session = (await service.signInWithGoogle())!;
+
+        await expect(service.reauthenticateWithGoogle(session)).rejects.toMatchObject({
+          code: 'wrongAccount',
+        });
+        const [logout] = server.calls('POST', '/auth/v1/logout');
+        expect(logout!.headers.get('authorization')).toBe(`Bearer ${otra.access_token}`);
+        await expect(service.restore()).resolves.toMatchObject({ userId: session.userId });
+      });
+
+      it('si cierra la hoja, devuelve false sin llamar a Supabase', async () => {
+        const { server, service, module } = setupReauth(otra);
+        const session = (await service.signInWithGoogle())!;
+        module.signIn.mockRejectedValueOnce(codedError('CANCELED'));
+        const before = server.requests.length;
+
+        await expect(service.reauthenticateWithGoogle(session)).resolves.toBe(false);
+        expect(server.requests).toHaveLength(before);
+      });
+    });
+
     it('dice si Google está disponible', () => {
       const module = fakeModule(async () => ({ idToken: 't', displayName: null }));
       expect(setup(module).service.canUseGoogle()).toBe(true);

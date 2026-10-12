@@ -156,7 +156,7 @@ describe('cuenta', () => {
       await user.type(screen.getByTestId('delete-account-password'), PASSWORD);
       await press(user, 'delete-account-submit');
 
-      expect(service.reauthenticateWithPassword).toHaveBeenCalledWith(TEST_SESSION.email, PASSWORD);
+      expect(service.reauthenticateWithPassword).toHaveBeenCalledWith(TEST_SESSION, PASSWORD);
       expect(await screen.findByTestId('welcome-screen')).toBeOnTheScreen();
       expect(service.deleteAccount).toHaveBeenCalledTimes(1);
       expect(service.signOut).toHaveBeenCalledTimes(1);
@@ -202,6 +202,30 @@ describe('cuenta', () => {
       expect(service.reauthenticateWithGoogle).toHaveBeenCalledTimes(1);
       expect(service.deleteAccount).not.toHaveBeenCalled();
       expect(screen.getByTestId('delete-account-screen')).toBeOnTheScreen();
+    });
+
+    it('si elige otra cuenta de Google, no borra nada y lo explica', async () => {
+      const user = userEvent.setup();
+      const googleSession = { ...TEST_SESSION, providers: ['google'] };
+      service = createFakeAuthService({
+        restore: async () => googleSession,
+        canUseGoogle: () => true,
+        reauthenticateWithGoogle: async () => {
+          throw new AuthError('wrongAccount');
+        },
+      });
+      await renderRouter(routes(), { initialUrl: '/account/delete' });
+
+      await user.type(await screen.findByTestId('delete-account-email'), TEST_SESSION.email);
+      await press(user, 'delete-account-submit');
+
+      expect(await screen.findByTestId('form-error')).toHaveTextContent(
+        'Elegiste otra cuenta. No se borró nada: vuelve a intentarlo con la cuenta de esta sesión.',
+      );
+      expect(service.reauthenticateWithGoogle).toHaveBeenCalledWith(googleSession);
+      expect(service.deleteAccount).not.toHaveBeenCalled();
+      expect(service.signOut).not.toHaveBeenCalled();
+      expect(deleteAccountData).not.toHaveBeenCalled();
     });
 
     it('si la Edge Function pide reautenticar, lo explica y no cierra la sesión', async () => {
