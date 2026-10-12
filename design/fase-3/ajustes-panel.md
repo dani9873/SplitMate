@@ -3,6 +3,12 @@
 Lista para dejar el proyecto remoto igual que `supabase/config.toml`, que solo aplica en local
 y en CI. Los nombres de los menús pueden variar un poco según la versión del panel.
 
+> **Cambio después de aplicarla (2026-10-12, revisión de seguridad):** el código del correo vence
+> en 30 minutos, no en una hora.
+>
+> 1. En la sección 2, poner Email OTP expiration en **1800** segundos.
+> 2. En la sección 5, volver a pegar las dos plantillas: ahora dicen "vencen en 30 minutos".
+
 ## 1. Authentication → URL Configuration
 
 | Ajuste        | Valor                                                                   |
@@ -25,7 +31,7 @@ Supabase compara la redirección con esta lista, query incluida. La app no agreg
 | Minimum password length | 8                                   |
 | Password requirements   | ninguno (sin reglas de composición) |
 | Email OTP length        | 6                                   |
-| Email OTP expiration    | 3600 segundos                       |
+| Email OTP expiration    | 1800 segundos                       |
 
 **Generales**
 

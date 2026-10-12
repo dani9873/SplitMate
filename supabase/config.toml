@@ -238,7 +238,8 @@ max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# SplitMate: 30 min. Con un código de 6 dígitos, menos tiempo deja menos intentos posibles.
+otp_expiry = 1800
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
