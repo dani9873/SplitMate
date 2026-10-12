@@ -3,10 +3,10 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 9, perfil remoto (`src/features/auth/profile-sync.ts`): tras el login,
-asegurar la fila de `profiles` con el nombre del registro o de Google; sin red, reintentar en el
-siguiente arranque. Pendientes del usuario: permiso y contraseña para `supabase db push`, y los
-ajustes del panel de `ajustes-panel.md`.
+**Siguiente paso:** tarea 10, Google en Android: módulo Expo local
+`modules/splitmate-google-auth` (Kotlin, Credential Manager, nonce), `src/features/auth/google.ts`
+y el botón en bienvenida y entrar. Pendientes del usuario: permiso y contraseña para
+`supabase db push`, y los ajustes del panel de `ajustes-panel.md`.
 
 ## Pasos
 
@@ -32,7 +32,8 @@ ajustes del panel de `ajustes-panel.md`.
       `[auth]` en `config.toml`.
 - [x] Punto de control: lista de ajustes de Auth para el panel en `ajustes-panel.md` (falta
       que el usuario la aplique).
-- [ ] 9. Perfil remoto.
+- [x] 9. Perfil remoto: upsert que ignora duplicados al entrar a `(app)`; sin red queda
+      pendiente para el próximo arranque. 8 pruebas nuevas.
 - [ ] 10. Google (Android).
 - [ ] Punto de control: Google Cloud Console, proveedor Google en Supabase y
       `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`.

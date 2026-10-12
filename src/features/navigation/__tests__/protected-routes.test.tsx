@@ -84,6 +84,16 @@ describe('rutas según la sesión', () => {
       email: TEST_SESSION.email,
       displayName: TEST_SESSION.displayName,
     });
+    // Y asegura su perfil remoto, una vez.
+    expect(service.ensureProfile).toHaveBeenCalledTimes(1);
+    expect(service.ensureProfile).toHaveBeenCalledWith(TEST_SESSION);
+  });
+
+  it('sin sesión no toca el perfil remoto', async () => {
+    service = createFakeAuthService();
+    await renderRouter(routes(), { initialUrl: '/' });
+    expect(await screen.findByTestId('welcome-screen')).toBeOnTheScreen();
+    expect(service.ensureProfile).not.toHaveBeenCalled();
   });
 
   it('con sesión, la bienvenida no está disponible', async () => {

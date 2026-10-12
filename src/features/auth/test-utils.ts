@@ -30,6 +30,7 @@ export function createFakeAuthService(overrides: Partial<AuthService> = {}): Fak
       listeners.add(listener);
       return () => listeners.delete(listener);
     }),
+    ensureProfile: jest.fn(async () => undefined),
     emitSignedOut: () => listeners.forEach((listener) => listener()),
   };
   for (const [name, implementation] of Object.entries(overrides)) {

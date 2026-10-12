@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { openAccountDatabase } from '@/db/client';
 import { DatabaseGate, useDatabaseSetup } from '@/db/DatabaseProvider';
@@ -20,12 +20,18 @@ export default function AppLayout() {
 }
 
 function AccountArea({ session }: { session: AuthSession }) {
-  const { userId, email, displayName } = session;
+  const { service } = useAuth();
+  const { userId, email, displayName, providers } = session;
   const open = useCallback(
     () => openAccountDatabase({ userId, email, displayName }),
     [userId, email, displayName],
   );
   const database = useDatabaseSetup(open);
+
+  // Al entrar (o al abrir la app con sesión), el perfil remoto existe. Sin red, al próximo arranque.
+  useEffect(() => {
+    void service.ensureProfile({ userId, email, displayName, providers });
+  }, [service, userId, email, displayName, providers]);
   return (
     <DatabaseGate database={database}>
       <UndoProvider>

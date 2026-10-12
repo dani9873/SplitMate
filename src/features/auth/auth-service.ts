@@ -5,6 +5,7 @@ import { SESSION_STORAGE_KEY } from '@/lib/supabase/create-client';
 import type { SupportedStorage } from '@/lib/supabase/session-storage';
 
 import { AuthError, isExistingAccountError, toAuthError } from './auth-errors';
+import { ensureRemoteProfile } from './profile-sync';
 
 /** Destino de los enlaces de los correos. Es la única redirección permitida en Supabase. */
 export const AUTH_REDIRECT_URL = 'splitmate://auth/callback';
@@ -54,6 +55,8 @@ export interface AuthService {
   setAutoRefresh(active: boolean): void;
   /** Supabase cerró la sesión: la cerró el usuario o el servidor la rechazó de forma definitiva. */
   onSignedOut(listener: () => void): () => void;
+  /** Crea el perfil remoto si falta. Nunca lanza: sin red, se reintenta en el próximo arranque. */
+  ensureProfile(session: AuthSession): Promise<void>;
 }
 
 const userSchema = z.object({
@@ -206,6 +209,10 @@ export function createSupabaseAuthService(
         }
       });
       return () => data.subscription.unsubscribe();
+    },
+
+    async ensureProfile(session) {
+      await ensureRemoteProfile(client, session);
     },
   };
 }
