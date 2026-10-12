@@ -512,7 +512,13 @@
       "sessionExpired": "Your session expired. Start again.",
       "offline": "No connection. Check your internet and try again.",
       "unavailable": "The service is not responding. Try again later.",
-      "unknown": "Something went wrong. Try again."
+      "unknown": "Something went wrong. Try again.",
+      "googleNoAccount": "There are no Google accounts on this phone. Add one in the phone settings or use your email.",
+      "googleFailed": "Could not sign in with Google. Try again or use your email."
+    },
+    "google": {
+      "button": "Continue with Google",
+      "or": "or"
     }
   },
   "config": {

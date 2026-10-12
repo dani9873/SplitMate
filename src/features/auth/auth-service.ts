@@ -5,6 +5,7 @@ import { SESSION_STORAGE_KEY } from '@/lib/supabase/create-client';
 import type { SupportedStorage } from '@/lib/supabase/session-storage';
 
 import { AuthError, isExistingAccountError, toAuthError } from './auth-errors';
+import { isGoogleSignInAvailable, requestGoogleIdToken, type GoogleSignInDeps } from './google';
 import { ensureRemoteProfile } from './profile-sync';
 
 /** Destino de los enlaces de los correos. Es la única redirección permitida en Supabase. */
@@ -57,6 +58,10 @@ export interface AuthService {
   onSignedOut(listener: () => void): () => void;
   /** Crea el perfil remoto si falta. Nunca lanza: sin red, se reintenta en el próximo arranque. */
   ensureProfile(session: AuthSession): Promise<void>;
+  /** Hay módulo de Google (Android) y cliente web configurado. */
+  canUseGoogle(): boolean;
+  /** Entra con Google. `null` si el usuario cerró la hoja de Google. */
+  signInWithGoogle(): Promise<AuthSession | null>;
 }
 
 const userSchema = z.object({
@@ -93,9 +98,17 @@ function toAuthSession(raw: unknown): AuthSession {
   };
 }
 
+const NO_GOOGLE: GoogleSignInDeps = {
+  module: null,
+  webClientId: null,
+  randomBytes: () => new Uint8Array(),
+  sha256Hex: async () => '',
+};
+
 export function createSupabaseAuthService(
   client: SupabaseClient,
   storage: SupportedStorage,
+  google: GoogleSignInDeps = NO_GOOGLE,
 ): AuthService {
   const auth = client.auth;
 
@@ -213,6 +226,24 @@ export function createSupabaseAuthService(
 
     async ensureProfile(session) {
       await ensureRemoteProfile(client, session);
+    },
+
+    canUseGoogle: () => isGoogleSignInAvailable(google),
+
+    async signInWithGoogle() {
+      const token = await requestGoogleIdToken(google);
+      if (!token) {
+        return null;
+      }
+      const { data, error } = await auth.signInWithIdToken({
+        provider: 'google',
+        token: token.idToken,
+        nonce: token.nonce,
+      });
+      if (error) {
+        throw toAuthError(error);
+      }
+      return toAuthSession(data.user);
     },
   };
 }

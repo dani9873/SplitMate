@@ -10,6 +10,7 @@ import { Button, Input } from '@/ui';
 import { AuthError } from '../auth-errors';
 import { signInFormSchema } from '../auth-form';
 import { useAuth } from '../AuthProvider';
+import { GoogleButton, OrDivider, useGoogleSignIn } from './GoogleButton';
 import { AuthScreen, FormError, PasswordField, useAuthErrorText, useValidationText } from './parts';
 
 type Form = z.input<typeof signInFormSchema>;
@@ -25,6 +26,7 @@ export function SignInScreen() {
   const errorText = useAuthErrorText();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const google = useGoogleSignIn(setSubmitError);
   const { control, handleSubmit, formState, getValues } = useForm<Form, unknown, Values>({
     resolver: zodResolver(signInFormSchema),
     defaultValues: {
@@ -120,6 +122,12 @@ export function SignInScreen() {
         loading={formState.isSubmitting}
         fullWidth
       />
+      {google.available ? (
+        <>
+          <OrDivider />
+          <GoogleButton testID="sign-in-google" busy={google.busy} onPress={google.start} />
+        </>
+      ) : null}
       <Button
         testID="sign-in-forgot"
         label={t('auth.signIn.forgot')}

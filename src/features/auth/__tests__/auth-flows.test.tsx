@@ -286,6 +286,55 @@ describe('pantallas de auth', () => {
     });
   });
 
+  describe('Google', () => {
+    it('sin Google disponible (iOS o sin configurar) no aparece el botón', async () => {
+      service = createFakeAuthService();
+      await renderRouter(routes(), { initialUrl: '/' });
+      expect(await screen.findByTestId('welcome-screen')).toBeOnTheScreen();
+      expect(screen.queryByTestId('welcome-google')).toBeNull();
+    });
+
+    it('con Google disponible, la bienvenida lo ofrece y entra a la app', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({ canUseGoogle: () => true });
+      await renderRouter(routes(), { initialUrl: '/' });
+
+      await user.press(await screen.findByRole('button', { name: 'Continuar con Google' }));
+      expect(service.signInWithGoogle).toHaveBeenCalledTimes(1);
+      expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
+    });
+
+    it('cerrar la hoja de Google no muestra ningún error', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({
+        canUseGoogle: () => true,
+        signInWithGoogle: async () => null,
+      });
+      await renderRouter(routes(), { initialUrl: '/sign-in' });
+
+      await press(user, 'sign-in-google');
+      expect(service.signInWithGoogle).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('sign-in-screen')).toBeOnTheScreen();
+      expect(screen.queryByTestId('form-error')).toBeNull();
+    });
+
+    it('sin cuentas de Google explica qué hacer', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({
+        canUseGoogle: () => true,
+        signInWithGoogle: async () => {
+          throw new AuthError('googleNoAccount');
+        },
+      });
+      await renderRouter(routes(), { initialUrl: '/' });
+
+      await press(user, 'welcome-google');
+      expect(await screen.findByTestId('form-error')).toHaveTextContent(
+        /No hay cuentas de Google en este teléfono/,
+      );
+    });
+  });
+
   describe('revisa tu correo', () => {
     it('reenviar espera antes de estar disponible', async () => {
       service = createFakeAuthService();

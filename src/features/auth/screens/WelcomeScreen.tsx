@@ -1,15 +1,21 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { Button, Screen, Text, useAppTheme } from '@/ui';
 
-/** Bienvenida, la primera pantalla sin sesión: crear cuenta o entrar. */
+import { GoogleButton, useGoogleSignIn } from './GoogleButton';
+import { FormError } from './parts';
+
+/** Bienvenida, la primera pantalla sin sesión: Google (Android), crear cuenta o entrar. */
 export function WelcomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors } = useAppTheme();
+  const [error, setError] = useState<string | null>(null);
+  const google = useGoogleSignIn(setError);
   return (
     <Screen edges={['top', 'bottom']} testID="welcome-screen">
       <View className="flex-1 items-center justify-center gap-4">
@@ -28,6 +34,10 @@ export function WelcomeScreen() {
         </Text>
       </View>
       <View className="gap-3 pb-6">
+        <FormError message={error} />
+        {google.available ? (
+          <GoogleButton testID="welcome-google" busy={google.busy} onPress={google.start} />
+        ) : null}
         <Button
           testID="welcome-create-account"
           label={t('auth.welcome.createAccount')}

@@ -22,6 +22,8 @@ export type AuthErrorCode =
   | 'invalidCode'
   | 'linkExpired'
   | 'sessionExpired'
+  | 'googleNoAccount'
+  | 'googleFailed'
   | 'offline'
   | 'unavailable'
   | 'unknown';
@@ -57,6 +59,7 @@ const API_CODES: Readonly<Record<string, AuthErrorCode>> = {
   user_not_found: 'sessionExpired',
   signup_disabled: 'unavailable',
   email_provider_disabled: 'unavailable',
+  provider_disabled: 'unavailable',
 };
 
 /** Convierte un error de supabase-js (o cualquiera) en un AuthError con código conocido. */

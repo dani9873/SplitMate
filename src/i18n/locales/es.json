@@ -512,7 +512,13 @@
       "sessionExpired": "Tu sesión venció. Empieza de nuevo.",
       "offline": "Sin conexión. Revisa tu internet e intenta de nuevo.",
       "unavailable": "El servicio no responde. Intenta de nuevo en un rato.",
-      "unknown": "Algo falló. Intenta de nuevo."
+      "unknown": "Algo falló. Intenta de nuevo.",
+      "googleNoAccount": "No hay cuentas de Google en este teléfono. Agrega una en los ajustes del teléfono o usa tu correo.",
+      "googleFailed": "No se pudo entrar con Google. Intenta de nuevo o usa tu correo."
+    },
+    "google": {
+      "button": "Continuar con Google",
+      "or": "o"
     }
   },
   "config": {

@@ -351,6 +351,14 @@ skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
 
+# SplitMate: Google se activa en el panel del proyecto remoto, con el Client ID del cliente web y
+# la comprobación del nonce encendida (design/fase-3/google-config.md). Aquí queda apagado: la CLI
+# exige client_id al activarlo, y las pruebas de la base no lo necesitan.
+[auth.external.google]
+enabled = false
+client_id = ""
+skip_nonce_check = false
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]

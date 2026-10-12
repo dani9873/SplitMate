@@ -3,10 +3,10 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 10, Google en Android: módulo Expo local
-`modules/splitmate-google-auth` (Kotlin, Credential Manager, nonce), `src/features/auth/google.ts`
-y el botón en bienvenida y entrar. Pendientes del usuario: permiso y contraseña para
-`supabase db push`, y los ajustes del panel de `ajustes-panel.md`.
+**Siguiente paso:** tarea 11, cuenta: cerrar sesión (dos opciones) y borrar la cuenta con
+reautenticación; Edge Function `delete-account` con su manejador probado en Jest. Pendientes
+del usuario: permiso y contraseña para `supabase db push`, los ajustes de `ajustes-panel.md` y
+los de Google de `google-config.md`.
 
 ## Pasos
 
@@ -34,9 +34,11 @@ y el botón en bienvenida y entrar. Pendientes del usuario: permiso y contraseñ
       que el usuario la aplique).
 - [x] 9. Perfil remoto: upsert que ignora duplicados al entrar a `(app)`; sin red queda
       pendiente para el próximo arranque. 8 pruebas nuevas.
-- [ ] 10. Google (Android).
-- [ ] Punto de control: Google Cloud Console, proveedor Google en Supabase y
-      `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`.
+- [x] 10. Google (Android): módulo Kotlin con Credential Manager y nonce (lo encuentra el
+      autolinking; se compila en el build de EAS de la tarea 12), `google.ts` y el botón en
+      bienvenida y entrar. 20 pruebas nuevas.
+- [x] Punto de control: pasos de Google Cloud y Supabase en `google-config.md` (falta que el
+      usuario los aplique y ponga `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` en `.env`).
 - [ ] 11. Cuenta: cerrar sesión y borrar cuenta.
 - [ ] Punto de control: permiso para desplegar la Edge Function `delete-account`.
 - [ ] 12. Cierre: verificaciones, revisión de seguridad, emulador, CLAUDE.md, PR y build.
