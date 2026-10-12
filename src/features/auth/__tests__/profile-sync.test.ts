@@ -9,13 +9,10 @@ import {
   memorySupportedStorage,
 } from '@/lib/supabase/test-utils';
 
-import type { AuthSession } from '../auth-service';
-import { ensureRemoteProfile, profileName } from '../profile-sync';
+import { ensureRemoteProfile, profileName, type RemoteProfile } from '../profile-sync';
 
-const SESSION: AuthSession = {
+const PROFILE: RemoteProfile = {
   userId: '6f1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
-  email: 'ana.garcia@example.com',
-  providers: ['email'],
   displayName: 'Ana García',
 };
 
@@ -47,10 +44,10 @@ describe('perfil remoto', () => {
     const { server, client } = await signedInClient();
     server.on('POST', '/rest/v1/profiles', { status: 201, body: undefined });
 
-    await expect(ensureRemoteProfile(client, SESSION)).resolves.toBe('synced');
+    await expect(ensureRemoteProfile(client, PROFILE)).resolves.toBe('synced');
 
     const [request] = server.calls('POST', '/rest/v1/profiles');
-    expect(request!.body).toEqual({ id: SESSION.userId, display_name: 'Ana García' });
+    expect(request!.body).toEqual({ id: PROFILE.userId, display_name: 'Ana García' });
     expect(request!.query.get('on_conflict')).toBe('id');
     expect(request!.headers.get('prefer')).toContain('resolution=ignore-duplicates');
     // Con la sesión de la cuenta: RLS solo deja crear el perfil propio.
@@ -60,7 +57,7 @@ describe('perfil remoto', () => {
   it('sin red queda pendiente, sin lanzar: se reintenta en el siguiente arranque', async () => {
     const { server, client } = await signedInClient();
     server.setOffline(true);
-    await expect(ensureRemoteProfile(client, SESSION)).resolves.toBe('pending');
+    await expect(ensureRemoteProfile(client, PROFILE)).resolves.toBe('pending');
   });
 
   it('un rechazo de la base también queda pendiente', async () => {
@@ -70,21 +67,17 @@ describe('perfil remoto', () => {
       '/rest/v1/profiles',
       apiError(403, '42501', 'new row violates row-level security'),
     );
-    await expect(ensureRemoteProfile(client, SESSION)).resolves.toBe('pending');
+    await expect(ensureRemoteProfile(client, PROFILE)).resolves.toBe('pending');
   });
 
   describe('nombre del perfil', () => {
-    it('usa el del registro o el de Google', () => {
-      expect(profileName(SESSION)).toBe('Ana García');
-    });
-
-    it('sin nombre usa la parte del correo antes de la arroba', () => {
-      expect(profileName({ ...SESSION, displayName: null })).toBe('ana.garcia');
+    it('usa el nombre resuelto, sin espacios sobrantes', () => {
+      expect(profileName('  Ana García ')).toBe('Ana García');
     });
 
     it('recorta a 80 caracteres sin partir un emoji', () => {
       const name = `${'a'.repeat(79)}😀😀`;
-      const result = profileName({ ...SESSION, displayName: name });
+      const result = profileName(name);
       expect(Array.from(result)).toHaveLength(80);
       expect(result.endsWith('😀')).toBe(true);
     });

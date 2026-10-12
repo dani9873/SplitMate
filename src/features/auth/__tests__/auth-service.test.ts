@@ -319,6 +319,38 @@ describe('servicio de auth con supabase-js', () => {
     });
   });
 
+  describe('nombre de la cuenta', () => {
+    it('guarda el nombre en los metadatos y devuelve la sesión con él', async () => {
+      const { server, service } = setup();
+      const nameless = fakeUser({ providers: ['google'], userMetadata: {} });
+      server.on('POST', '/auth/v1/token', ok(fakeSessionBody(nameless)));
+      server.on(
+        'PUT',
+        '/auth/v1/user',
+        ok(fakeUser({ providers: ['google'], userMetadata: { display_name: 'Ana Nueva' } })),
+      );
+      await expect(service.signIn(EMAIL, PASSWORD)).resolves.toMatchObject({ displayName: null });
+
+      await expect(service.updateDisplayName('Ana Nueva')).resolves.toMatchObject({
+        userId: SESSION.userId,
+        displayName: 'Ana Nueva',
+      });
+      expect(server.calls('PUT', '/auth/v1/user')[0]!.body).toMatchObject({
+        data: { display_name: 'Ana Nueva' },
+      });
+    });
+
+    it('sin red avisa que no hay conexión', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
+      await service.signIn(EMAIL, PASSWORD);
+      server.setOffline(true);
+      await expect(rejection(service.updateDisplayName('Ana'))).resolves.toMatchObject({
+        code: 'offline',
+      });
+    });
+  });
+
   describe('borrar la cuenta', () => {
     it('reautenticar con la contraseña crea una sesión nueva', async () => {
       const { server, service } = setup();

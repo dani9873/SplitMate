@@ -477,6 +477,12 @@
       "body": "Enter your account email and we will send you a link and a code.",
       "submit": "Send"
     },
+    "yourName": {
+      "title": "What is your name?",
+      "body": "Your Google account has no name. This is how others will see you in groups.",
+      "submit": "Continue",
+      "skip": "Not now"
+    },
     "reset": {
       "title": "Choose a new password",
       "body": "You will use it to sign in from now on.",
@@ -530,6 +536,7 @@
     }
   },
   "account": {
+    "defaultName": "User",
     "title": "Account",
     "signedInAs": "Signed in as {{email}}",
     "withGoogle": "With your Google account",

@@ -20,6 +20,8 @@ export interface Account {
   readonly userId: string;
   readonly email: string;
   readonly displayName: string | null;
+  /** Nombre del usuario local nuevo si la cuenta no trae uno ("Usuario", traducido). */
+  readonly fallbackName: string;
 }
 
 /** Una base abierta y cómo cerrarla. */
@@ -214,12 +216,6 @@ function accountName(account: Account): string | null {
   return name ? Array.from(name).slice(0, 80).join('') : null;
 }
 
-function emailName(email: string): string {
-  return Array.from(email.split('@')[0] || email)
-    .slice(0, 80)
-    .join('');
-}
-
 /**
  * Adopta los datos de las Fases 1 y 2 en una transacción: el usuario local (el de
  * `profile.userId`, o el único `users` si falta ese ajuste) pasa a tener el id de la cuenta, con
@@ -277,7 +273,7 @@ function prepareForAccount(db: AppDatabase, account: Account, now: number): void
           id: account.userId,
           createdAt: now,
           updatedAt: now,
-          displayName: accountName(account) ?? emailName(account.email),
+          displayName: accountName(account) ?? account.fallbackName,
           email: account.email,
         })
         .run();

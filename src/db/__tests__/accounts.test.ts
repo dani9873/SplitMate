@@ -36,11 +36,13 @@ const ANA: Account = {
   userId: '6f1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
   email: 'ana@example.com',
   displayName: 'Ana García',
+  fallbackName: 'Usuario',
 };
 const BETO: Account = {
   userId: '7a2b3c4d-5e6f-4a7b-9c8d-0e1f2a3b4c5d',
   email: 'beto@example.com',
   displayName: 'Beto',
+  fallbackName: 'Usuario',
 };
 
 let SQL: SqlJsStatic;
@@ -247,7 +249,7 @@ describe('bases por cuenta', () => {
       expect(phone.keys.get(accountKeyName(BETO.userId))).toMatch(/^[0-9a-f]{64}$/);
     });
 
-    it('sin datos de las Fases 1 y 2 crea la base de la cuenta con su usuario', async () => {
+    it('sin datos de las Fases 1 y 2 crea la base de la cuenta con su usuario; sin nombre, el de respaldo y nunca el correo', async () => {
       const phone = createPhone();
       const { db } = await createAccountDatabases(phone.deps).open({ ...ANA, displayName: null });
 
@@ -255,7 +257,7 @@ describe('bases por cuenta', () => {
       expect(readLocalUser(db)).toMatchObject({
         id: ANA.userId,
         email: ANA.email,
-        displayName: 'ana',
+        displayName: 'Usuario',
       });
       expect(readSetting(db, SETTING_KEYS.accountOwnerId)).toBe(ANA.userId);
     });

@@ -12,7 +12,7 @@ import type { SupportedStorage } from '@/lib/supabase/session-storage';
 
 import { AuthError, isExistingAccountError, toAuthError } from './auth-errors';
 import { isGoogleSignInAvailable, requestGoogleIdToken, type GoogleSignInDeps } from './google';
-import { ensureRemoteProfile } from './profile-sync';
+import { ensureRemoteProfile, type RemoteProfile } from './profile-sync';
 
 /** Destino de los enlaces de los correos. Es la única redirección permitida en Supabase. */
 export const AUTH_REDIRECT_URL = 'splitmate://auth/callback';
@@ -62,8 +62,13 @@ export interface AuthService {
   setAutoRefresh(active: boolean): void;
   /** Supabase cerró la sesión: la cerró el usuario o el servidor la rechazó de forma definitiva. */
   onSignedOut(listener: () => void): () => void;
-  /** Crea el perfil remoto si falta. Nunca lanza: sin red, se reintenta en el próximo arranque. */
-  ensureProfile(session: AuthSession): Promise<void>;
+  /**
+   * Crea el perfil remoto si falta, con el nombre ya resuelto (el de la cuenta o el de respaldo).
+   * Nunca lanza: sin red, se reintenta en el próximo arranque.
+   */
+  ensureProfile(profile: RemoteProfile): Promise<void>;
+  /** Guarda el nombre en la cuenta (metadatos de Supabase Auth) y devuelve la sesión con él. */
+  updateDisplayName(name: string): Promise<AuthSession>;
   /** Hay módulo de Google (Android) y cliente web configurado. */
   canUseGoogle(): boolean;
   /** Entra con Google. `null` si el usuario cerró la hoja de Google. */
@@ -298,8 +303,16 @@ export function createSupabaseAuthService(
       return () => data.subscription.unsubscribe();
     },
 
-    async ensureProfile(session) {
-      await ensureRemoteProfile(client, session);
+    async ensureProfile(profile) {
+      await ensureRemoteProfile(client, profile);
+    },
+
+    async updateDisplayName(name) {
+      const { data, error } = await auth.updateUser({ data: { display_name: name } });
+      if (error) {
+        throw toAuthError(error);
+      }
+      return toAuthSession(data.user);
     },
 
     canUseGoogle: () => isGoogleSignInAvailable(google),

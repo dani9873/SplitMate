@@ -3,6 +3,12 @@
 Rama `fase-3-supabase-auth` contra `main`, hecha con la skill security-code-review el
 2026-10-11, después del paso 11 (`d4f594e`).
 
+> **Estado (2026-10-12):** los tres hallazgos están corregidos en el paso 12c. El medio está en
+> `de720a2`, el código de 30 minutos en `91bcc2f` y el nombre en el commit que cierra el paso.
+> El medio tiene un residuo aceptado: si la otra cuenta de Google no tenía cuenta en SplitMate,
+> entrar con ella la crea, vacía, antes de que la app la descarte. `verify_jwt` se comprueba en
+> el paso 12d.
+
 ## Resumen
 
 No hay hallazgos críticos ni altos. Hay uno medio: al borrar una cuenta de Google, elegir otra

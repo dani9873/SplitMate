@@ -7,7 +7,8 @@ import { ThemeProvider } from '@/ui';
 
 /**
  * Rutas de la app según la sesión. Sin sesión solo existen las de `(auth)`; con sesión, las de
- * `(app)`; recuperando la contraseña, solo `reset-password`. Si la sesión cambia, Expo Router
+ * `(app)`; recuperando la contraseña, solo `reset-password`; recién entrado con una cuenta sin
+ * nombre, solo `your-name`. Si la sesión cambia, Expo Router
  * lleva a la primera pantalla disponible. `auth/callback`, destino de los correos, existe
  * siempre. Mientras se restaura la sesión guardada, el splash nativo sigue visible.
  */
@@ -19,11 +20,15 @@ export function RootNavigator() {
   }
   const signedIn = state.status === 'signedIn';
   const recovering = signedIn && state.recovering;
+  const needsName = signedIn && state.needsName;
   return (
     <ThemeProvider onLayout={hideSplash}>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={signedIn && !recovering}>
+        <Stack.Protected guard={signedIn && !recovering && !needsName}>
           <Stack.Screen name="(app)" />
+        </Stack.Protected>
+        <Stack.Protected guard={needsName}>
+          <Stack.Screen name="your-name" />
         </Stack.Protected>
         <Stack.Protected guard={recovering}>
           <Stack.Screen name="reset-password" />

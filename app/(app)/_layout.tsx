@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { openAccountDatabase } from '@/db/client';
 import { DatabaseGate, useDatabaseSetup } from '@/db/DatabaseProvider';
@@ -20,18 +21,22 @@ export default function AppLayout() {
 }
 
 function AccountArea({ session }: { session: AuthSession }) {
+  const { t } = useTranslation();
   const { service } = useAuth();
-  const { userId, email, displayName, providers } = session;
+  const { userId, email, displayName } = session;
+  // Sin nombre en la cuenta (Google sin nombre y "Ahora no"), nunca el correo: "Usuario". Se
+  // fija al montar: cambiar el idioma no debe reabrir la base.
+  const [fallbackName] = useState(() => t('account.defaultName'));
   const open = useCallback(
-    () => openAccountDatabase({ userId, email, displayName }),
-    [userId, email, displayName],
+    () => openAccountDatabase({ userId, email, displayName, fallbackName }),
+    [userId, email, displayName, fallbackName],
   );
   const database = useDatabaseSetup(open);
 
   // Al entrar (o al abrir la app con sesión), el perfil remoto existe. Sin red, al próximo arranque.
   useEffect(() => {
-    void service.ensureProfile({ userId, email, displayName, providers });
-  }, [service, userId, email, displayName, providers]);
+    void service.ensureProfile({ userId, displayName: displayName ?? fallbackName });
+  }, [service, userId, displayName, fallbackName]);
   return (
     <DatabaseGate database={database}>
       <UndoProvider>

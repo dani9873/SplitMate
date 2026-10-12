@@ -172,6 +172,11 @@ src/
 - **Sign in with Apple para iOS.** En la Fase 3, Google solo se ofrece en Android: en iOS, la
   regla 4.8 de la App Store exige ofrecer también un inicio de sesión equivalente con
   privacidad, como Sign in with Apple. Agregar ambos cuando se pueda probar iOS.
+- **Configurar Google Cloud (google-config.md) y probar login con Google.** Pospuesto en la Fase
+  3. El login con Google está implementado (Android), pero queda oculto mientras falte
+  `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, y la app funciona solo con correo. Al configurarlo, probar
+  también la pantalla del nombre (cuenta de Google sin nombre) y que borrar la cuenta rechace otra
+  cuenta de Google.
 - **SMTP propio antes de invitar a otras personas.** El correo integrado de Supabase solo
   envía a miembros de la organización y unos pocos por hora. Antes de que otras personas se
   registren, configurar un proveedor SMTP (Resend, Brevo u otro) y subir el límite de envíos.

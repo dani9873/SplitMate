@@ -2,14 +2,20 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { logger } from '@/lib/logger';
 
-import type { AuthSession } from './auth-service';
-
 const MAX_NAME_LENGTH = 80;
 
-/** Nombre del perfil: el del registro o de Google; si no hay, la parte del correo antes de @. */
-export function profileName(session: AuthSession): string {
-  const name = session.displayName?.trim() || session.email.split('@')[0] || session.email;
-  return Array.from(name).slice(0, MAX_NAME_LENGTH).join('');
+/** Lo que va a `profiles`: el nombre ya resuelto, el de la cuenta o el de respaldo ("Usuario"). */
+export interface RemoteProfile {
+  readonly userId: string;
+  readonly displayName: string;
+}
+
+/**
+ * Nombre del perfil, recortado a 80 caracteres sin partir un emoji. Nunca sale del correo: los
+ * demás miembros del grupo ven los perfiles.
+ */
+export function profileName(displayName: string): string {
+  return Array.from(displayName.trim()).slice(0, MAX_NAME_LENGTH).join('');
 }
 
 /**
@@ -19,13 +25,13 @@ export function profileName(session: AuthSession): string {
  */
 export async function ensureRemoteProfile(
   client: SupabaseClient,
-  session: AuthSession,
+  profile: RemoteProfile,
 ): Promise<'synced' | 'pending'> {
   try {
     const { error } = await client
       .from('profiles')
       .upsert(
-        { id: session.userId, display_name: profileName(session) },
+        { id: profile.userId, display_name: profileName(profile.displayName) },
         { onConflict: 'id', ignoreDuplicates: true },
       );
     if (error) {

@@ -3,12 +3,13 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 12c, corregir los hallazgos que apruebe el usuario en
-`revision-seguridad.md`: el medio (reautenticar con Google sin cambiar de cuenta) y, si los
-aprueba, los dos bajos. Después 12d: CLAUDE.md, push, PR y CI. Pendientes del usuario: permiso y
-contraseña para `supabase db push`, permiso para desplegar `delete-account`, los ajustes de
-`ajustes-panel.md` y los de Google de `google-config.md`. La prueba en el emulador y el build de
-EAS esperan a que el proyecto remoto tenga el esquema y la función.
+**Siguiente paso:** tarea 12d, desplegar. El usuario corre `supabase db push` y escribe la
+contraseña; después se despliega `delete-account` y se comprueba que `verify_jwt` funcione con las
+claves de firma nuevas (si no, `verify_jwt = false`: el manejador ya valida con `getUser`).
+Luego 12e: build de desarrollo en EAS (el `.env` no se sube: las variables `EXPO_PUBLIC_*` van en
+EAS) y los pasos de prueba en el teléfono. Pendiente del usuario en el panel: Email OTP
+expiration en 1800 y volver a pegar las plantillas (aviso en `ajustes-panel.md`). Google queda
+pospuesto: oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (pendiente en CLAUDE.md).
 
 ## Pasos
 
@@ -18,8 +19,8 @@ EAS esperan a que el proyecto remoto tenga el esquema y la función.
       migración detectadas.
 - [x] 3. Job de CI "Base de datos y RLS": verde al primer intento en el run 38182028758
       (`Files=6, Tests=123, Result: PASS`).
-- [ ] Punto de control: permiso para `supabase db push` al proyecto remoto (pedido; las
-      tareas 4 a 7 no dependen de él).
+- [x] Punto de control: permiso para `supabase db push` al proyecto remoto (concedido el
+      2026-10-12; el usuario escribe la contraseña).
 - [x] 4. Almacenamiento cifrado de la sesión: 11 pruebas con node:crypto. El adaptador de
       expo-crypto (`expo-aes-gcm.ts`) se prueba en el emulador al cerrar la fase.
 - [x] 5. Cliente, servicio y proveedor de auth: supabase-js 2.117.3, 48 pruebas nuevas con un
@@ -32,29 +33,32 @@ EAS esperan a que el proyecto remoto tenga el esquema y la función.
 - [x] 8. Pantallas de auth y plantillas: bienvenida, registro, entrar, revisa tu correo,
       recuperar, contraseña nueva y `auth/callback`; 25 pruebas nuevas; plantillas es/en y
       `[auth]` en `config.toml`.
-- [x] Punto de control: lista de ajustes de Auth para el panel en `ajustes-panel.md` (falta
-      que el usuario la aplique).
+- [x] Punto de control: lista de ajustes de Auth para el panel en `ajustes-panel.md` (aplicada
+      por el usuario; falta el código de 30 minutos del paso 12c).
 - [x] 9. Perfil remoto: upsert que ignora duplicados al entrar a `(app)`; sin red queda
       pendiente para el próximo arranque. 8 pruebas nuevas.
 - [x] 10. Google (Android): módulo Kotlin con Credential Manager y nonce (lo encuentra el
       autolinking; se compila en el build de EAS de la tarea 12), `google.ts` y el botón en
       bienvenida y entrar. 20 pruebas nuevas.
-- [x] Punto de control: pasos de Google Cloud y Supabase en `google-config.md` (falta que el
-      usuario los aplique y ponga `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` en `.env`).
+- [x] Punto de control: pasos de Google Cloud y Supabase en `google-config.md` (pospuestos por
+      el usuario; Google queda oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`).
 - [x] 11. Cuenta: cerrar sesión con dos opciones (la segunda advierte y borra los datos del
       teléfono) y borrar la cuenta con el correo exacto y luego contraseña o Google. Edge
       Function `delete-account` con `verify_jwt` y sesión de menos de 5 minutos; manejador
       probado en Jest. 649 pruebas en verde.
-- [ ] Punto de control: permiso para desplegar la Edge Function `delete-account` (pedido).
+- [x] Punto de control: permiso para desplegar la Edge Function `delete-account` (concedido el
+      2026-10-12).
 - [ ] 12. Cierre:
   - [x] 12a. Verificaciones: tsc, lint, 649 pruebas, cobertura al 100 %, `check:bundle` y
         `expo-doctor` (21/21).
   - [x] 12b. Revisión de seguridad en `revision-seguridad.md`: 1 media, 2 bajas y 1 a
         verificar al desplegar.
-  - [ ] 12c. Corregir lo que el usuario apruebe de la revisión.
-  - [ ] 12d. CLAUDE.md (Estado y pendientes), push, PR y CI en verde.
-  - [ ] 12e. Build de desarrollo en EAS y prueba en el emulador (después de los pendientes del
-        usuario).
+  - [x] 12c. Los tres hallazgos corregidos: reautenticar sin cambiar de cuenta (`de720a2`),
+        código de 30 minutos (`91bcc2f`) y la pantalla del nombre para Google sin nombre, con
+        "Usuario" de respaldo y nunca el correo. 660 pruebas en verde.
+  - [ ] 12d. Desplegar: `supabase db push`, Edge Function `delete-account` y `verify_jwt`.
+  - [ ] 12e. Development build en EAS, enlace y pasos de prueba en el teléfono.
+  - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
 
 ## Notas para retomar
 
