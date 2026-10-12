@@ -3,10 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 12d, desplegar. El usuario corre `supabase db push` y escribe la
-contraseña; después se despliega `delete-account` y se comprueba que `verify_jwt` funcione con las
-claves de firma nuevas (si no, `verify_jwt = false`: el manejador ya valida con `getUser`).
-Luego 12e: build de desarrollo en EAS (el `.env` no se sube: las variables `EXPO_PUBLIC_*` van en
+**Siguiente paso:** cerrar 12d. El usuario corre `npx supabase db push` en `SplitMate/` (el
+proyecto ya está vinculado) y escribe la contraseña. Después se comprueba por REST, sin
+contraseña, que `profiles` exista y que `anon` no tenga acceso. Luego 12e: build de desarrollo en EAS (el `.env` no se sube: las variables `EXPO_PUBLIC_*` van en
 EAS) y los pasos de prueba en el teléfono. Pendiente del usuario en el panel: Email OTP
 expiration en 1800 y volver a pegar las plantillas (aviso en `ajustes-panel.md`). Google queda
 pospuesto: oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (pendiente en CLAUDE.md).
@@ -56,7 +55,13 @@ pospuesto: oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (pendiente en CLAUDE.md
   - [x] 12c. Los tres hallazgos corregidos: reautenticar sin cambiar de cuenta (`de720a2`),
         código de 30 minutos (`91bcc2f`) y la pantalla del nombre para Google sin nombre, con
         "Usuario" de respaldo y nunca el correo. 660 pruebas en verde.
-  - [ ] 12d. Desplegar: `supabase db push`, Edge Function `delete-account` y `verify_jwt`.
+  - [ ] 12d. Desplegar:
+    - [x] Proyecto vinculado (`supabase link`, sin contraseña) y `delete-account` desplegada
+          (versión 1, `verify_jwt = true`).
+    - [x] `verify_jwt` con ES256 comprobado de punta a punta: token válido 200 y usuario de
+          prueba borrado; firma falsa 401 en el gateway. Detalle en `revision-seguridad.md`.
+    - [ ] `supabase db push`: lo corre el usuario y escribe la contraseña. Antes, `profiles`
+          daba PGRST205 (no existe).
   - [ ] 12e. Development build en EAS, enlace y pasos de prueba en el teléfono.
   - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
 
@@ -102,3 +107,6 @@ pospuesto: oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (pendiente en CLAUDE.md
   `locale` rompería la plantilla.
 - `secure_password_change` activado (no estaba en la lista del diseño): la app solo cambia la
   contraseña con la sesión recién creada por el correo de recuperación.
+- `supabase projects api-keys` enmascara la clave secreta nueva: para usarla en una prueba hace
+  falta `--reveal`. Usarla solo dentro del comando, sin imprimirla ni guardarla.
+- `supabase functions deploy --use-api` empaqueta en el servidor: no hace falta Docker.

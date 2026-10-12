@@ -6,8 +6,8 @@ Rama `fase-3-supabase-auth` contra `main`, hecha con la skill security-code-revi
 > **Estado (2026-10-12):** los tres hallazgos están corregidos en el paso 12c. El medio está en
 > `de720a2`, el código de 30 minutos en `91bcc2f` y el nombre en el commit que cierra el paso.
 > El medio tiene un residuo aceptado: si la otra cuenta de Google no tenía cuenta en SplitMate,
-> entrar con ella la crea, vacía, antes de que la app la descarte. `verify_jwt` se comprueba en
-> el paso 12d.
+> entrar con ella la crea, vacía, antes de que la app la descarte. `verify_jwt` quedó comprobado
+> en el paso 12d (abajo).
 
 ## Resumen
 
@@ -61,6 +61,14 @@ desplegar la función.
 - **Corrección:** usar un nombre genérico traducido ("Usuario") en vez de la parte del correo.
 
 ## A verificar
+
+> **Resuelto el 2026-10-12 con la función desplegada.** El proyecto firma con ES256 (su JWKS
+> publica una clave EC). El gateway rechaza un JWT ES256 con firma falsa
+> (`UNAUTHORIZED_ASYMMETRIC_JWT`). Con un usuario de prueba desechable (`@example.com`, creado
+> con la API de administración), un token ES256 válido y una sesión recién creada, la función
+> respondió 200 `{"deleted":true}` y el usuario quedó borrado. `verify_jwt = true` se mantiene.
+> Una petición sin `Authorization` (solo con la clave publicable en `apikey`) pasa el gateway, y
+> el manejador la rechaza con 401.
 
 - **`verify_jwt` con claves de firma asimétricas.** El proyecto usa las claves nuevas
   (`sb_publishable_…`). Si también firma los JWT con claves asimétricas, comprobar al desplegar
