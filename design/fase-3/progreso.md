@@ -3,8 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 12, cierre: verificaciones (`test:coverage`, `check:bundle`,
-`expo-doctor`), revisión de seguridad, CLAUDE.md, push y PR. Pendientes del usuario: permiso y
+**Siguiente paso:** tarea 12c, corregir los hallazgos que apruebe el usuario en
+`revision-seguridad.md`: el medio (reautenticar con Google sin cambiar de cuenta) y, si los
+aprueba, los dos bajos. Después 12d: CLAUDE.md, push, PR y CI. Pendientes del usuario: permiso y
 contraseña para `supabase db push`, permiso para desplegar `delete-account`, los ajustes de
 `ajustes-panel.md` y los de Google de `google-config.md`. La prueba en el emulador y el build de
 EAS esperan a que el proyecto remoto tenga el esquema y la función.
@@ -45,7 +46,15 @@ EAS esperan a que el proyecto remoto tenga el esquema y la función.
       Function `delete-account` con `verify_jwt` y sesión de menos de 5 minutos; manejador
       probado en Jest. 649 pruebas en verde.
 - [ ] Punto de control: permiso para desplegar la Edge Function `delete-account` (pedido).
-- [ ] 12. Cierre: verificaciones, revisión de seguridad, emulador, CLAUDE.md, PR y build.
+- [ ] 12. Cierre:
+  - [x] 12a. Verificaciones: tsc, lint, 649 pruebas, cobertura al 100 %, `check:bundle` y
+        `expo-doctor` (21/21).
+  - [x] 12b. Revisión de seguridad en `revision-seguridad.md`: 1 media, 2 bajas y 1 a
+        verificar al desplegar.
+  - [ ] 12c. Corregir lo que el usuario apruebe de la revisión.
+  - [ ] 12d. CLAUDE.md (Estado y pendientes), push, PR y CI en verde.
+  - [ ] 12e. Build de desarrollo en EAS y prueba en el emulador (después de los pendientes del
+        usuario).
 
 ## Notas para retomar
 
