@@ -410,6 +410,12 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# SplitMate: borrar la cuenta. El gateway rechaza tokens inválidos antes de ejecutarla y el
+# manejador vuelve a validar el usuario con Supabase Auth y exige una sesión reciente.
+[functions.delete-account]
+enabled = true
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

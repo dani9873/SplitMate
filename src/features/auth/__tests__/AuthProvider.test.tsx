@@ -142,6 +142,59 @@ describe('AuthProvider', () => {
     expect(status()).toBe('signedOut');
   });
 
+  it('la limpieza al cerrar sesión corre después de salir de las pantallas con sesión', async () => {
+    const order: string[] = [];
+    function SignedInMarker() {
+      const { state } = useAuth();
+      useEffect(() => {
+        if (state.status !== 'signedIn') {
+          return;
+        }
+        order.push('montada');
+        return () => {
+          order.push('desmontada');
+        };
+      }, [state.status]);
+      return null;
+    }
+    const service = createFakeAuthService({ restore: async () => TEST_SESSION });
+    await render(
+      <AuthProvider service={service}>
+        <Capture onAuth={capture} />
+        <SignedInMarker />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(order).toEqual(['montada']));
+
+    // La promesa termina con la limpieza, que corre en un efecto: se espera fuera del act que
+    // aplica el cambio de estado.
+    let done: Promise<void> = Promise.resolve();
+    await act(async () => {
+      done = auth!.signOut({
+        cleanup: async () => {
+          order.push('limpieza');
+        },
+      });
+    });
+    await act(() => done);
+    expect(service.signOut).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['montada', 'desmontada', 'limpieza']);
+  });
+
+  it('la limpieza corre aunque la sesión ya estuviera cerrada', async () => {
+    const service = createFakeAuthService();
+    await renderProvider(service);
+    await waitFor(() => expect(status()).toBe('signedOut'));
+    const cleanup = jest.fn(async () => undefined);
+
+    let done: Promise<void> = Promise.resolve();
+    await act(async () => {
+      done = auth!.signOut({ cleanup });
+    });
+    await act(() => done);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
   it('useAuth fuera del proveedor avisa del error de programación', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(render(<Status />)).rejects.toThrow('AuthProvider');

@@ -1,13 +1,37 @@
 import { useRouter } from 'expo-router';
+import { CircleCheck } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { Button, Screen, Text, useAppTheme } from '@/ui';
+import { useAccountNotice } from '@/features/account/account-notice';
+import { Banner, Button, Screen, Text, useAppTheme } from '@/ui';
 
 import { GoogleButton, useGoogleSignIn } from './GoogleButton';
 import { FormError } from './parts';
+
+/** Aviso después de cerrar sesión borrando datos o de borrar la cuenta. */
+function AccountNoticeBanner() {
+  const { t } = useTranslation();
+  const notice = useAccountNotice((state) => state.notice);
+  const clear = useAccountNotice((state) => state.clear);
+  if (!notice) {
+    return null;
+  }
+  return (
+    <Banner
+      testID="account-notice"
+      icon={CircleCheck}
+      tone={notice === 'accountDeleted' || notice === 'dataDeleted' ? 'info' : 'warning'}
+      message={t(`account.notices.${notice}`)}
+      actions={
+        <Button label={t('account.notices.dismiss')} size="sm" variant="ghost" onPress={clear} />
+      }
+      className="mt-4"
+    />
+  );
+}
 
 /** Bienvenida, la primera pantalla sin sesión: Google (Android), crear cuenta o entrar. */
 export function WelcomeScreen() {
@@ -18,6 +42,7 @@ export function WelcomeScreen() {
   const google = useGoogleSignIn(setError);
   return (
     <Screen edges={['top', 'bottom']} testID="welcome-screen">
+      <AccountNoticeBanner />
       <View className="flex-1 items-center justify-center gap-4">
         {/* El motivo de la marca: las dos mitades desplazadas de una moneda. */}
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

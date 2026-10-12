@@ -514,7 +514,8 @@
       "unavailable": "El servicio no responde. Intenta de nuevo en un rato.",
       "unknown": "Algo falló. Intenta de nuevo.",
       "googleNoAccount": "No hay cuentas de Google en este teléfono. Agrega una en los ajustes del teléfono o usa tu correo.",
-      "googleFailed": "No se pudo entrar con Google. Intenta de nuevo o usa tu correo."
+      "googleFailed": "No se pudo entrar con Google. Intenta de nuevo o usa tu correo.",
+      "reauthenticationRequired": "Por seguridad, vuelve a confirmar que eres tú."
     },
     "google": {
       "button": "Continuar con Google",
@@ -525,6 +526,43 @@
     "error": {
       "title": "Falta configurar la app",
       "description": "A esta versión le faltan los datos para conectarse con el servidor. Revisa el archivo .env y vuelve a abrir la app."
+    }
+  },
+  "account": {
+    "title": "Cuenta",
+    "signedInAs": "Entraste como {{email}}",
+    "withGoogle": "Con tu cuenta de Google",
+    "signOut": "Cerrar sesión",
+    "delete": "Borrar cuenta",
+    "signOutSheet": {
+      "title": "Cerrar sesión",
+      "keep": "Cerrar sesión",
+      "keepHint": "Tus datos quedan cifrados en este teléfono para cuando vuelvas a entrar.",
+      "wipe": "Cerrar sesión y borrar los datos de este teléfono",
+      "wipeHint": "Para dejar el teléfono sin tus datos, por ejemplo si no es tuyo.",
+      "confirmTitle": "¿Borrar los datos de este teléfono?",
+      "confirmBody": "Tus grupos y movimientos todavía no se guardan en la nube: si los borras, no se pueden recuperar.",
+      "confirm": "Borrar y cerrar sesión"
+    },
+    "deleteScreen": {
+      "title": "Borrar tu cuenta",
+      "intro": "Esto borra para siempre:",
+      "itemAccount": "Tu cuenta y tu perfil en SplitMate.",
+      "itemPhone": "Los datos de esta cuenta en este teléfono.",
+      "itemGroups": "Cuando los grupos se compartan: los grupos donde no quede otra persona con cuenta. En los demás, tu nombre queda sin cuenta.",
+      "email": "Escribe tu correo para confirmar",
+      "emailMismatch": "No coincide con el correo de esta cuenta.",
+      "password": "Tu contraseña",
+      "googleHint": "Para confirmar, vuelve a elegir tu cuenta de Google.",
+      "googleUnavailable": "Esta cuenta entra con Google: bórrala desde la app en Android.",
+      "submit": "Borrar mi cuenta"
+    },
+    "notices": {
+      "accountDeleted": "Tu cuenta se borró.",
+      "accountDeletedDataKept": "Tu cuenta se borró, pero no se pudieron borrar los datos de este teléfono. Siguen cifrados; desinstalar la app también los borra.",
+      "dataDeleted": "Cerraste sesión y se borraron los datos de este teléfono.",
+      "dataDeleteFailed": "Cerraste sesión, pero no se pudieron borrar los datos de este teléfono. Siguen cifrados; desinstalar la app también los borra.",
+      "dismiss": "Entendido"
     }
   }
 }

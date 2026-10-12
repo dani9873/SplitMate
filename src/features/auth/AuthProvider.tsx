@@ -4,10 +4,13 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import { AppState } from 'react-native';
+
+import { logger } from '@/lib/logger';
 
 import type { AuthService, AuthSession } from './auth-service';
 
@@ -28,8 +31,11 @@ interface AuthContextValue {
   signIn(session: AuthSession, options?: { recovery?: boolean }): void;
   /** Ya eligió la contraseña nueva: sigue a la app. */
   finishRecovery(): void;
-  /** Cierra la sesión de este teléfono. */
-  signOut(): Promise<void>;
+  /**
+   * Cierra la sesión de este teléfono. `cleanup` corre cuando las pantallas con sesión ya se
+   * desmontaron (y su base se cerró): por ejemplo, borrar los datos de la cuenta.
+   */
+  signOut(options?: { cleanup?: () => Promise<void> }): Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -88,10 +94,38 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
       ),
     [],
   );
-  const signOut = useCallback(async () => {
-    await service.signOut();
-    setState({ status: 'signedOut' });
-  }, [service]);
+  // Limpieza pendiente para después de desmontar las pantallas con sesión. El contador hace que
+  // corra aunque la sesión ya estuviera cerrada (el estado no cambia).
+  const cleanupRef = useRef<(() => Promise<void>) | null>(null);
+  const [cleanupRequests, setCleanupRequests] = useState(0);
+  useEffect(() => {
+    const cleanup = cleanupRef.current;
+    if (state.status !== 'signedOut' || !cleanup) {
+      return;
+    }
+    cleanupRef.current = null;
+    cleanup().catch((error: unknown) =>
+      logger.warn('Falló la limpieza al cerrar la sesión', error),
+    );
+  }, [state.status, cleanupRequests]);
+
+  const signOut = useCallback(
+    async (options?: { cleanup?: () => Promise<void> }) => {
+      await service.signOut();
+      const cleanup = options?.cleanup;
+      if (!cleanup) {
+        setState({ status: 'signedOut' });
+        return;
+      }
+      // Termina cuando terminó la limpieza, que corre después de desmontar.
+      await new Promise<void>((resolve, reject) => {
+        cleanupRef.current = () => cleanup().then(resolve, reject);
+        setState({ status: 'signedOut' });
+        setCleanupRequests((count) => count + 1);
+      });
+    },
+    [service],
+  );
 
   const value = useMemo(
     () => ({ state, service, signIn, finishRecovery, signOut }),

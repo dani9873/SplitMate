@@ -514,7 +514,8 @@
       "unavailable": "The service is not responding. Try again later.",
       "unknown": "Something went wrong. Try again.",
       "googleNoAccount": "There are no Google accounts on this phone. Add one in the phone settings or use your email.",
-      "googleFailed": "Could not sign in with Google. Try again or use your email."
+      "googleFailed": "Could not sign in with Google. Try again or use your email.",
+      "reauthenticationRequired": "For your security, confirm it is you again."
     },
     "google": {
       "button": "Continue with Google",
@@ -525,6 +526,43 @@
     "error": {
       "title": "The app is not set up",
       "description": "This build is missing the settings to connect to the server. Check the .env file and open the app again."
+    }
+  },
+  "account": {
+    "title": "Account",
+    "signedInAs": "Signed in as {{email}}",
+    "withGoogle": "With your Google account",
+    "signOut": "Sign out",
+    "delete": "Delete account",
+    "signOutSheet": {
+      "title": "Sign out",
+      "keep": "Sign out",
+      "keepHint": "Your data stays encrypted on this phone for when you sign in again.",
+      "wipe": "Sign out and delete the data on this phone",
+      "wipeHint": "To leave the phone without your data, for example if it is not yours.",
+      "confirmTitle": "Delete the data on this phone?",
+      "confirmBody": "Your groups and entries are not saved in the cloud yet: if you delete them, they cannot be recovered.",
+      "confirm": "Delete and sign out"
+    },
+    "deleteScreen": {
+      "title": "Delete your account",
+      "intro": "This permanently deletes:",
+      "itemAccount": "Your SplitMate account and profile.",
+      "itemPhone": "The data of this account on this phone.",
+      "itemGroups": "Once groups are shared: the groups with nobody else who has an account. In the others, your name stays without an account.",
+      "email": "Enter your email to confirm",
+      "emailMismatch": "It does not match the email of this account.",
+      "password": "Your password",
+      "googleHint": "To confirm, choose your Google account again.",
+      "googleUnavailable": "This account signs in with Google: delete it from the app on Android.",
+      "submit": "Delete my account"
+    },
+    "notices": {
+      "accountDeleted": "Your account was deleted.",
+      "accountDeletedDataKept": "Your account was deleted, but the data on this phone could not be deleted. It stays encrypted; uninstalling the app also deletes it.",
+      "dataDeleted": "You signed out and the data on this phone was deleted.",
+      "dataDeleteFailed": "You signed out, but the data on this phone could not be deleted. It stays encrypted; uninstalling the app also deletes it.",
+      "dismiss": "Got it"
     }
   }
 }

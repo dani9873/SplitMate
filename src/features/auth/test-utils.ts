@@ -33,6 +33,9 @@ export function createFakeAuthService(overrides: Partial<AuthService> = {}): Fak
     ensureProfile: jest.fn(async () => undefined),
     canUseGoogle: jest.fn(() => false),
     signInWithGoogle: jest.fn(async () => TEST_SESSION),
+    reauthenticateWithPassword: jest.fn(async () => undefined),
+    reauthenticateWithGoogle: jest.fn(async () => true),
+    deleteAccount: jest.fn(async () => undefined),
     emitSignedOut: () => listeners.forEach((listener) => listener()),
   };
   for (const [name, implementation] of Object.entries(overrides)) {

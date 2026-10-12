@@ -22,6 +22,7 @@ export type AuthErrorCode =
   | 'invalidCode'
   | 'linkExpired'
   | 'sessionExpired'
+  | 'reauthenticationRequired'
   | 'googleNoAccount'
   | 'googleFailed'
   | 'offline'

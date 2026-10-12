@@ -1,4 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  FunctionsFetchError,
+  FunctionsHttpError,
+  type SupabaseClient,
+} from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import { SESSION_STORAGE_KEY } from '@/lib/supabase/create-client';
@@ -62,6 +66,12 @@ export interface AuthService {
   canUseGoogle(): boolean;
   /** Entra con Google. `null` si el usuario cerró la hoja de Google. */
   signInWithGoogle(): Promise<AuthSession | null>;
+  /** Vuelve a pedir la contraseña: una sesión nueva y reciente para borrar la cuenta. */
+  reauthenticateWithPassword(email: string, password: string): Promise<void>;
+  /** Vuelve a elegir la cuenta de Google. `false` si el usuario cerró la hoja. */
+  reauthenticateWithGoogle(): Promise<boolean>;
+  /** Borra la cuenta en Supabase (Edge Function `delete-account`). Pide una sesión reciente. */
+  deleteAccount(): Promise<void>;
 }
 
 const userSchema = z.object({
@@ -111,6 +121,22 @@ export function createSupabaseAuthService(
   google: GoogleSignInDeps = NO_GOOGLE,
 ): AuthService {
   const auth = client.auth;
+
+  async function signInWithGoogle(): Promise<AuthSession | null> {
+    const token = await requestGoogleIdToken(google);
+    if (!token) {
+      return null;
+    }
+    const { data, error } = await auth.signInWithIdToken({
+      provider: 'google',
+      token: token.idToken,
+      nonce: token.nonce,
+    });
+    if (error) {
+      throw toAuthError(error);
+    }
+    return toAuthSession(data.user);
+  }
 
   async function requestPasswordReset(email: string): Promise<void> {
     const { error } = await auth.resetPasswordForEmail(email, { redirectTo: AUTH_REDIRECT_URL });
@@ -230,20 +256,33 @@ export function createSupabaseAuthService(
 
     canUseGoogle: () => isGoogleSignInAvailable(google),
 
-    async signInWithGoogle() {
-      const token = await requestGoogleIdToken(google);
-      if (!token) {
-        return null;
-      }
-      const { data, error } = await auth.signInWithIdToken({
-        provider: 'google',
-        token: token.idToken,
-        nonce: token.nonce,
-      });
+    signInWithGoogle,
+
+    async reauthenticateWithPassword(email, password) {
+      const { error } = await auth.signInWithPassword({ email, password });
       if (error) {
         throw toAuthError(error);
       }
-      return toAuthSession(data.user);
+    },
+
+    async reauthenticateWithGoogle() {
+      return (await signInWithGoogle()) !== null;
+    },
+
+    async deleteAccount() {
+      const { error } = await client.functions.invoke('delete-account', { method: 'POST' });
+      if (!error) {
+        return;
+      }
+      if (error instanceof FunctionsHttpError) {
+        const response = error.context as Response;
+        const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
+        if (response.status === 403 && body?.error === 'reauthentication_required') {
+          throw new AuthError('reauthenticationRequired');
+        }
+        throw new AuthError(response.status === 401 ? 'sessionExpired' : 'unavailable');
+      }
+      throw new AuthError(error instanceof FunctionsFetchError ? 'offline' : 'unknown');
     },
   };
 }

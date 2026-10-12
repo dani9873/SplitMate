@@ -3,10 +3,11 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** tarea 11, cuenta: cerrar sesión (dos opciones) y borrar la cuenta con
-reautenticación; Edge Function `delete-account` con su manejador probado en Jest. Pendientes
-del usuario: permiso y contraseña para `supabase db push`, los ajustes de `ajustes-panel.md` y
-los de Google de `google-config.md`.
+**Siguiente paso:** tarea 12, cierre: verificaciones (`test:coverage`, `check:bundle`,
+`expo-doctor`), revisión de seguridad, CLAUDE.md, push y PR. Pendientes del usuario: permiso y
+contraseña para `supabase db push`, permiso para desplegar `delete-account`, los ajustes de
+`ajustes-panel.md` y los de Google de `google-config.md`. La prueba en el emulador y el build de
+EAS esperan a que el proyecto remoto tenga el esquema y la función.
 
 ## Pasos
 
@@ -39,8 +40,11 @@ los de Google de `google-config.md`.
       bienvenida y entrar. 20 pruebas nuevas.
 - [x] Punto de control: pasos de Google Cloud y Supabase en `google-config.md` (falta que el
       usuario los aplique y ponga `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` en `.env`).
-- [ ] 11. Cuenta: cerrar sesión y borrar cuenta.
-- [ ] Punto de control: permiso para desplegar la Edge Function `delete-account`.
+- [x] 11. Cuenta: cerrar sesión con dos opciones (la segunda advierte y borra los datos del
+      teléfono) y borrar la cuenta con el correo exacto y luego contraseña o Google. Edge
+      Function `delete-account` con `verify_jwt` y sesión de menos de 5 minutos; manejador
+      probado en Jest. 649 pruebas en verde.
+- [ ] Punto de control: permiso para desplegar la Edge Function `delete-account` (pedido).
 - [ ] 12. Cierre: verificaciones, revisión de seguridad, emulador, CLAUDE.md, PR y build.
 
 ## Notas para retomar

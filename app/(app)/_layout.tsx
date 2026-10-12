@@ -44,6 +44,7 @@ function AccountArea({ session }: { session: AuthSession }) {
             name="groups/[groupId]/entries/[entryId]/edit"
             options={{ presentation: 'modal' }}
           />
+          <Stack.Screen name="account/delete" options={{ presentation: 'modal' }} />
         </Stack>
       </UndoProvider>
     </DatabaseGate>

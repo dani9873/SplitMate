@@ -318,6 +318,57 @@ describe('servicio de auth con supabase-js', () => {
     });
   });
 
+  describe('borrar la cuenta', () => {
+    it('reautenticar con la contraseña crea una sesión nueva', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
+      await service.reauthenticateWithPassword(EMAIL, PASSWORD);
+      expect(server.calls('POST', '/auth/v1/token')[0]!.body).toMatchObject({
+        email: EMAIL,
+        password: PASSWORD,
+      });
+    });
+
+    it('reautenticar con una contraseña equivocada no revela nada más', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/token', apiError(400, 'invalid_credentials', 'Invalid'));
+      await expect(
+        rejection(service.reauthenticateWithPassword(EMAIL, 'otra')),
+      ).resolves.toMatchObject({ code: 'invalidCredentials' });
+    });
+
+    it('llama a la Edge Function con la sesión y termina sin error', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
+      server.on('POST', '/functions/v1/delete-account', ok({ deleted: true }));
+      await service.signIn(EMAIL, PASSWORD);
+
+      await service.deleteAccount();
+      const [request] = server.calls('POST', '/functions/v1/delete-account');
+      expect(request!.headers.get('authorization')).toMatch(/^Bearer ey/);
+    });
+
+    it.each([
+      [403, { error: 'reauthentication_required' }, 'reauthenticationRequired'],
+      [401, { error: 'unauthorized' }, 'sessionExpired'],
+      [500, { error: 'internal_error' }, 'unavailable'],
+    ])('traduce la respuesta %i de la Edge Function', async (status, body, code) => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
+      server.on('POST', '/functions/v1/delete-account', { status, body });
+      await service.signIn(EMAIL, PASSWORD);
+      await expect(rejection(service.deleteAccount())).resolves.toMatchObject({ code });
+    });
+
+    it('sin red avisa que no hay conexión', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
+      await service.signIn(EMAIL, PASSWORD);
+      server.setOffline(true);
+      await expect(rejection(service.deleteAccount())).resolves.toMatchObject({ code: 'offline' });
+    });
+  });
+
   describe('cerrar sesión', () => {
     it('revoca la sesión de este teléfono y la borra', async () => {
       const { server, service, storage } = setup();
