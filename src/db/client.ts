@@ -12,6 +12,7 @@ import { secureKeyStore } from '@/lib/secure-key-store';
 import { createAccountDatabases, type Account, type OpenedDatabase } from './accounts';
 import { excludeDatabaseFromBackup } from './backup-exclusion';
 import { DatabaseSetupError } from './errors';
+import { assertMigrationsHaveSql } from './migration-guard';
 import migrations from './migrations/migrations';
 import { schema } from './schema';
 
@@ -39,6 +40,8 @@ async function openDatabaseFile(file: string, key: string): Promise<OpenedDataba
     unlock(sqlite, key);
     sqlite.execSync('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
     const db = drizzle(sqlite, { schema });
+    // Un trozo sin SQL cerraría la app dentro de expo-sqlite: mejor la pantalla de error.
+    assertMigrationsHaveSql(migrations);
     await migrate(db, migrations);
     return { db, close };
   } catch (error) {

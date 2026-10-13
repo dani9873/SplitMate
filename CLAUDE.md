@@ -69,6 +69,11 @@ Cambiar cualquiera de estas decisiones requiere proponerlo y esperar aprobación
 - Toda tabla sincronizable tiene `created_at`, `updated_at`, `deleted_at` (borrado lógico)
   y `version`.
 - Ninguna operación depende de tener red.
+- Migraciones locales (drizzle-kit): cada `.sql` es un módulo propio para Metro y Jest
+  (`scripts/sql-module.js`). No volver a `babel-plugin-inline-import`, aunque lo sugiera la guía de
+  Drizzle: Metro servía un `.sql` viejo desde su caché y la app se cerraba
+  (`design/fase-3/crash-migracion-0003.md`). Una migración `--custom` lleva su SQL antes de abrir
+  la app: un trozo sin SQL da `MIGRATION_INVALID`.
 
 ## Arquitectura de carpetas
 

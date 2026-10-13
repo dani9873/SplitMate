@@ -1,4 +1,5 @@
-export type DatabaseSetupErrorCode = 'KEY_INVALID' | 'ENCRYPTION_UNAVAILABLE' | 'ACCOUNT_MISMATCH';
+export type DatabaseSetupErrorCode =
+  'KEY_INVALID' | 'ENCRYPTION_UNAVAILABLE' | 'ACCOUNT_MISMATCH' | 'MIGRATION_INVALID';
 
 /** Fallo al preparar la base local, distinto de un error de migración de SQLite. */
 export class DatabaseSetupError extends Error {

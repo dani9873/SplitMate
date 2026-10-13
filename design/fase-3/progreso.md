@@ -3,9 +3,10 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** esperar a que el usuario confirme la prueba del teléfono (12e.6, build
-`1f07df1f`). Después, el cierre 12f: lectura cruzada con `prueba1`, revisión final, CLAUDE.md
-(Estado), push, PR, CI en verde y merge según la regla. No empezar el cierre sin esa confirmación.
+**Siguiente paso:** el usuario reinicia su Metro (`npx expo start --dev-client --clear`) y repite
+la prueba completa del teléfono (12e.6, build `1f07df1f`; la recuperación, cuando pase el límite
+de correos). Con su confirmación, el cierre 12f: lectura cruzada con `prueba1`, revisión final,
+CLAUDE.md (Estado), push, PR, CI en verde y merge según la regla. No empezar el cierre antes.
 
 ## Pasos
 
@@ -124,12 +125,15 @@
     - [ ] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
           enlace, entrar, abrir sin internet, cerrar sesión con ambas opciones y borrar la cuenta.
           Build `1f07df1f-71fe-4f17-a290-3b9bb2120b09` (perfil development, desde `8d819cf`): en cola
-          desde las 14:39 UTC del 2026-10-13, terminado a las 15:19 UTC (APK en la página del build). Pasos entregados, con 2 correos en total: registro
-          (correo 1), entrar, abrir en modo avión (Metro por USB con `adb reverse`), cerrar sesión
-          con las dos opciones, borrar la cuenta con `prueba2@splitmate.test` (creado por el usuario
-          en el panel, sin correo) y, al final, recuperar la contraseña (correo 2). Falta la
-          confirmación del usuario. Al cerrar: lectura cruzada por REST con `prueba1` contra el
-          perfil real, si el usuario confirma en Table Editor que su fila existe.
+          desde las 14:39 UTC del 2026-10-13, terminado a las 15:19 UTC (APK en la página del
+          build). Pasos entregados, con 2 correos en total: registro (correo 1), entrar, abrir en
+          modo avión (Metro por USB con `adb reverse`), cerrar sesión con las dos opciones, borrar la
+          cuenta con `prueba2@splitmate.test` (creado por el usuario en el panel, sin correo) y, al
+          final, recuperar la contraseña (correo 2). **Primera prueba del usuario:** el registro y el
+          login dejaban la sesión y el perfil en Supabase, pero la app se cerraba al entrar (paso
+          10); la recuperación chocó con el límite de correos. Falta repetir la prueba con Metro
+          reiniciado. Al cerrar: lectura cruzada por REST con `prueba1` contra el perfil real, si
+          el usuario confirma en Table Editor que su fila existe.
     - [x] 7. Causa de los privilegios perdidos (pedido del usuario tras el paso 3, confirmado con
           consultas de solo lectura `supabase db query --linked`): no fue la migración ni un event
           trigger. El panel de Data API, a las 07:23:28 UTC del 2026-10-13, al desactivar
@@ -151,6 +155,17 @@
           dos escenarios, y 6 mutaciones la hacen fallar, entre ellas el `revoke all` del panel.
           Las mismas consultas, contra el remoto (solo lectura): 0 faltantes y 0 sobrantes.
           `has_sequence_privilege` va dentro de un CASE porque el WHERE no fija el orden.
+    - [x] 10. La app se cerraba al entrar con sesión (skill systematic-debugging, sin correos).
+          logcat: 21 SIGSEGV iguales en `exsqlite3_clear_bindings` (statement NULL) desde
+          `SQLiteModule.run`. Con instrumentación temporal: el último statement era la migración
+          0003 como la plantilla vacía de `drizzle-kit --custom`, servida por Metro desde una
+          entrada de caché del 2026-10-11 (babel-plugin-inline-import no hacía depender
+          `migrations.js` del `.sql`). Corrección: cada `.sql` es un módulo propio en Metro y Jest
+          (`scripts/sql-module.js`), fuera el plugin, y `assertMigrationsHaveSql` convierte un trozo
+          sin SQL en `MIGRATION_INVALID`. 18 pruebas nuevas, 676 en verde. En el teléfono, con el
+          código corregido: abre con la sesión guardada y el enlace con código falso da el error
+          controlado en frío, con la app abierta y en segundo plano. Sin build nuevo; Metro se
+          reinicia con `--clear`. Detalle en `crash-migracion-0003.md`.
   - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
 
 ## Notas para retomar

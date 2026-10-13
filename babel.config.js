@@ -1,8 +1,8 @@
 module.exports = function (api) {
   api.cache(true);
   return {
+    // Las migraciones .sql no pasan por un plugin de Babel: Metro y Jest las cargan como módulos
+    // propios (scripts/sql-module.js).
     presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
-    // Las migraciones de Drizzle se empaquetan como texto: import m0000 from './0000.sql'.
-    plugins: [['inline-import', { extensions: ['.sql'] }]],
   };
 };
