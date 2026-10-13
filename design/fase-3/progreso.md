@@ -3,9 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** 12e.6, development build `1f07df1f` en EAS (lanzado el 2026-10-13 desde
-`8d819cf`): dar el enlace y los pasos de prueba en el teléfono; luego esperar la confirmación del
-usuario antes del cierre (12f).
+**Siguiente paso:** esperar a que el usuario confirme la prueba del teléfono (12e.6, build
+`1f07df1f`). Después, el cierre 12f: lectura cruzada con `prueba1`, revisión final, CLAUDE.md
+(Estado), push, PR, CI en verde y merge según la regla. No empezar el cierre sin esa confirmación.
 
 ## Pasos
 
@@ -123,6 +123,13 @@ usuario antes del cierre (12f).
           reemplazo es `eas env:set`.
     - [ ] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
           enlace, entrar, abrir sin internet, cerrar sesión con ambas opciones y borrar la cuenta.
+          Build `1f07df1f-71fe-4f17-a290-3b9bb2120b09` (perfil development, desde `8d819cf`; en cola
+          desde las 14:39 UTC del 2026-10-13). Pasos entregados, con 2 correos en total: registro
+          (correo 1), entrar, abrir en modo avión (Metro por USB con `adb reverse`), cerrar sesión
+          con las dos opciones, borrar la cuenta con `prueba2@splitmate.test` (creado por el usuario
+          en el panel, sin correo) y, al final, recuperar la contraseña (correo 2). Falta la
+          confirmación del usuario. Al cerrar: lectura cruzada por REST con `prueba1` contra el
+          perfil real, si el usuario confirma en Table Editor que su fila existe.
     - [x] 7. Causa de los privilegios perdidos (pedido del usuario tras el paso 3, confirmado con
           consultas de solo lectura `supabase db query --linked`): no fue la migración ni un event
           trigger. El panel de Data API, a las 07:23:28 UTC del 2026-10-13, al desactivar
