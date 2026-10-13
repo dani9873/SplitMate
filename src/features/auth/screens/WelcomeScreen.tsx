@@ -1,15 +1,11 @@
 import { useRouter } from 'expo-router';
 import { CircleCheck } from 'lucide-react-native';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { useAccountNotice } from '@/features/account/account-notice';
 import { Banner, Button, Screen, Text, useAppTheme } from '@/ui';
-
-import { GoogleButton, useGoogleSignIn } from './GoogleButton';
-import { FormError } from './parts';
 
 /** Aviso después de cerrar sesión borrando datos o de borrar la cuenta. */
 function AccountNoticeBanner() {
@@ -33,13 +29,11 @@ function AccountNoticeBanner() {
   );
 }
 
-/** Bienvenida, la primera pantalla sin sesión: Google (Android), crear cuenta o entrar. */
+/** Bienvenida, la primera pantalla sin sesión: crear cuenta o entrar. */
 export function WelcomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors } = useAppTheme();
-  const [error, setError] = useState<string | null>(null);
-  const google = useGoogleSignIn(setError);
   return (
     <Screen edges={['top', 'bottom']} testID="welcome-screen">
       <AccountNoticeBanner />
@@ -59,10 +53,6 @@ export function WelcomeScreen() {
         </Text>
       </View>
       <View className="gap-3 pb-6">
-        <FormError message={error} />
-        {google.available ? (
-          <GoogleButton testID="welcome-google" busy={google.busy} onPress={google.start} />
-        ) : null}
         <Button
           testID="welcome-create-account"
           label={t('auth.welcome.createAccount')}

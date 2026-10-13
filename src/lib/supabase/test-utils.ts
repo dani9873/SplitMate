@@ -94,14 +94,12 @@ export function fakeJwt(claims: Record<string, unknown>): string {
 export interface FakeUserOptions {
   id?: string;
   email?: string;
-  providers?: string[];
   userMetadata?: Record<string, unknown>;
 }
 
 export function fakeUser({
   id = '6f1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
   email = 'ana@example.com',
-  providers = ['email'],
   userMetadata = { display_name: 'Ana', locale: 'es' },
 }: FakeUserOptions = {}) {
   return {
@@ -110,7 +108,7 @@ export function fakeUser({
     role: 'authenticated',
     email,
     email_confirmed_at: '2026-10-11T00:00:00Z',
-    app_metadata: { provider: providers[0], providers },
+    app_metadata: { provider: 'email', providers: ['email'] },
     user_metadata: userMetadata,
     identities: [],
     created_at: '2026-10-11T00:00:00Z',

@@ -24,8 +24,8 @@ function AccountArea({ session }: { session: AuthSession }) {
   const { t } = useTranslation();
   const { service } = useAuth();
   const { userId, email, displayName } = session;
-  // Sin nombre en la cuenta (Google sin nombre y "Ahora no"), nunca el correo: "Usuario". Se
-  // fija al montar: cambiar el idioma no debe reabrir la base.
+  // Sin nombre en la cuenta (una creada fuera de la app, sin `display_name`), nunca el correo:
+  // "Usuario". Se fija al montar: cambiar el idioma no debe reabrir la base.
   const [fallbackName] = useState(() => t('account.defaultName'));
   const open = useCallback(
     () => openAccountDatabase({ userId, email, displayName, fallbackName }),

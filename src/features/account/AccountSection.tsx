@@ -17,8 +17,7 @@ export function AccountSection() {
   if (state.status !== 'signedIn') {
     return null;
   }
-  const { email, providers } = state.session;
-  const onlyGoogle = !providers.includes('email') && providers.includes('google');
+  const { email } = state.session;
 
   return (
     <View className="gap-3" testID="account-section">
@@ -27,11 +26,6 @@ export function AccountSection() {
       </Text>
       <Card className="gap-1 px-4 py-3">
         <Text variant="bodyStrong">{t('account.signedInAs', { email })}</Text>
-        {onlyGoogle ? (
-          <Text variant="caption" tone="muted">
-            {t('account.withGoogle')}
-          </Text>
-        ) : null}
       </Card>
       <Button
         testID="account-sign-out"

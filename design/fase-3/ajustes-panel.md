@@ -35,13 +35,13 @@ Supabase compara la redirección con esta lista, query incluida. La app no agreg
 
 **Generales**
 
-| Ajuste                      | Valor                                               |
-| --------------------------- | --------------------------------------------------- |
-| Allow new users to sign up  | activado                                            |
-| Allow anonymous sign-ins    | desactivado                                         |
-| Allow manual linking        | desactivado                                         |
-| Teléfono, Apple y los demás | desactivados                                        |
-| Google                      | en la tarea 10, con "Skip nonce checks" desactivado |
+| Ajuste                      | Valor                                             |
+| --------------------------- | ------------------------------------------------- |
+| Allow new users to sign up  | activado                                          |
+| Allow anonymous sign-ins    | desactivado                                       |
+| Allow manual linking        | desactivado                                       |
+| Teléfono, Apple y los demás | desactivados                                      |
+| Google                      | desactivado (la app solo usa correo y contraseña) |
 
 ## 3. Authentication → Sessions (o JWT Keys)
 

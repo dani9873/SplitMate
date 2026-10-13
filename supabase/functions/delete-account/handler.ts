@@ -7,7 +7,7 @@
  * 2. Un `Bearer` válido para Supabase, cuyo `sub` es el usuario de la sesión.
  * 3. Sesión reciente: el método de autenticación más reciente del claim `amr` tiene 5 minutos o
  *    menos. Renovar el token conserva el `amr` original, así que una sesión vieja renovada no pasa:
- *    la app pide la contraseña o Google de nuevo.
+ *    la app pide la contraseña de nuevo.
  * 4. Las respuestas no traen detalles internos.
  */
 

@@ -9,6 +9,12 @@ de EAS para builds reales.
 
 El avance paso a paso está en `progreso.md`.
 
+> **Cambio del 2026-10-13 (decisión del usuario): sin Google.** La app solo entra con correo y
+> contraseña. En el paso 12e se retiraron el módulo `splitmate-google-auth`, el botón, la pantalla
+> del nombre para cuentas de Google sin nombre, la reautenticación con Google y
+> `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`. Borrar la cuenta pide siempre la contraseña. Las menciones a
+> Google de este documento quedan como historial.
+
 ## Objetivo
 
 Login obligatorio con correo y Google, y la base de Postgres lista y segura para que la Fase 4

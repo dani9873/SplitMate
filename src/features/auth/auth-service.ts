@@ -1,9 +1,7 @@
 import {
   FunctionsFetchError,
   FunctionsHttpError,
-  type Session,
   type SupabaseClient,
-  type User,
 } from '@supabase/supabase-js';
 import { z } from 'zod';
 
@@ -11,7 +9,6 @@ import { SESSION_STORAGE_KEY } from '@/lib/supabase/create-client';
 import type { SupportedStorage } from '@/lib/supabase/session-storage';
 
 import { AuthError, isExistingAccountError, toAuthError } from './auth-errors';
-import { isGoogleSignInAvailable, requestGoogleIdToken, type GoogleSignInDeps } from './google';
 import { ensureRemoteProfile, type RemoteProfile } from './profile-sync';
 
 /** Destino de los enlaces de los correos. Es la única redirección permitida en Supabase. */
@@ -21,9 +18,7 @@ export const AUTH_REDIRECT_URL = 'splitmate://auth/callback';
 export interface AuthSession {
   readonly userId: string;
   readonly email: string;
-  /** Formas de entrar de la cuenta: `email`, `google`. */
-  readonly providers: readonly string[];
-  /** Nombre del registro o de Google, si hay. */
+  /** Nombre del registro, si la cuenta lo tiene. */
   readonly displayName: string | null;
 }
 
@@ -67,22 +62,11 @@ export interface AuthService {
    * Nunca lanza: sin red, se reintenta en el próximo arranque.
    */
   ensureProfile(profile: RemoteProfile): Promise<void>;
-  /** Guarda el nombre en la cuenta (metadatos de Supabase Auth) y devuelve la sesión con él. */
-  updateDisplayName(name: string): Promise<AuthSession>;
-  /** Hay módulo de Google (Android) y cliente web configurado. */
-  canUseGoogle(): boolean;
-  /** Entra con Google. `null` si el usuario cerró la hoja de Google. */
-  signInWithGoogle(): Promise<AuthSession | null>;
   /**
-   * Vuelve a pedir la contraseña: una sesión nueva y reciente para borrar la cuenta. Si entra
-   * otra cuenta, deja la sesión como estaba y lanza `wrongAccount`.
+   * Vuelve a pedir la contraseña: una sesión nueva y reciente para borrar la cuenta. Si el correo
+   * ya es de otra cuenta, cierra la sesión de este teléfono y lanza `sessionExpired`.
    */
   reauthenticateWithPassword(session: AuthSession, password: string): Promise<void>;
-  /**
-   * Vuelve a elegir la cuenta de Google, con la misma comprobación de la cuenta. `false` si el
-   * usuario cerró la hoja.
-   */
-  reauthenticateWithGoogle(session: AuthSession): Promise<boolean>;
   /** Borra la cuenta en Supabase (Edge Function `delete-account`). Pide una sesión reciente. */
   deleteAccount(): Promise<void>;
 }
@@ -90,12 +74,6 @@ export interface AuthService {
 const userSchema = z.object({
   id: z.uuid(),
   email: z.string().min(1).max(254),
-  app_metadata: z
-    .object({
-      provider: z.string().optional(),
-      providers: z.array(z.string()).optional(),
-    })
-    .optional(),
   user_metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -108,48 +86,19 @@ function toAuthSession(raw: unknown): AuthSession {
     throw new AuthError('unknown', 'Supabase devolvió un usuario con forma inesperada');
   }
   const user = parsed.data;
-  const metadata = user.user_metadata ?? {};
-  const name = [metadata.display_name, metadata.full_name, metadata.name].find(
-    (value): value is string => typeof value === 'string' && value.trim().length > 0,
-  );
-  const provider = user.app_metadata?.provider;
+  const name = user.user_metadata?.display_name;
   return {
     userId: user.id,
     email: user.email,
-    providers: user.app_metadata?.providers ?? (provider ? [provider] : []),
-    displayName: name?.trim() ?? null,
+    displayName: typeof name === 'string' && name.trim().length > 0 ? name.trim() : null,
   };
 }
-
-const NO_GOOGLE: GoogleSignInDeps = {
-  module: null,
-  webClientId: null,
-  randomBytes: () => new Uint8Array(),
-  sha256Hex: async () => '',
-};
 
 export function createSupabaseAuthService(
   client: SupabaseClient,
   storage: SupportedStorage,
-  google: GoogleSignInDeps = NO_GOOGLE,
 ): AuthService {
   const auth = client.auth;
-
-  async function signInWithGoogle(): Promise<AuthSession | null> {
-    const token = await requestGoogleIdToken(google);
-    if (!token) {
-      return null;
-    }
-    const { data, error } = await auth.signInWithIdToken({
-      provider: 'google',
-      token: token.idToken,
-      nonce: token.nonce,
-    });
-    if (error) {
-      throw toAuthError(error);
-    }
-    return toAuthSession(data.user);
-  }
 
   async function signOutHere(): Promise<void> {
     const { error } = await auth.signOut({ scope: 'local' });
@@ -158,44 +107,6 @@ export function createSupabaseAuthService(
       // pierde, pero el refresh token ya no queda en el teléfono.
       await storage.removeItem(SESSION_STORAGE_KEY);
     }
-  }
-
-  /**
-   * Vuelve a entrar para borrar la cuenta y comprueba que siga siendo la de la sesión. Con otra
-   * cuenta (otra cuenta de Google del teléfono), revoca esa sesión en el servidor sin avisar a la
-   * app, devuelve la original y lanza `wrongAccount`: nada se borra. Si la original ya no sirve,
-   * cierra la sesión de este teléfono.
-   */
-  async function reauthenticate(
-    expectedUserId: string,
-    signIn: () => Promise<{
-      data: { user: User | null; session: Session | null };
-      error: unknown;
-    }>,
-  ): Promise<void> {
-    const {
-      data: { session: original },
-    } = await auth.getSession();
-    const { data, error } = await signIn();
-    if (error) {
-      throw toAuthError(error);
-    }
-    if (data.user?.id === expectedUserId) {
-      return;
-    }
-    if (data.session) {
-      await auth.admin.signOut(data.session.access_token, 'local');
-    }
-    const restored = original
-      ? await auth.setSession({
-          access_token: original.access_token,
-          refresh_token: original.refresh_token,
-        })
-      : null;
-    if (!restored || restored.error) {
-      await signOutHere();
-    }
-    throw new AuthError('wrongAccount');
   }
 
   async function requestPasswordReset(email: string): Promise<void> {
@@ -307,33 +218,17 @@ export function createSupabaseAuthService(
       await ensureRemoteProfile(client, profile);
     },
 
-    async updateDisplayName(name) {
-      const { data, error } = await auth.updateUser({ data: { display_name: name } });
+    async reauthenticateWithPassword(session, password) {
+      const { data, error } = await auth.signInWithPassword({ email: session.email, password });
       if (error) {
         throw toAuthError(error);
       }
-      return toAuthSession(data.user);
-    },
-
-    canUseGoogle: () => isGoogleSignInAvailable(google),
-
-    signInWithGoogle,
-
-    async reauthenticateWithPassword(session, password) {
-      await reauthenticate(session.userId, () =>
-        auth.signInWithPassword({ email: session.email, password }),
-      );
-    },
-
-    async reauthenticateWithGoogle(session) {
-      const token = await requestGoogleIdToken(google);
-      if (!token) {
-        return false;
+      // El correo es de una sola cuenta: si entró otra, la de esta sesión ya no existe. Nada se
+      // borra, y la sesión nueva no se queda en el teléfono.
+      if (data.user.id !== session.userId) {
+        await signOutHere();
+        throw new AuthError('sessionExpired');
       }
-      await reauthenticate(session.userId, () =>
-        auth.signInWithIdToken({ provider: 'google', token: token.idToken, nonce: token.nonce }),
-      );
-      return true;
     },
 
     async deleteAccount() {

@@ -17,4 +17,3 @@ export { ResetPasswordScreen } from './screens/ResetPasswordScreen';
 export { SignInScreen } from './screens/SignInScreen';
 export { SignUpScreen } from './screens/SignUpScreen';
 export { WelcomeScreen } from './screens/WelcomeScreen';
-export { YourNameScreen } from './screens/YourNameScreen';

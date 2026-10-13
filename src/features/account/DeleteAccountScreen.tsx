@@ -13,9 +13,9 @@ import { ScreenHeader } from '../navigation';
 import { wipeAccountData } from './account-actions';
 
 /**
- * Borrar la cuenta: explica qué se borra, pide el correo exacto y vuelve a autenticar (contraseña
- * o Google) para que la Edge Function vea una sesión reciente. Después cierra la sesión y borra
- * los datos de la cuenta en este teléfono.
+ * Borrar la cuenta: explica qué se borra, pide el correo exacto y vuelve a pedir la contraseña
+ * para que la Edge Function vea una sesión reciente. Después cierra la sesión y borra los datos de
+ * la cuenta en este teléfono.
  */
 export function DeleteAccountScreen() {
   const { state } = useAuth();
@@ -25,13 +25,13 @@ export function DeleteAccountScreen() {
   return <DeleteAccount session={state.session} />;
 }
 
-function formSchema(email: string, usesPassword: boolean) {
+function formSchema(email: string) {
   return z.object({
     email: z
       .string()
       .trim()
       .refine((value) => value.toLowerCase() === email.toLowerCase(), 'emailMismatch'),
-    password: usesPassword ? z.string().min(1, 'passwordRequired') : z.string(),
+    password: z.string().min(1, 'passwordRequired'),
   });
 }
 
@@ -40,12 +40,7 @@ function DeleteAccount({ session }: { session: AuthSession }) {
   const { service, signOut } = useAuth();
   const errorText = useAuthErrorText();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const usesPassword = session.providers.includes('email');
-  const schema = useMemo(
-    () => formSchema(session.email, usesPassword),
-    [session.email, usesPassword],
-  );
-  const googleBlocked = !usesPassword && !service.canUseGoogle();
+  const schema = useMemo(() => formSchema(session.email), [session.email]);
   const { control, handleSubmit, formState } = useForm<z.input<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { email: '', password: '' },
@@ -62,12 +57,7 @@ function DeleteAccount({ session }: { session: AuthSession }) {
   const submit = handleSubmit(async ({ password }) => {
     setSubmitError(null);
     try {
-      if (usesPassword) {
-        await service.reauthenticateWithPassword(session, password);
-      } else if (!(await service.reauthenticateWithGoogle(session))) {
-        // Cerró la hoja de Google: no pasa nada.
-        return;
-      }
+      await service.reauthenticateWithPassword(session, password);
       await service.deleteAccount();
       await signOut({
         cleanup: wipeAccountData(session.userId, {
@@ -115,31 +105,23 @@ function DeleteAccount({ session }: { session: AuthSession }) {
           />
         )}
       />
-      {usesPassword ? (
-        <Controller
-          control={control}
-          name="password"
-          render={({ field, fieldState }) => (
-            <PasswordField
-              ref={field.ref}
-              testID="delete-account-password"
-              label={t('account.deleteScreen.password')}
-              value={field.value}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
-              error={fieldError(fieldState.error?.message)}
-              autoComplete="current-password"
-              textContentType="password"
-            />
-          )}
-        />
-      ) : (
-        <Text tone="muted">
-          {googleBlocked
-            ? t('account.deleteScreen.googleUnavailable')
-            : t('account.deleteScreen.googleHint')}
-        </Text>
-      )}
+      <Controller
+        control={control}
+        name="password"
+        render={({ field, fieldState }) => (
+          <PasswordField
+            ref={field.ref}
+            testID="delete-account-password"
+            label={t('account.deleteScreen.password')}
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            error={fieldError(fieldState.error?.message)}
+            autoComplete="current-password"
+            textContentType="password"
+          />
+        )}
+      />
       <FormError message={submitError} />
       <Button
         testID="delete-account-submit"
@@ -147,7 +129,6 @@ function DeleteAccount({ session }: { session: AuthSession }) {
         variant="danger"
         onPress={submit}
         loading={formState.isSubmitting}
-        disabled={googleBlocked}
         fullWidth
       />
     </Screen>

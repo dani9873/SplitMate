@@ -49,9 +49,6 @@ export type SignInForm = z.input<typeof signInFormSchema>;
 export const forgotPasswordFormSchema = z.object({ email });
 export type ForgotPasswordForm = z.input<typeof forgotPasswordFormSchema>;
 
-export const yourNameFormSchema = z.object({ name });
-export type YourNameForm = z.input<typeof yourNameFormSchema>;
-
 export const resetPasswordFormSchema = z.object({ password: newPassword });
 export type ResetPasswordForm = z.input<typeof resetPasswordFormSchema>;
 

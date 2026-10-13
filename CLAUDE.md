@@ -30,7 +30,8 @@ eSIM ni pagos reales**: solo registro, cálculo y control de gastos.
 - Gastos recurrentes (renta, servicios) y recordatorios de pago (notificaciones locales).
 - Exportar a PDF y Excel.
 - Funciona sin conexión y sincroniza al reconectar.
-- Login obligatorio: correo y Google.
+- Login obligatorio con correo y contraseña. Sin Google ni otros proveedores (decisión del
+  2026-10-13).
 - Multidioma: cualquier idioma vía archivos de traducción. Inicialmente `es` y `en`.
 - Modo claro y oscuro.
 
@@ -41,7 +42,7 @@ eSIM ni pagos reales**: solo registro, cálculo y control de gastos.
 | Base | Expo (última versión estable de SDK), Expo Router, TypeScript `strict` |
 | Estilos | NativeWind (Tailwind) con tokens de diseño propios; dark mode por `colorScheme` |
 | Datos locales | SQLite en el dispositivo (`expo-sqlite`) + Drizzle ORM. **Fuente de verdad local** |
-| Nube | Supabase: Postgres, Auth (correo + Google), Storage, Row Level Security |
+| Nube | Supabase: Postgres, Auth (solo correo y contraseña), Storage, Row Level Security |
 | Sincronización | Offline-first. El esquema local se diseña listo para sincronizar desde el día 1 |
 | Formularios | react-hook-form + zod (zod también valida en la frontera de datos) |
 | Estado de UI | Zustand solo para estado de UI; los datos se leen de SQLite con consultas reactivas |
@@ -169,21 +170,9 @@ src/
 - **CAPTCHA en el registro si hay abuso.** Supabase admite hCaptcha y Cloudflare Turnstile en
   registro, inicio de sesión y recuperación. Activarlo si aparecen registros automatizados;
   hasta entonces bastan los límites de intentos de Auth.
-- **Sign in with Apple para iOS.** En la Fase 3, Google solo se ofrece en Android: en iOS, la
-  regla 4.8 de la App Store exige ofrecer también un inicio de sesión equivalente con
-  privacidad, como Sign in with Apple. Agregar ambos cuando se pueda probar iOS.
-- **Configurar Google Cloud (google-config.md) y probar login con Google.** Pospuesto en la Fase
-  3. El login con Google está implementado (Android), pero queda oculto mientras falte
-  `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, y la app funciona solo con correo. Al configurarlo, probar
-  también la pantalla del nombre (cuenta de Google sin nombre) y que borrar la cuenta rechace otra
-  cuenta de Google.
 - **SMTP propio antes de invitar a otras personas.** El correo integrado de Supabase solo
   envía a miembros de la organización y unos pocos por hora. Antes de que otras personas se
   registren, configurar un proveedor SMTP (Resend, Brevo u otro) y subir el límite de envíos.
-- **SHA-1 del keystore de EAS para builds reales.** El perfil `development` firma con la
-  clave de depuración pública de React Native, y esa es la SHA-1 registrada en Google Cloud.
-  Para builds de prueba o de tienda, usar el keystore privado que administra EAS, registrar
-  su SHA-1 en un cliente OAuth de Android propio y retirar el de depuración.
 
 ## Estado
 

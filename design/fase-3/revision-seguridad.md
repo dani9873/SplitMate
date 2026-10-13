@@ -8,6 +8,9 @@ Rama `fase-3-supabase-auth` contra `main`, hecha con la skill security-code-revi
 > El medio tiene un residuo aceptado: si la otra cuenta de Google no tenía cuenta en SplitMate,
 > entrar con ella la crea, vacía, antes de que la app la descarte. `verify_jwt` quedó comprobado
 > en el paso 12d (abajo).
+>
+> **2026-10-13:** Google se retiró de la app (paso 12e). El hallazgo medio y su residuo ya no
+> aplican: borrar la cuenta pide siempre la contraseña del correo de la sesión.
 
 ## Resumen
 

@@ -3,7 +3,6 @@ import type { AuthService, AuthSession } from './auth-service';
 export const TEST_SESSION: AuthSession = {
   userId: '6f1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
   email: 'ana@example.com',
-  providers: ['email'],
   displayName: 'Ana',
 };
 
@@ -31,11 +30,7 @@ export function createFakeAuthService(overrides: Partial<AuthService> = {}): Fak
       return () => listeners.delete(listener);
     }),
     ensureProfile: jest.fn(async () => undefined),
-    updateDisplayName: jest.fn(async (name: string) => ({ ...TEST_SESSION, displayName: name })),
-    canUseGoogle: jest.fn(() => false),
-    signInWithGoogle: jest.fn(async () => TEST_SESSION),
     reauthenticateWithPassword: jest.fn(async () => undefined),
-    reauthenticateWithGoogle: jest.fn(async () => true),
     deleteAccount: jest.fn(async () => undefined),
     emitSignedOut: () => listeners.forEach((listener) => listener()),
   };

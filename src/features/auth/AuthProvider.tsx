@@ -22,11 +22,6 @@ export type AuthState =
       readonly session: AuthSession;
       /** Entró con un correo de recuperación: falta elegir la contraseña nueva. */
       readonly recovering: boolean;
-      /**
-       * Acaba de entrar con una cuenta sin nombre (Google sin nombre): falta pedírselo. Al
-       * restaurar la sesión no se pide: la app usa el nombre de respaldo.
-       */
-      readonly needsName: boolean;
     };
 
 interface AuthContextValue {
@@ -36,8 +31,6 @@ interface AuthContextValue {
   signIn(session: AuthSession, options?: { recovery?: boolean }): void;
   /** Ya eligió la contraseña nueva: sigue a la app. */
   finishRecovery(): void;
-  /** Ya eligió su nombre (con la sesión que lo trae) o lo dejó para después: sigue a la app. */
-  finishName(session?: AuthSession): void;
   /**
    * Cierra la sesión de este teléfono. `cleanup` corre cuando las pantallas con sesión ya se
    * desmontaron (y su base se cerró): por ejemplo, borrar los datos de la cuenta.
@@ -64,9 +57,7 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
     service.restore().then(
       (session) =>
         settle(
-          session
-            ? { status: 'signedIn', session, recovering: false, needsName: false }
-            : { status: 'signedOut' },
+          session ? { status: 'signedIn', session, recovering: false } : { status: 'signedOut' },
         ),
       () => settle({ status: 'signedOut' }),
     );
@@ -91,22 +82,9 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
     };
   }, [service, signedIn]);
 
-  const signIn = useCallback((session: AuthSession, options?: { recovery?: boolean }) => {
-    const recovering = options?.recovery ?? false;
-    setState({
-      status: 'signedIn',
-      session,
-      recovering,
-      needsName: !recovering && session.displayName === null,
-    });
-  }, []);
-  const finishName = useCallback(
-    (named?: AuthSession) =>
-      setState((current) =>
-        current.status === 'signedIn'
-          ? { ...current, session: named ?? current.session, needsName: false }
-          : current,
-      ),
+  const signIn = useCallback(
+    (session: AuthSession, options?: { recovery?: boolean }) =>
+      setState({ status: 'signedIn', session, recovering: options?.recovery ?? false }),
     [],
   );
   const finishRecovery = useCallback(
@@ -150,8 +128,8 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
   );
 
   const value = useMemo(
-    () => ({ state, service, signIn, finishRecovery, finishName, signOut }),
-    [state, service, signIn, finishRecovery, finishName, signOut],
+    () => ({ state, service, signIn, finishRecovery, signOut }),
+    [state, service, signIn, finishRecovery, signOut],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -7,6 +7,9 @@
 **Objetivo:** login obligatorio con correo y Google, y la base de Postgres con RLS lista para
 sincronizar en la Fase 4. Diseño en `design/fase-3/diseno.md`.
 
+> **2026-10-13:** Google se retiró en el paso 12e (decisión del usuario): solo correo y contraseña.
+> La tarea 10 y las menciones a Google quedan como historial; el avance real está en `progreso.md`.
+
 **Arquitectura:**
 
 - `src/lib/supabase/` crea el cliente con el almacenamiento cifrado.

@@ -3,9 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** 12e, cuando el usuario lo indique: build de desarrollo en EAS (el `.env` no
-se sube: las variables `EXPO_PUBLIC_*` van en EAS) y los pasos de prueba en el teléfono. Google
-queda pospuesto: oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (pendiente en CLAUDE.md).
+**Siguiente paso:** 12e.2, correos con la plantilla predeterminada de Supabase (solo el enlace):
+la app funciona con lo que trae `splitmate://auth/callback` y "Revisa tu correo" no menciona el
+código mientras no haya SMTP propio.
 
 ## Pasos
 
@@ -35,9 +35,10 @@ queda pospuesto: oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (pendiente en CLA
       pendiente para el próximo arranque. 8 pruebas nuevas.
 - [x] 10. Google (Android): módulo Kotlin con Credential Manager y nonce (lo encuentra el
       autolinking; se compila en el build de EAS de la tarea 12), `google.ts` y el botón en
-      bienvenida y entrar. 20 pruebas nuevas.
+      bienvenida y entrar. 20 pruebas nuevas. **Retirado en el paso 12e.1.**
 - [x] Punto de control: pasos de Google Cloud y Supabase en `google-config.md` (pospuestos por
-      el usuario; Google queda oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`).
+      el usuario; Google queda oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`). **Retirado en el
+      paso 12e.1.**
 - [x] 11. Cuenta: cerrar sesión con dos opciones (la segunda advierte y borra los datos del
       teléfono) y borrar la cuenta con el correo exacto y luego contraseña o Google. Edge
       Function `delete-account` con `verify_jwt` y sesión de menos de 5 minutos; manejador
@@ -68,7 +69,27 @@ queda pospuesto: oculto sin `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (pendiente en CLA
           Claude Code la contienen (solo aparece la clave falsa de una prueba de Jest). No hace
           falta rotarla.
     - [x] `*.docx` y documentos personales sueltos en `.gitignore` y `.easignore` (`cb50fe6`).
-  - [ ] 12e. Development build en EAS, enlace y pasos de prueba en el teléfono.
+  - [ ] 12e. Cambios de decisión del usuario (2026-10-13) y development build. Commit por paso:
+    - [x] 1. Sin Google: fuera el módulo `splitmate-google-auth`, el botón, la pantalla del nombre
+          (solo existía para Google), la reautenticación con Google, sus pruebas y textos,
+          `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` y `google-config.md`. `AuthSession` ya no trae
+          `providers`. Borrar la cuenta pide siempre la contraseña; si el correo ya es de otra
+          cuenta, no sigue y cierra la sesión del teléfono (`sessionExpired`). CLAUDE.md: solo
+          correo y contraseña; fuera los pendientes de Google, Sign in with Apple (la regla 4.8 solo
+          aplica con inicio de sesión de terceros) y la SHA-1 del keystore. El proveedor ya estaba
+          apagado en el proyecto (`/auth/v1/settings`: `google: false`).
+    - [ ] 2. Correos con la plantilla predeterminada (solo enlace): la app funciona con lo que
+          trae `splitmate://auth/callback` y "Revisa tu correo" no menciona el código mientras no
+          haya SMTP. Las plantillas propias quedan en el repo (pendiente en CLAUDE.md).
+    - [ ] 3. Data API ("0 of 8 tables exposed"): por REST, con un usuario de prueba, que
+          `authenticated` cree y lea su `profile` y que `anon` siga sin acceso. Si falta un permiso,
+          migración solo para `authenticated` y preguntar antes de `db push`.
+    - [ ] 4. Panel (lo que se pueda leer): Redirect URL exacta `splitmate://auth/callback`, sin
+          punto final, y OTP expiration 1800.
+    - [ ] 5. Variables `EXPO_PUBLIC_*` del perfil development en EAS (`eas env:create`, sin
+          mostrar valores).
+    - [ ] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
+          enlace, entrar, abrir sin internet, cerrar sesión con ambas opciones y borrar la cuenta.
   - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
 
 ## Notas para retomar

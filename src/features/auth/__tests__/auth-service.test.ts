@@ -57,14 +57,13 @@ afterEach(async () => {
 
 describe('servicio de auth con supabase-js', () => {
   describe('entrar', () => {
-    it('devuelve la sesión con id, correo, proveedores y nombre, y la guarda', async () => {
+    it('devuelve la sesión con id, correo y nombre, y la guarda', async () => {
       const { server, service, storage } = setup();
       server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
 
       await expect(service.signIn(EMAIL, PASSWORD)).resolves.toEqual({
         userId: '6f1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
         email: EMAIL,
-        providers: ['email'],
         displayName: 'Ana',
       });
       const [request] = server.calls('POST', '/auth/v1/token');
@@ -95,6 +94,16 @@ describe('servicio de auth con supabase-js', () => {
       await expect(rejection(service.signIn(EMAIL, PASSWORD))).resolves.toMatchObject({
         code: 'offline',
       });
+    });
+
+    it.each([
+      ['sin nombre en los metadatos', {}],
+      ['con un nombre en blanco', { display_name: '   ' }],
+      ['con un nombre que no es texto', { display_name: 7 }],
+    ])('una cuenta %s queda sin nombre: la app usa el de respaldo', async (_, userMetadata) => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/token', ok(fakeSessionBody(fakeUser({ userMetadata }))));
+      await expect(service.signIn(EMAIL, PASSWORD)).resolves.toMatchObject({ displayName: null });
     });
   });
 
@@ -319,38 +328,6 @@ describe('servicio de auth con supabase-js', () => {
     });
   });
 
-  describe('nombre de la cuenta', () => {
-    it('guarda el nombre en los metadatos y devuelve la sesión con él', async () => {
-      const { server, service } = setup();
-      const nameless = fakeUser({ providers: ['google'], userMetadata: {} });
-      server.on('POST', '/auth/v1/token', ok(fakeSessionBody(nameless)));
-      server.on(
-        'PUT',
-        '/auth/v1/user',
-        ok(fakeUser({ providers: ['google'], userMetadata: { display_name: 'Ana Nueva' } })),
-      );
-      await expect(service.signIn(EMAIL, PASSWORD)).resolves.toMatchObject({ displayName: null });
-
-      await expect(service.updateDisplayName('Ana Nueva')).resolves.toMatchObject({
-        userId: SESSION.userId,
-        displayName: 'Ana Nueva',
-      });
-      expect(server.calls('PUT', '/auth/v1/user')[0]!.body).toMatchObject({
-        data: { display_name: 'Ana Nueva' },
-      });
-    });
-
-    it('sin red avisa que no hay conexión', async () => {
-      const { server, service } = setup();
-      server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
-      await service.signIn(EMAIL, PASSWORD);
-      server.setOffline(true);
-      await expect(rejection(service.updateDisplayName('Ana'))).resolves.toMatchObject({
-        code: 'offline',
-      });
-    });
-  });
-
   describe('borrar la cuenta', () => {
     it('reautenticar con la contraseña crea una sesión nueva', async () => {
       const { server, service } = setup();
@@ -362,48 +339,24 @@ describe('servicio de auth con supabase-js', () => {
       });
     });
 
-    describe('si al reautenticar entra otra cuenta', () => {
-      const OTHER = fakeSessionBody(
-        fakeUser({ id: '01928f3a-7b2c-7d4e-9f10-1a2b3c4d5e6f', email: 'beto@example.com' }),
-        { refreshToken: 'refresco-otra' },
-      );
-
-      function setupWithOther() {
-        const context = setup();
-        const responses = [ok(fakeSessionBody()), ok(OTHER)];
-        context.server.on('POST', '/auth/v1/token', () => responses.shift()!);
-        context.server.on('POST', '/auth/v1/logout', { status: 204, body: undefined });
-        const signedOut = jest.fn();
-        context.service.onSignedOut(signedOut);
-        return { ...context, signedOut };
-      }
-
-      it('revoca la sesión de la otra cuenta, devuelve la original y avisa sin cerrar sesión', async () => {
-        const { server, service, signedOut } = setupWithOther();
-        server.on('GET', '/auth/v1/user', ok(fakeUser()));
-        await service.signIn(EMAIL, PASSWORD);
-
-        await expect(
-          rejection(service.reauthenticateWithPassword(SESSION, PASSWORD)),
-        ).resolves.toMatchObject({ code: 'wrongAccount' });
-        const [logout] = server.calls('POST', '/auth/v1/logout');
-        expect(logout!.headers.get('authorization')).toBe(`Bearer ${OTHER.access_token}`);
-        expect(logout!.query.get('scope')).toBe('local');
-        await expect(service.restore()).resolves.toMatchObject({ userId: SESSION.userId });
-        expect(signedOut).not.toHaveBeenCalled();
+    it('si el correo ya es de otra cuenta, no sigue y cierra la sesión de este teléfono', async () => {
+      const { server, service, storage } = setup();
+      const other = fakeSessionBody(fakeUser({ id: '01928f3a-7b2c-7d4e-9f10-1a2b3c4d5e6f' }), {
+        refreshToken: 'refresco-otra',
       });
+      server.on('POST', '/auth/v1/token', ok(other));
+      server.on('POST', '/auth/v1/logout', { status: 204, body: undefined });
+      const signedOut = jest.fn();
+      service.onSignedOut(signedOut);
 
-      it('si la sesión original ya no sirve, cierra la sesión de este teléfono', async () => {
-        const { server, service, signedOut } = setupWithOther();
-        server.on('GET', '/auth/v1/user', apiError(401, 'bad_jwt', 'Invalid JWT'));
-        await service.signIn(EMAIL, PASSWORD);
-
-        await expect(
-          rejection(service.reauthenticateWithPassword(SESSION, PASSWORD)),
-        ).resolves.toMatchObject({ code: 'wrongAccount' });
-        await expect(service.restore()).resolves.toBeNull();
-        expect(signedOut).toHaveBeenCalled();
-      });
+      await expect(
+        rejection(service.reauthenticateWithPassword(SESSION, PASSWORD)),
+      ).resolves.toMatchObject({ code: 'sessionExpired' });
+      // La sesión de la otra cuenta se revoca y no queda en el teléfono.
+      const [logout] = server.calls('POST', '/auth/v1/logout');
+      expect(logout!.headers.get('authorization')).toBe(`Bearer ${other.access_token}`);
+      expect(storage.data.has(SESSION_STORAGE_KEY)).toBe(false);
+      expect(signedOut).toHaveBeenCalled();
     });
 
     it('reautenticar con una contraseña equivocada no revela nada más', async () => {

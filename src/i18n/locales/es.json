@@ -477,12 +477,6 @@
       "body": "Escribe el correo de tu cuenta y te enviaremos un enlace y un código.",
       "submit": "Enviar"
     },
-    "yourName": {
-      "title": "¿Cómo te llamas?",
-      "body": "Tu cuenta de Google no trae un nombre. Así te verán en los grupos.",
-      "submit": "Continuar",
-      "skip": "Ahora no"
-    },
     "reset": {
       "title": "Elige una contraseña nueva",
       "body": "La usarás para entrar desde ahora.",
@@ -519,14 +513,7 @@
       "offline": "Sin conexión. Revisa tu internet e intenta de nuevo.",
       "unavailable": "El servicio no responde. Intenta de nuevo en un rato.",
       "unknown": "Algo falló. Intenta de nuevo.",
-      "googleNoAccount": "No hay cuentas de Google en este teléfono. Agrega una en los ajustes del teléfono o usa tu correo.",
-      "googleFailed": "No se pudo entrar con Google. Intenta de nuevo o usa tu correo.",
-      "reauthenticationRequired": "Por seguridad, vuelve a confirmar que eres tú.",
-      "wrongAccount": "Elegiste otra cuenta. No se borró nada: vuelve a intentarlo con la cuenta de esta sesión."
-    },
-    "google": {
-      "button": "Continuar con Google",
-      "or": "o"
+      "reauthenticationRequired": "Por seguridad, vuelve a confirmar que eres tú."
     }
   },
   "config": {
@@ -539,7 +526,6 @@
     "defaultName": "Usuario",
     "title": "Cuenta",
     "signedInAs": "Entraste como {{email}}",
-    "withGoogle": "Con tu cuenta de Google",
     "signOut": "Cerrar sesión",
     "delete": "Borrar cuenta",
     "signOutSheet": {
@@ -561,8 +547,6 @@
       "email": "Escribe tu correo para confirmar",
       "emailMismatch": "No coincide con el correo de esta cuenta.",
       "password": "Tu contraseña",
-      "googleHint": "Para confirmar, vuelve a elegir tu cuenta de Google.",
-      "googleUnavailable": "Esta cuenta entra con Google: bórrala desde la app en Android.",
       "submit": "Borrar mi cuenta"
     },
     "notices": {

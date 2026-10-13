@@ -1,21 +1,4 @@
-import { SupabaseConfigError, parseGoogleWebClientId, parseSupabaseEnv } from '../env';
-
-describe('id del cliente web de Google', () => {
-  it('acepta el formato de Google Cloud', () => {
-    const id = '1234567890-abc123def456.apps.googleusercontent.com';
-    expect(parseGoogleWebClientId(id)).toBe(id);
-  });
-
-  it.each([
-    [undefined],
-    [''],
-    ['abc.apps.googleusercontent.com'],
-    ['1234-abc.apps.googleusercontent.com.evil.example'],
-    ['GOCSPX-secreto-del-cliente'],
-  ])('sin un id válido (%s) no hay botón de Google', (raw) => {
-    expect(parseGoogleWebClientId(raw)).toBeNull();
-  });
-});
+import { SupabaseConfigError, parseSupabaseEnv } from '../env';
 
 const URL = 'https://abcdefghijklmnopqrst.supabase.co';
 const KEY = 'sb_publishable_AbC123-_xyzXYZ0987654321';

@@ -1,9 +1,8 @@
-import { userEvent } from '@testing-library/react-native';
 import { act, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import { openAccountDatabase } from '@/db/client';
 import { createTestDatabase } from '@/db/test-utils';
-import { AuthError, AuthProvider, type AuthService } from '@/features/auth';
+import { AuthProvider } from '@/features/auth';
 import {
   TEST_SESSION,
   createFakeAuthService,
@@ -53,7 +52,6 @@ const routes = () => ({
   ),
   '(auth)/_layout': route('(auth)/_layout'),
   '(auth)/welcome': route('(auth)/welcome'),
-  'your-name': route('your-name'),
   '+not-found': route('+not-found'),
 });
 
@@ -121,77 +119,18 @@ describe('rutas según la sesión', () => {
     await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
   });
 
-  describe('cuenta de Google sin nombre', () => {
-    const NAMELESS = { ...TEST_SESSION, providers: ['google'], displayName: null };
+  it('una cuenta sin nombre entra a la app con "Usuario", nunca con el correo', async () => {
+    const nameless = { ...TEST_SESSION, displayName: null };
+    service = createFakeAuthService({ restore: async () => nameless });
+    await renderRouter(routes(), { initialUrl: '/' });
 
-    async function enterWithGoogle(overrides: Partial<AuthService> = {}) {
-      service = createFakeAuthService({
-        canUseGoogle: () => true,
-        signInWithGoogle: async () => NAMELESS,
-        updateDisplayName: async (name) => ({ ...NAMELESS, displayName: name }),
-        ...overrides,
-      });
-      await renderRouter(routes(), { initialUrl: '/' });
-      const user = userEvent.setup();
-      await user.press(await screen.findByTestId('welcome-google'));
-      expect(await screen.findByTestId('your-name-screen')).toBeOnTheScreen();
-      expect(openAccountDatabase).not.toHaveBeenCalled();
-      return user;
-    }
-
-    it('pide el nombre, lo guarda en la cuenta y sigue a la app con él', async () => {
-      const user = await enterWithGoogle();
-      await user.type(screen.getByTestId('your-name-name'), 'Ana Nueva');
-      await user.press(screen.getByTestId('your-name-submit'));
-
-      expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
-      expect(service.updateDisplayName).toHaveBeenCalledWith('Ana Nueva');
-      expect(openAccountDatabase).toHaveBeenCalledWith(
-        expect.objectContaining({ displayName: 'Ana Nueva' }),
-      );
-      expect(service.ensureProfile).toHaveBeenCalledWith({
-        userId: NAMELESS.userId,
-        displayName: 'Ana Nueva',
-      });
-    });
-
-    it('"Ahora no" sigue a la app con "Usuario", nunca con el correo', async () => {
-      const user = await enterWithGoogle();
-      await user.press(screen.getByTestId('your-name-skip'));
-
-      expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
-      expect(service.updateDisplayName).not.toHaveBeenCalled();
-      expect(openAccountDatabase).toHaveBeenCalledWith(
-        expect.objectContaining({ displayName: null, fallbackName: 'Usuario' }),
-      );
-      expect(service.ensureProfile).toHaveBeenCalledWith({
-        userId: NAMELESS.userId,
-        displayName: 'Usuario',
-      });
-    });
-
-    it('sin red lo explica y se puede seguir con "Ahora no"', async () => {
-      const user = await enterWithGoogle({
-        updateDisplayName: async () => {
-          throw new AuthError('offline');
-        },
-      });
-      await user.type(screen.getByTestId('your-name-name'), 'Ana Nueva');
-      await user.press(screen.getByTestId('your-name-submit'));
-
-      expect(await screen.findByTestId('form-error')).toHaveTextContent(
-        'Sin conexión. Revisa tu internet e intenta de nuevo.',
-      );
-      await user.press(screen.getByTestId('your-name-skip'));
-      expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
-    });
-
-    it('al abrir la app con esa sesión ya no lo pide', async () => {
-      service = createFakeAuthService({ restore: async () => NAMELESS });
-      await renderRouter(routes(), { initialUrl: '/' });
-
-      expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
-      expect(screen.queryByTestId('your-name-screen')).toBeNull();
+    expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
+    expect(openAccountDatabase).toHaveBeenCalledWith(
+      expect.objectContaining({ displayName: null, fallbackName: 'Usuario' }),
+    );
+    expect(service.ensureProfile).toHaveBeenCalledWith({
+      userId: nameless.userId,
+      displayName: 'Usuario',
     });
   });
 });

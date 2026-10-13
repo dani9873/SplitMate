@@ -55,15 +55,3 @@ export function readSupabaseEnv(): SupabaseEnv {
     publishableKey: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   });
 }
-
-/** Id del cliente OAuth "Aplicación web" de Google Cloud: `<número>-<id>.apps.googleusercontent.com`. */
-const GOOGLE_WEB_CLIENT_ID = /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
-
-/** El id del cliente web de Google, o `null` si falta o no tiene el formato: sin él no hay botón. */
-export function parseGoogleWebClientId(raw: string | undefined): string | null {
-  return raw !== undefined && GOOGLE_WEB_CLIENT_ID.test(raw) ? raw : null;
-}
-
-export function readGoogleWebClientId(): string | null {
-  return parseGoogleWebClientId(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
-}
