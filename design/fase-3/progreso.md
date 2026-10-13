@@ -109,8 +109,13 @@ permiso del usuario y repetir la prueba REST con `prueba1@splitmate.test`: crear
           lista iguales, un punto final en la lista no cambiaría nada. OTP expiration no se lee sin
           la API de gestión (la puso el usuario el 2026-10-12). Límite del proyecto: 2 correos por
           hora (dato del usuario).
-    - [ ] 5. Variables `EXPO_PUBLIC_*` del perfil development en EAS (`eas env:create`, sin
-          mostrar valores).
+    - [x] 5. Variables `EXPO_PUBLIC_*` del perfil development en EAS (`eas env:create`, sin
+          mostrar valores). `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` en el
+          entorno `development`, visibilidad `sensitive`; comparadas con `.env` sin imprimirlas. El
+          perfil `development` de `eas.json` fija `"environment": "development"`. En el development
+          build, el JS lo sirve Metro con el `.env` de la PC: estas variables cuentan en los builds
+          que empaquetan el JS (preview) y en `eas env:pull`. `env:create` está obsoleto; el
+          reemplazo es `eas env:set`.
     - [ ] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
           enlace, entrar, abrir sin internet, cerrar sesión con ambas opciones y borrar la cuenta.
   - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
