@@ -102,8 +102,13 @@ permiso del usuario y repetir la prueba REST con `prueba1@splitmate.test`: crear
           remoto (sin privilegios de `authenticated`: mismo `permission denied`, que la migración
           corrige). `db push --dry-run`: solo esa migración. Falta el permiso del usuario para el
           `db push` y repetir la prueba REST.
-    - [ ] 4. Panel (lo que se pueda leer): Redirect URL exacta `splitmate://auth/callback`, sin
-          punto final, y OTP expiration 1800.
+    - [x] 4. Panel (lo que se pueda leer): Redirect URL exacta `splitmate://auth/callback`, sin
+          punto final, y OTP expiration 1800. Con un token falso en `/auth/v1/verify`, el
+          `redirect_to` de la app vuelve a `splitmate://auth/callback` y `splitmate://otra/ruta`
+          también (cae en la Site URL, que es la misma): la lista no tiene comodines. Con Site URL y
+          lista iguales, un punto final en la lista no cambiaría nada. OTP expiration no se lee sin
+          la API de gestión (la puso el usuario el 2026-10-12). Límite del proyecto: 2 correos por
+          hora (dato del usuario).
     - [ ] 5. Variables `EXPO_PUBLIC_*` del perfil development en EAS (`eas env:create`, sin
           mostrar valores).
     - [ ] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
