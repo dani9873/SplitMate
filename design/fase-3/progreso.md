@@ -123,6 +123,17 @@ usuario antes del cierre (12f).
           reemplazo es `eas env:set`.
     - [ ] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
           enlace, entrar, abrir sin internet, cerrar sesión con ambas opciones y borrar la cuenta.
+    - [x] 7. Causa de los privilegios perdidos (pedido del usuario tras el paso 3, confirmado con
+          consultas de solo lectura `supabase db query --linked`): no fue la migración ni un event
+          trigger. El panel de Data API, a las 07:23:28 UTC del 2026-10-13, al desactivar
+          "Automatically expose new tables", revocó todo a `anon`, `authenticated` y `service_role`
+          en las 8 tablas y cambió los privilegios por omisión. Evidencia y efectos en
+          `data-api-privilegios.md`.
+    - [ ] 8. Regla en CLAUDE.md (GRANT explícitos en toda migración con objetos nuevos en
+          `public`, privilegios solo por migraciones y verificación REST tras cada `db push`) y
+          `npm run check:data-api`, que repite la prueba REST contra el proyecto.
+    - [ ] 9. pgTAP `006-privilegios.test.sql`: falla si `authenticated` pierde o gana un
+          privilegio respecto de la matriz esperada, o si `anon` recibe alguno.
   - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
 
 ## Notas para retomar
