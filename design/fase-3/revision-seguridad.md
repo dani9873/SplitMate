@@ -68,12 +68,17 @@ desplegar la función.
 > con la API de administración), un token ES256 válido y una sesión recién creada, la función
 > respondió 200 `{"deleted":true}` y el usuario quedó borrado. `verify_jwt = true` se mantiene.
 > Una petición sin `Authorization` (solo con la clave publicable en `apikey`) pasa el gateway, y
-> el manejador la rechaza con 401.
+> el manejador la rechaza con 401. La clave secreta de la prueba solo vivió en una variable del
+> comando: no quedó en los historiales de la terminal ni en las transcripciones, así que no hace
+> falta rotarla.
+>
+> Con las migraciones aplicadas, `anon` recibe 401 `42501` (permission denied) en las 8 tablas
+> del proyecto remoto, por REST con la clave publicable.
 
 - **`verify_jwt` con claves de firma asimétricas.** El proyecto usa las claves nuevas
   (`sb_publishable_…`). Si también firma los JWT con claves asimétricas, comprobar al desplegar
-  que el gateway acepta el token con `verify_jwt = true`. Si no lo acepta, todo borrado daría
-  401. La seguridad no depende de esa opción: el manejador valida el token con
+  que el gateway acepta el token con `verify_jwt = true`. Si no lo acepta, todo borrado
+  respondería 401. La seguridad no depende de esa opción: el manejador valida el token con
   `admin.auth.getUser`.
 
 ## Revisado sin hallazgos

@@ -4,10 +4,10 @@ Lista para dejar el proyecto remoto igual que `supabase/config.toml`, que solo a
 y en CI. Los nombres de los menús pueden variar un poco según la versión del panel.
 
 > **Cambio después de aplicarla (2026-10-12, revisión de seguridad):** el código del correo vence
-> en 30 minutos, no en una hora.
+> en 30 minutos, no en una hora. Aplicado por el usuario el mismo día:
 >
-> 1. En la sección 2, poner Email OTP expiration en **1800** segundos.
-> 2. En la sección 5, volver a pegar las dos plantillas: ahora dicen "vencen en 30 minutos".
+> 1. En la sección 2, Email OTP expiration en **1800** segundos.
+> 2. En la sección 5, las dos plantillas pegadas otra vez: ahora dicen "vencen en 30 minutos".
 
 ## 1. Authentication → URL Configuration
 
@@ -82,7 +82,8 @@ se registró con la app en inglés (`user_metadata.locale`); si no, en español.
 ## 7. Base de datos
 
 Las migraciones de `supabase/migrations` se aplican con `supabase db push` (punto de control de
-la tarea 3). Sin ellas, la app entra pero no puede crear su perfil (tarea 9).
+la tarea 3). Sin ellas, la app entra pero no puede crear su perfil (tarea 9). Aplicadas el
+2026-10-12.
 
 ## Pendiente con SMTP propio
 
