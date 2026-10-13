@@ -123,8 +123,8 @@
           reemplazo es `eas env:set`.
     - [ ] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
           enlace, entrar, abrir sin internet, cerrar sesión con ambas opciones y borrar la cuenta.
-          Build `1f07df1f-71fe-4f17-a290-3b9bb2120b09` (perfil development, desde `8d819cf`; en cola
-          desde las 14:39 UTC del 2026-10-13). Pasos entregados, con 2 correos en total: registro
+          Build `1f07df1f-71fe-4f17-a290-3b9bb2120b09` (perfil development, desde `8d819cf`): en cola
+          desde las 14:39 UTC del 2026-10-13, terminado a las 15:19 UTC (APK en la página del build). Pasos entregados, con 2 correos en total: registro
           (correo 1), entrar, abrir en modo avión (Metro por USB con `adb reverse`), cerrar sesión
           con las dos opciones, borrar la cuenta con `prueba2@splitmate.test` (creado por el usuario
           en el panel, sin correo) y, al final, recuperar la contraseña (correo 2). Falta la
