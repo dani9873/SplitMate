@@ -132,8 +132,13 @@ usuario antes del cierre (12f).
     - [ ] 8. Regla en CLAUDE.md (GRANT explícitos en toda migración con objetos nuevos en
           `public`, privilegios solo por migraciones y verificación REST tras cada `db push`) y
           `npm run check:data-api`, que repite la prueba REST contra el proyecto.
-    - [ ] 9. pgTAP `006-privilegios.test.sql`: falla si `authenticated` pierde o gana un
-          privilegio respecto de la matriz esperada, o si `anon` recibe alguno.
+    - [x] 9. pgTAP `006-privilegios.test.sql`: falla si `authenticated` pierde o gana un
+          privilegio respecto de la matriz esperada, o si `anon` recibe alguno. 5 pruebas: tabla
+          (SELECT e INSERT y nada más), columnas (las 61 editables), funciones (las 3 de RLS),
+          secuencias y CREATE, y `anon` sin nada. En PGlite (Postgres 18.3), 128 en verde en los
+          dos escenarios, y 6 mutaciones la hacen fallar, entre ellas el `revoke all` del panel.
+          Las mismas consultas, contra el remoto (solo lectura): 0 faltantes y 0 sobrantes.
+          `has_sequence_privilege` va dentro de un CASE porque el WHERE no fija el orden.
   - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
 
 ## Notas para retomar
