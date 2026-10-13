@@ -3,9 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** 12e.3, `db push` de `20261013143100_privilegios_authenticated.sql` con
-permiso del usuario y repetir la prueba REST con `prueba1@splitmate.test`: crear y leer su
-`profile`, no ver el de otro, y `anon` sin acceso.
+**Siguiente paso:** 12e.6, development build `1f07df1f` en EAS (lanzado el 2026-10-13 desde
+`8d819cf`): dar el enlace y los pasos de prueba en el teléfono; luego esperar la confirmación del
+usuario antes del cierre (12f).
 
 ## Pasos
 
@@ -90,7 +90,7 @@ permiso del usuario y repetir la prueba REST con `prueba1@splitmate.test`: crear
           tu correo" ya no muestra el código (`EMAIL_HAS_CODE = false`); el registro ofrece "Ya
           confirmé mi correo". Plantillas propias en el repo (la de recuperación ahora dice que el
           botón sirve 5 minutos) y el pendiente de SMTP ampliado en CLAUDE.md. 658 pruebas en verde.
-    - [ ] 3. Data API ("0 of 8 tables exposed"): por REST, con un usuario de prueba, que
+    - [x] 3. Data API ("0 of 8 tables exposed"): por REST, con un usuario de prueba, que
           `authenticated` cree y lea su `profile` y que `anon` siga sin acceso. Si falta un permiso,
           migración solo para `authenticated` y preguntar antes de `db push`.
           **2026-10-13:** con `prueba1@splitmate.test` (creado y confirmado por el usuario en el
@@ -100,8 +100,13 @@ permiso del usuario y repetir la prueba REST con `prueba1@splitmate.test`: crear
           Migración `20261013143100_privilegios_authenticated.sql`: solo `authenticated`, repite los
           GRANT de la de seguridad. En PGlite, 123 pgTAP en verde en base nueva y simulando el
           remoto (sin privilegios de `authenticated`: mismo `permission denied`, que la migración
-          corrige). `db push --dry-run`: solo esa migración. Falta el permiso del usuario para el
-          `db push` y repetir la prueba REST.
+          corrige). `db push --dry-run`: solo esa migración. Con permiso del usuario, `db push` (3
+          migraciones en el remoto) y prueba REST repetida: `anon` sigue con 401 `42501` en las 8
+          tablas y en POST; `authenticated` lee las 8, crea su perfil con el upsert de la app (201,
+          y repetirlo no cambia el nombre) y lo lee; no ve ningún otro (`id=neq.<propio>` vacío),
+          insertar uno ajeno da 403 por RLS, editar uno ajeno no afecta filas, y cambiar su `id` o
+          borrarlo da 403 (sin privilegio). La lectura cruzada con dos perfiles reales queda para
+          después de la prueba del teléfono (paso 6).
     - [x] 4. Panel (lo que se pueda leer): Redirect URL exacta `splitmate://auth/callback`, sin
           punto final, y OTP expiration 1800. Con un token falso en `/auth/v1/verify`, el
           `redirect_to` de la app vuelve a `splitmate://auth/callback` y `splitmate://otra/ruta`
