@@ -92,6 +92,14 @@ src/
 - Validar con zod toda entrada del usuario y todo dato que llegue de la red.
 - Enlaces de invitación con token aleatorio, expirable y revocable.
 - Al cerrar cada fase con cambios relevantes, ejecutar una revisión de seguridad del código.
+- Toda migración que cree una tabla, función o secuencia en `public` trae en el mismo archivo sus
+  GRANT explícitos (solo a los roles que la usan, nunca a `anon`), RLS y políticas, y actualiza
+  `001-estructura` y `006-privilegios`. El proyecto no expone nada nuevo por omisión.
+- Los privilegios cambian solo por migraciones, nunca desde el panel: desactivar la exposición
+  automática en Data API revocó también los de las tablas existentes
+  (`design/fase-3/data-api-privilegios.md`). Después de cada `supabase db push`,
+  `npm run check:data-api` debe pasar (usuario de prueba `prueba1@splitmate.test`; la contraseña la
+  da el usuario y solo va en la variable de entorno o en el aviso del script).
 
 ## Skills a usar (si están disponibles en la sesión)
 
@@ -165,6 +173,11 @@ src/
 - **Foco automático dentro de las hojas.** En Android, el campo para renombrar un miembro
   recibe el foco al abrir la hoja, pero el teclado no se abre solo dentro del Modal: hay que
   tocar el campo. Revisarlo cuando otra hoja necesite escribir apenas se abre.
+- **service_role sin privilegios en el remoto.** El panel le quitó los de las 8 tablas y no se
+  devolvieron: las migraciones le dan lectura y escritura sin DELETE ni TRUNCATE, y el remoto, nada.
+  Hoy no afecta (`delete-account` solo usa `auth.admin`). En la fase de sincronización, quitárselos
+  también en una migración (privilegio mínimo, repo igual al remoto) o devolvérselos si un proceso
+  del servidor los necesita.
 - **MFA.** Supabase Auth admite un segundo factor (TOTP). Ofrecerlo en Ajustes, al menos
   como opción, antes de la publicación.
 - **CAPTCHA en el registro si hay abuso.** Supabase admite hCaptcha y Cloudflare Turnstile en

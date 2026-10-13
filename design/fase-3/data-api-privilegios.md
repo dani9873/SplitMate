@@ -19,11 +19,11 @@ Consultas de solo lectura con `supabase db query --linked` (rol `postgres`, Post
   `issue_pg_net_access`, `pgrst_ddl_watch` y `pgrst_drop_watch`.
 - **Un REVOKE posterior, generado por el panel.** `pg_stat_statements.stats_since` da el orden:
 
-| UTC | Sentencia (rol `postgres`) |
-|---|---|
-| 2026-10-12 20:55:07 | Migraciones `esquema` y `seguridad` (`db push`): GRANT de `authenticated` |
-| 2026-10-13 07:23:28.199 | `do $$ … for … in select … where c.oid in (8 OID) loop execute format('revoke all on table %I.%I from anon, authenticated, service_role', …)` |
-| 2026-10-13 07:23:28.91 | Diez `alter default privileges for role postgres in schema public revoke …`: tablas, secuencias y funciones de `anon`, `authenticated` y `service_role`, más `execute on functions` de `public` |
+| UTC                     | Sentencia (rol `postgres`)                                                                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-12 20:55:07     | Migraciones `esquema` y `seguridad` (`db push`): GRANT de `authenticated`                                                                                                                       |
+| 2026-10-13 07:23:28.199 | `do $$ … for … in select … where c.oid in (8 OID) loop execute format('revoke all on table %I.%I from anon, authenticated, service_role', …)`                                                   |
+| 2026-10-13 07:23:28.91  | Diez `alter default privileges for role postgres in schema public revoke …`: tablas, secuencias y funciones de `anon`, `authenticated` y `service_role`, más `execute on functions` de `public` |
 
 Los 8 OID son exactamente `profiles`, `groups`, `group_members`, `categories`, `expenses`,
 `expense_payers`, `expense_splits` y `transfers`. En la misma lista aparece, varias veces, la

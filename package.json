@@ -15,7 +15,8 @@
     "check": "npm run typecheck && npm run lint && npm test",
     "icons": "node scripts/generate-icons.mjs",
     "test:coverage": "jest --coverage",
-    "check:bundle": "node scripts/check-prod-bundle.mjs"
+    "check:bundle": "node scripts/check-prod-bundle.mjs",
+    "check:data-api": "node scripts/check-data-api.mjs"
   },
   "jest": {
     "preset": "jest-expo",

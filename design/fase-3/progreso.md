@@ -129,9 +129,14 @@ usuario antes del cierre (12f).
           "Automatically expose new tables", revocó todo a `anon`, `authenticated` y `service_role`
           en las 8 tablas y cambió los privilegios por omisión. Evidencia y efectos en
           `data-api-privilegios.md`.
-    - [ ] 8. Regla en CLAUDE.md (GRANT explícitos en toda migración con objetos nuevos en
+    - [x] 8. Regla en CLAUDE.md (GRANT explícitos en toda migración con objetos nuevos en
           `public`, privilegios solo por migraciones y verificación REST tras cada `db push`) y
-          `npm run check:data-api`, que repite la prueba REST contra el proyecto.
+          `npm run check:data-api`, que repite la prueba REST contra el proyecto. El script lee
+          `.env`, usa `prueba1@splitmate.test` (o `SPLITMATE_TEST_EMAIL`) y pide la contraseña sin
+          mostrarla si no está en `SPLITMATE_TEST_PASSWORD`; cierra su sesión al terminar. Contra el
+          remoto: 23 comprobaciones en verde; con contraseña incorrecta o sin ella, sale con 1.
+          Pendiente nuevo en CLAUDE.md: `service_role` sin privilegios en el remoto. Para conservar
+          `prueba1`, el borrado de cuenta del paso 6 se prueba con un `prueba2` creado en el panel.
     - [x] 9. pgTAP `006-privilegios.test.sql`: falla si `authenticated` pierde o gana un
           privilegio respecto de la matriz esperada, o si `anon` recibe alguno. 5 pruebas: tabla
           (SELECT e INSERT y nada más), columnas (las 61 editables), funciones (las 3 de RLS),
