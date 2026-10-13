@@ -3,9 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** 12e.3, Data API: comprobar por REST, con un usuario de prueba autenticado,
-que la app crea y lee su `profile` y que `anon` sigue sin acceso. Si falta un permiso, migración
-solo para `authenticated` y preguntar antes de `db push`.
+**Siguiente paso:** 12e.3, `db push` de `20261013143100_privilegios_authenticated.sql` con
+permiso del usuario y repetir la prueba REST con `prueba1@splitmate.test`: crear y leer su
+`profile`, no ver el de otro, y `anon` sin acceso.
 
 ## Pasos
 
@@ -93,6 +93,15 @@ solo para `authenticated` y preguntar antes de `db push`.
     - [ ] 3. Data API ("0 of 8 tables exposed"): por REST, con un usuario de prueba, que
           `authenticated` cree y lea su `profile` y que `anon` siga sin acceso. Si falta un permiso,
           migración solo para `authenticated` y preguntar antes de `db push`.
+          **2026-10-13:** con `prueba1@splitmate.test` (creado y confirmado por el usuario en el
+          panel; sin API de administración ni clave secreta), `anon` da 401 `42501` en las 8 tablas,
+          pero `authenticated` también da 403 `42501` en las 8: sus GRANT no están, aunque
+          `supabase migration list` muestra las dos migraciones aplicadas. Causa sin confirmar.
+          Migración `20261013143100_privilegios_authenticated.sql`: solo `authenticated`, repite los
+          GRANT de la de seguridad. En PGlite, 123 pgTAP en verde en base nueva y simulando el
+          remoto (sin privilegios de `authenticated`: mismo `permission denied`, que la migración
+          corrige). `db push --dry-run`: solo esa migración. Falta el permiso del usuario para el
+          `db push` y repetir la prueba REST.
     - [ ] 4. Panel (lo que se pueda leer): Redirect URL exacta `splitmate://auth/callback`, sin
           punto final, y OTP expiration 1800.
     - [ ] 5. Variables `EXPO_PUBLIC_*` del perfil development en EAS (`eas env:create`, sin
