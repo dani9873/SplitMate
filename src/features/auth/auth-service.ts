@@ -5,6 +5,7 @@ import {
 } from '@supabase/supabase-js';
 import { z } from 'zod';
 
+import { logger } from '@/lib/logger';
 import { SESSION_STORAGE_KEY } from '@/lib/supabase/create-client';
 import type { SupportedStorage } from '@/lib/supabase/session-storage';
 
@@ -13,6 +14,17 @@ import { ensureRemoteProfile, type RemoteProfile } from './profile-sync';
 
 /** Destino de los enlaces de los correos. Es la única redirección permitida en Supabase. */
 export const AUTH_REDIRECT_URL = 'splitmate://auth/callback';
+
+/**
+ * Los correos traen el código de 6 dígitos solo con las plantillas propias de
+ * `supabase/templates`, y el panel de Supabase pide SMTP propio para editarlas. Con las
+ * predeterminadas llega solo el enlace. Pasar a `true` al configurar SMTP y pegar las plantillas
+ * (pendiente en CLAUDE.md).
+ */
+export const EMAIL_HAS_CODE = false;
+
+/** Último correo pedido en este teléfono, en el almacenamiento cifrado de la sesión. */
+export const EMAIL_FLOW_STORAGE_KEY = 'splitmate-email-flow';
 
 /** Lo que la app sabe de la cuenta con sesión. */
 export interface AuthSession {
@@ -24,6 +36,12 @@ export interface AuthSession {
 
 /** Para qué se envió un correo: confirmar el registro o recuperar la contraseña. */
 export type EmailFlow = 'signup' | 'recovery';
+
+/** El último correo que se pidió desde este teléfono y que todavía no abrió una sesión. */
+export interface PendingEmailFlow {
+  readonly flow: EmailFlow;
+  readonly email: string;
+}
 
 export interface SignUpInput {
   readonly email: string;
@@ -44,11 +62,22 @@ export interface AuthService {
   signIn(email: string, password: string): Promise<AuthSession>;
   verifyCode(email: string, code: string, flow: EmailFlow): Promise<AuthSession>;
   resend(email: string, flow: EmailFlow): Promise<void>;
-  /** Canjea el código del enlace del correo. `recovery`: el enlace era de recuperación. */
+  /**
+   * Canjea el código del enlace del correo. `recovery`: el enlace era de recuperación. Supabase
+   * solo lo acepta hasta 5 minutos después de pedir el correo, aunque el enlace ya haya confirmado
+   * el correo: después lanza `linkExpired`.
+   */
   exchangeCode(
     code: string,
     flowId: string | null,
   ): Promise<{ session: AuthSession; recovery: boolean }>;
+  /**
+   * Para qué fue el último correo pedido en este teléfono, si todavía no se entró. Explica qué
+   * hacer cuando un enlace no abre la sesión.
+   */
+  pendingEmailFlow(): Promise<PendingEmailFlow | null>;
+  /** Los correos traen el código de 6 dígitos además del enlace. */
+  emailHasCode(): boolean;
   requestPasswordReset(email: string): Promise<void>;
   updatePassword(password: string): Promise<void>;
   /** Cierra la sesión de este teléfono. Sin red, igual la borra del teléfono. */
@@ -79,6 +108,11 @@ const userSchema = z.object({
 
 const storedSessionSchema = z.object({ user: userSchema });
 
+const pendingEmailFlowSchema = z.object({
+  flow: z.enum(['signup', 'recovery']),
+  email: z.email().max(254),
+});
+
 /** Valida el usuario que llega de Supabase o del teléfono y lo resume como `AuthSession`. */
 function toAuthSession(raw: unknown): AuthSession {
   const parsed = userSchema.safeParse(raw);
@@ -97,6 +131,7 @@ function toAuthSession(raw: unknown): AuthSession {
 export function createSupabaseAuthService(
   client: SupabaseClient,
   storage: SupportedStorage,
+  { emailHasCode = EMAIL_HAS_CODE }: { emailHasCode?: boolean } = {},
 ): AuthService {
   const auth = client.auth;
 
@@ -109,11 +144,26 @@ export function createSupabaseAuthService(
     }
   }
 
+  /**
+   * Recuerda (o, sin flujo, olvida) el último correo pedido. Solo ajusta los mensajes de la app:
+   * si el almacenamiento falla, el resto sigue igual.
+   */
+  async function rememberEmailFlow(pending: PendingEmailFlow | null): Promise<void> {
+    try {
+      await (pending
+        ? storage.setItem(EMAIL_FLOW_STORAGE_KEY, JSON.stringify(pending))
+        : storage.removeItem(EMAIL_FLOW_STORAGE_KEY));
+    } catch {
+      logger.warn('No se pudo guardar el último correo pedido');
+    }
+  }
+
   async function requestPasswordReset(email: string): Promise<void> {
     const { error } = await auth.resetPasswordForEmail(email, { redirectTo: AUTH_REDIRECT_URL });
     if (error) {
       throw toAuthError(error);
     }
+    await rememberEmailFlow({ flow: 'recovery', email });
   }
 
   return {
@@ -142,6 +192,7 @@ export function createSupabaseAuthService(
       if (error && !isExistingAccountError(error)) {
         throw toAuthError(error);
       }
+      await rememberEmailFlow({ flow: 'signup', email });
     },
 
     async signIn(email, password) {
@@ -149,6 +200,7 @@ export function createSupabaseAuthService(
       if (error) {
         throw toAuthError(error);
       }
+      await rememberEmailFlow(null);
       return toAuthSession(data.user);
     },
 
@@ -160,6 +212,7 @@ export function createSupabaseAuthService(
       if (!data.session) {
         throw new AuthError('invalidCode');
       }
+      await rememberEmailFlow(null);
       return toAuthSession(data.user);
     },
 
@@ -167,6 +220,7 @@ export function createSupabaseAuthService(
       if (flow === 'recovery') {
         return requestPasswordReset(email);
       }
+      // Con PKCE, como el registro: el enlace reenviado vuelve con `?code=`.
       const { error } = await auth.resend({
         type: 'signup',
         email,
@@ -175,6 +229,7 @@ export function createSupabaseAuthService(
       if (error) {
         throw toAuthError(error);
       }
+      await rememberEmailFlow({ flow: 'signup', email });
     },
 
     async exchangeCode(code, flowId) {
@@ -185,10 +240,25 @@ export function createSupabaseAuthService(
       if (error) {
         throw toAuthError(error);
       }
+      await rememberEmailFlow(null);
       // auth-js agrega `redirectType` a la respuesta aunque su tipo público no lo declara.
       const { redirectType } = data as { redirectType?: string | null };
       return { session: toAuthSession(data.user), recovery: redirectType === 'recovery' };
     },
+
+    async pendingEmailFlow() {
+      const raw = await storage.getItem(EMAIL_FLOW_STORAGE_KEY).catch(() => null);
+      if (raw === null) {
+        return null;
+      }
+      try {
+        return pendingEmailFlowSchema.parse(JSON.parse(raw));
+      } catch {
+        return null;
+      }
+    },
+
+    emailHasCode: () => emailHasCode,
 
     requestPasswordReset,
 

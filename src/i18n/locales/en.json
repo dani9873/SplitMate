@@ -464,17 +464,20 @@
     },
     "checkEmail": {
       "title": "Check your email",
-      "signupBody": "We sent an email to {{email}}. Tap the link or enter the code to confirm your account.",
-      "recoveryBody": "If there is an account with {{email}}, we sent it an email. Tap the link or enter the code to choose a new password.",
+      "signupBody": "We sent a link to {{email}}. Open it on this phone to confirm your account.",
+      "recoveryBody": "If there is an account with {{email}}, we sent it a link. Open it on this phone within the next 5 minutes to choose a new password.",
+      "signupBodyWithCode": "We sent an email to {{email}}. Tap the link or enter the code to confirm your account.",
+      "recoveryBodyWithCode": "If there is an account with {{email}}, we sent it an email. Tap the link or enter the code to choose a new password.",
       "submit": "Confirm",
       "resend": "Resend email",
       "resendIn": "Resend in {{seconds}} s",
       "resent": "We sent you another email.",
+      "confirmed": "I already confirmed my email",
       "otherEmail": "Use another email"
     },
     "forgot": {
       "title": "Recover your password",
-      "body": "Enter your account email and we will send you a link and a code.",
+      "body": "Enter your account email and we will send you a link.",
       "submit": "Send"
     },
     "reset": {
@@ -484,8 +487,15 @@
     },
     "callback": {
       "loading": "Confirming the link",
-      "errorTitle": "This link does not work",
-      "errorBody": "It may have expired or already been used. Ask for another email or enter the code we sent you.",
+      "unusableTitle": "This link no longer works",
+      "confirmedTitle": "Your email is confirmed",
+      "confirmedBody": "Sign in with your email and password.",
+      "signupBody": "It was already used or it expired. Sign in with your password: if your email is not confirmed yet, you can ask for another link.",
+      "recoveryBody": "It was already used, or more than 5 minutes passed since you asked for it. Ask for another one and open it on this phone right away.",
+      "unknownBody": "If it was to confirm your email, sign in with your password: if it still needs confirming, you can ask for another link. If it was to change your password, ask for another one.",
+      "signedInBody": "You are already signed in on this phone.",
+      "signIn": "Sign in",
+      "newLink": "Get a new link",
       "back": "Back"
     },
     "validation": {
@@ -508,7 +518,7 @@
       "invalidEmail": "Check the email: it does not look valid.",
       "emailNotAllowed": "We cannot send emails to that address yet.",
       "invalidCode": "The code is wrong or has expired.",
-      "linkExpired": "The link expired or was opened on another phone. Enter the code from the email.",
+      "linkExpired": "The link expired or was opened on another phone. Ask for another one.",
       "sessionExpired": "Your session expired. Start again.",
       "offline": "No connection. Check your internet and try again.",
       "unavailable": "The service is not responding. Try again later.",

@@ -6,6 +6,7 @@ export {
   type AuthService,
   type AuthSession,
   type EmailFlow,
+  type PendingEmailFlow,
   type SignUpInput,
 } from './auth-service';
 export { AuthProvider, useAuth, type AuthState } from './AuthProvider';

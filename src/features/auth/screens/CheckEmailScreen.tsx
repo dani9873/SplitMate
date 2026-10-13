@@ -17,8 +17,9 @@ type Form = z.input<typeof codeFormSchema>;
 type Values = z.output<typeof codeFormSchema>;
 
 /**
- * "Revisa tu correo": el enlace del correo abre la app por `auth/callback`; si no, el código de 6
- * dígitos. Reenviar espera 60 segundos, igual que Supabase.
+ * "Revisa tu correo": el enlace del correo abre la app por `auth/callback`. El código de 6 dígitos
+ * solo aparece si los correos lo traen (plantillas propias con SMTP). Reenviar espera 60 segundos,
+ * igual que Supabase.
  */
 export function CheckEmailScreen() {
   const params = useLocalSearchParams<{ flow?: string; email?: string }>();
@@ -29,10 +30,16 @@ export function CheckEmailScreen() {
   return <CheckEmail flow={parsed.data.flow} email={parsed.data.email} />;
 }
 
+const BODY_KEYS = {
+  signup: { link: 'auth.checkEmail.signupBody', code: 'auth.checkEmail.signupBodyWithCode' },
+  recovery: { link: 'auth.checkEmail.recoveryBody', code: 'auth.checkEmail.recoveryBodyWithCode' },
+} as const;
+
 function CheckEmail({ flow, email }: { flow: EmailFlow; email: string }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { service, signIn } = useAuth();
+  const withCode = service.emailHasCode();
   const validation = useValidationText();
   const errorText = useAuthErrorText();
   const cooldown = useResendCooldown();
@@ -69,45 +76,45 @@ function CheckEmail({ flow, email }: { flow: EmailFlow; email: string }) {
   return (
     <AuthScreen
       title={t('auth.checkEmail.title')}
-      description={
-        flow === 'signup'
-          ? t('auth.checkEmail.signupBody', { email })
-          : t('auth.checkEmail.recoveryBody', { email })
-      }
+      description={t(BODY_KEYS[flow][withCode ? 'code' : 'link'], { email })}
       testID="check-email-screen"
     >
-      <Controller
-        control={control}
-        name="code"
-        render={({ field, fieldState }) => (
-          <Input
-            ref={field.ref}
-            testID="check-email-code"
-            label={t('auth.fields.code')}
-            value={field.value}
-            onChangeText={(text) => field.onChange(text.replace(/\D/g, ''))}
-            onBlur={field.onBlur}
-            error={validation(fieldState.error?.message)}
-            keyboardType="number-pad"
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            maxLength={6}
-          />
-        )}
-      />
+      {withCode ? (
+        <Controller
+          control={control}
+          name="code"
+          render={({ field, fieldState }) => (
+            <Input
+              ref={field.ref}
+              testID="check-email-code"
+              label={t('auth.fields.code')}
+              value={field.value}
+              onChangeText={(text) => field.onChange(text.replace(/\D/g, ''))}
+              onBlur={field.onBlur}
+              error={validation(fieldState.error?.message)}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              maxLength={6}
+            />
+          )}
+        />
+      ) : null}
       <FormError message={submitError} />
       {notice ? (
         <Text tone="positive" accessibilityLiveRegion="polite">
           {notice}
         </Text>
       ) : null}
-      <Button
-        testID="check-email-submit"
-        label={t('auth.checkEmail.submit')}
-        onPress={submit}
-        loading={formState.isSubmitting}
-        fullWidth
-      />
+      {withCode ? (
+        <Button
+          testID="check-email-submit"
+          label={t('auth.checkEmail.submit')}
+          onPress={submit}
+          loading={formState.isSubmitting}
+          fullWidth
+        />
+      ) : null}
       <Button
         testID="check-email-resend"
         label={
@@ -120,6 +127,17 @@ function CheckEmail({ flow, email }: { flow: EmailFlow; email: string }) {
         onPress={resend}
         fullWidth
       />
+      {flow === 'signup' ? (
+        // El enlace abierto en otro dispositivo, o después de 5 minutos, confirma el correo sin
+        // abrir la sesión aquí: queda entrar con la contraseña.
+        <Button
+          testID="check-email-confirmed"
+          label={t('auth.checkEmail.confirmed')}
+          variant="ghost"
+          onPress={() => router.replace({ pathname: '/sign-in', params: { email } })}
+          fullWidth
+        />
+      ) : null}
       <Button
         label={t('auth.checkEmail.otherEmail')}
         variant="ghost"

@@ -45,7 +45,11 @@ export function resolveIncomingLink(link: string): string {
   }
   const fromQuery = parseParams(query);
   const fromFragment = parseParams(fragment);
-  if (!fromQuery || !fromFragment || [...fromQuery.keys()].some((key) => fromFragment.has(key))) {
+  // Con PKCE, Supabase repite el error en la consulta y en el fragmento: una clave puede estar en
+  // los dos solo con el mismo valor.
+  const conflicting = (params: Map<string, string>, other: Map<string, string>) =>
+    [...params].some(([key, value]) => other.has(key) && other.get(key) !== value);
+  if (!fromQuery || !fromFragment || conflicting(fromQuery, fromFragment)) {
     return '/';
   }
   const parsed = callbackSchema.safeParse(Object.fromEntries([...fromQuery, ...fromFragment]));

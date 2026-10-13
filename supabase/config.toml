@@ -257,7 +257,9 @@ otp_expiry = 1800
 # content_path = "./supabase/templates/invite.html"
 
 # SplitMate: confirmación del registro y recuperación de la contraseña, en español e inglés según
-# user_metadata.locale. Traen el enlace PKCE a la app y el código de 6 dígitos.
+# user_metadata.locale. Traen el enlace PKCE a la app y el código de 6 dígitos. En el proyecto
+# remoto siguen las predeterminadas (solo el enlace, en inglés): el panel pide SMTP propio para
+# editarlas. Al pegarlas allí, EMAIL_HAS_CODE (src/features/auth/auth-service.ts) pasa a true.
 [auth.email.template.confirmation]
 subject = "Confirma tu correo · Confirm your email | SplitMate"
 content_path = "./supabase/templates/confirmation.html"

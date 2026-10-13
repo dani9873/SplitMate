@@ -13,7 +13,12 @@ import {
 } from '@/lib/supabase/test-utils';
 
 import { AuthError } from '../auth-errors';
-import { AUTH_REDIRECT_URL, createSupabaseAuthService, type AuthService } from '../auth-service';
+import {
+  AUTH_REDIRECT_URL,
+  EMAIL_FLOW_STORAGE_KEY,
+  createSupabaseAuthService,
+  type AuthService,
+} from '../auth-service';
 import { TEST_SESSION as SESSION } from '../test-utils';
 
 const EMAIL = 'ana@example.com';
@@ -185,12 +190,17 @@ describe('servicio de auth con supabase-js', () => {
       );
     });
 
-    it('reenvía el correo de registro con la redirección de la app', async () => {
+    it('reenvía el correo de registro con la redirección de la app y PKCE', async () => {
       const { server, service } = setup();
       server.on('POST', '/auth/v1/resend', ok({}));
       await service.resend(EMAIL, 'signup');
       const [request] = server.calls('POST', '/auth/v1/resend');
-      expect(request!.body).toMatchObject({ email: EMAIL, type: 'signup' });
+      // Con PKCE, el enlace del correo reenviado también vuelve con `?code=`, no con la sesión.
+      expect(request!.body).toMatchObject({
+        email: EMAIL,
+        type: 'signup',
+        code_challenge_method: 's256',
+      });
       expect(request!.query.get('redirect_to')).toBe(AUTH_REDIRECT_URL);
     });
 
@@ -228,6 +238,21 @@ describe('servicio de auth con supabase-js', () => {
       ).resolves.toMatchObject({ code: 'linkExpired' });
     });
 
+    it('un enlace abierto después de 5 minutos no canjea: Supabase venció el flujo PKCE', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/signup', ok(fakeUser()));
+      server.on(
+        'POST',
+        '/auth/v1/token',
+        apiError(422, 'flow_state_expired', 'invalid flow state, flow state has expired'),
+      );
+      await service.signUp({ email: EMAIL, password: PASSWORD, displayName: 'Ana', locale: 'es' });
+
+      await expect(rejection(service.exchangeCode('codigo', null))).resolves.toMatchObject({
+        code: 'linkExpired',
+      });
+    });
+
     it('pedir la recuperación no revela si el correo existe', async () => {
       const { server, service } = setup();
       server.on('POST', '/auth/v1/recover', ok({}));
@@ -254,6 +279,131 @@ describe('servicio de auth con supabase-js', () => {
       await expect(rejection(service.updatePassword(PASSWORD))).resolves.toMatchObject({
         code: 'samePassword',
       });
+    });
+  });
+
+  describe('último correo pedido en este teléfono', () => {
+    const SIGN_UP = { email: EMAIL, password: PASSWORD, displayName: 'Ana', locale: 'es' };
+
+    it('sin correos pedidos no hay ninguno pendiente', async () => {
+      const { service } = setup();
+      await expect(service.pendingEmailFlow()).resolves.toBeNull();
+    });
+
+    it.each([
+      ['registrarse', 'signup', (service: AuthService) => service.signUp(SIGN_UP)],
+      ['reenviar el registro', 'signup', (service: AuthService) => service.resend(EMAIL, 'signup')],
+      [
+        'pedir la recuperación',
+        'recovery',
+        (service: AuthService) => service.requestPasswordReset(EMAIL),
+      ],
+      [
+        'reenviar la recuperación',
+        'recovery',
+        (service: AuthService) => service.resend(EMAIL, 'recovery'),
+      ],
+    ])('al %s recuerda el flujo y el correo', async (_, flow, request) => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/signup', ok(fakeUser()));
+      server.on('POST', '/auth/v1/resend', ok({}));
+      server.on('POST', '/auth/v1/recover', ok({}));
+
+      await request(service);
+      await expect(service.pendingEmailFlow()).resolves.toEqual({ flow, email: EMAIL });
+    });
+
+    it('un correo ya registrado también queda pendiente: la pantalla es la misma', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/signup', apiError(422, 'user_already_exists', 'User exists'));
+      await service.signUp(SIGN_UP);
+      await expect(service.pendingEmailFlow()).resolves.toEqual({ flow: 'signup', email: EMAIL });
+    });
+
+    it('si el teléfono no puede guardarlo, el registro sigue igual', async () => {
+      const storage = memorySupportedStorage();
+      const save = storage.setItem;
+      storage.setItem = async (key, value) => {
+        if (key === EMAIL_FLOW_STORAGE_KEY) {
+          throw new Error('almacén no disponible');
+        }
+        return save(key, value);
+      };
+      const { server, service } = setup(createFakeSupabase(), storage);
+      server.on('POST', '/auth/v1/signup', ok(fakeUser()));
+
+      await expect(service.signUp(SIGN_UP)).resolves.toBeUndefined();
+      await expect(service.pendingEmailFlow()).resolves.toBeNull();
+    });
+
+    it('si Supabase no envía el correo, no queda nada pendiente', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/recover', apiError(429, 'over_email_send_rate_limit', 'Limit'));
+      await expect(rejection(service.requestPasswordReset(EMAIL))).resolves.toMatchObject({
+        code: 'tooManyAttempts',
+      });
+      await expect(service.pendingEmailFlow()).resolves.toBeNull();
+    });
+
+    it('lo olvida al canjear el enlace, pero no si el canje falla', async () => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/recover', ok({}));
+      const responses = [apiError(422, 'flow_state_expired', 'Expired'), ok(fakeSessionBody())];
+      server.on('POST', '/auth/v1/token', () => responses.shift()!);
+
+      await service.requestPasswordReset(EMAIL);
+      await rejection(service.exchangeCode('codigo-vencido', null));
+      await expect(service.pendingEmailFlow()).resolves.toMatchObject({ flow: 'recovery' });
+
+      await service.requestPasswordReset(EMAIL);
+      await service.exchangeCode('codigo-nuevo', null);
+      await expect(service.pendingEmailFlow()).resolves.toBeNull();
+    });
+
+    it.each([
+      ['entrar con la contraseña', (service: AuthService) => service.signIn(EMAIL, PASSWORD)],
+      [
+        'escribir el código',
+        (service: AuthService) => service.verifyCode(EMAIL, '123456', 'signup'),
+      ],
+    ])('lo olvida al %s', async (_, enter) => {
+      const { server, service } = setup();
+      server.on('POST', '/auth/v1/signup', ok(fakeUser()));
+      server.on('POST', '/auth/v1/token', ok(fakeSessionBody()));
+      server.on('POST', '/auth/v1/verify', ok(fakeSessionBody()));
+
+      await service.signUp(SIGN_UP);
+      await enter(service);
+      await expect(service.pendingEmailFlow()).resolves.toBeNull();
+    });
+
+    it.each([['no-es-json'], [JSON.stringify({ flow: 'otro', email: EMAIL })]])(
+      'descarta un registro con forma inválida (%s)',
+      async (raw) => {
+        const storage = memorySupportedStorage();
+        await storage.setItem(EMAIL_FLOW_STORAGE_KEY, raw);
+        const { service } = setup(createFakeSupabase(), storage);
+        await expect(service.pendingEmailFlow()).resolves.toBeNull();
+      },
+    );
+  });
+
+  describe('correos con código', () => {
+    it('por omisión los correos traen solo el enlace (plantillas predeterminadas de Supabase)', () => {
+      expect(setup().service.emailHasCode()).toBe(false);
+    });
+
+    it('con las plantillas propias y SMTP, traen también el código', () => {
+      const client = createSupabaseClient({
+        env: FAKE_SUPABASE_ENV,
+        storage: memorySupportedStorage(),
+        fetch: createFakeSupabase().fetch,
+      });
+      clients.push(client);
+      const service = createSupabaseAuthService(client, memorySupportedStorage(), {
+        emailHasCode: true,
+      });
+      expect(service.emailHasCode()).toBe(true);
     });
   });
 

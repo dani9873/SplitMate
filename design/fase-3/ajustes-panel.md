@@ -8,6 +8,10 @@ y en CI. Los nombres de los menús pueden variar un poco según la versión del 
 >
 > 1. En la sección 2, Email OTP expiration en **1800** segundos.
 > 2. En la sección 5, las dos plantillas pegadas otra vez: ahora dicen "vencen en 30 minutos".
+>
+> **Corrección (2026-10-13):** el punto 2 no se pudo aplicar. El panel exige SMTP propio para
+> editar las plantillas, así que el proyecto usa las predeterminadas: solo el enlace, en inglés y
+> sin código. La sección 5 queda para cuando haya SMTP.
 
 ## 1. Authentication → URL Configuration
 
@@ -63,6 +67,11 @@ Supabase compara la redirección con esta lista, query incluida. La app no agreg
 | Minimum interval between emails       | 60 segundos (la app espera lo mismo para reenviar)   |
 
 ## 5. Authentication → Emails → Templates
+
+> **Requiere SMTP propio (pendiente en CLAUDE.md).** Sin él, el panel no deja editarlas y quedan
+> las predeterminadas, que traen solo el enlace (`{{ .ConfirmationURL }}`). La app ya funciona así:
+> no muestra el campo del código mientras `EMAIL_HAS_CODE` sea `false`. Al pegarlas, pasarlo a
+> `true` y hacer un build nuevo.
 
 | Plantilla      | Asunto                                                      | Cuerpo                                 |
 | -------------- | ----------------------------------------------------------- | -------------------------------------- |

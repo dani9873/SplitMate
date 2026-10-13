@@ -25,6 +25,25 @@ describe('EmptyState', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  it('ofrece una segunda acción debajo de la principal', async () => {
+    const user = userEvent.setup();
+    const onPrimary = jest.fn();
+    const onSecondary = jest.fn();
+    await render(
+      <EmptyState
+        icon={Users}
+        title="El enlace no sirve"
+        action={{ label: 'Entrar', onPress: onPrimary }}
+        secondaryAction={{ label: 'Pedir otro enlace', onPress: onSecondary }}
+      />,
+    );
+
+    await user.press(screen.getByRole('button', { name: 'Pedir otro enlace' }));
+
+    expect(onSecondary).toHaveBeenCalledTimes(1);
+    expect(onPrimary).not.toHaveBeenCalled();
+  });
+
   it('no muestra botón si no hay acción', async () => {
     await render(<EmptyState icon={Users} title="Sin grupos" />);
 

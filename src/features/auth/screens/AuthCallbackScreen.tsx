@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Link2Off } from 'lucide-react-native';
+import { Link2Off, MailCheck, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, View } from 'react-native';
@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { EmptyState, Screen, Text, useAppTheme } from '@/ui';
 
+import type { EmailFlow, PendingEmailFlow } from '../auth-service';
 import { useAuth } from '../AuthProvider';
 
 /** Lo que `+native-intent` deja pasar; se vuelve a validar porque la ruta existe siempre. */
@@ -20,8 +21,7 @@ const paramsSchema = z.object({
 
 /**
  * Destino de los enlaces de los correos de Supabase: canjea el código del enlace por una sesión y
- * sigue a la app o a elegir la contraseña nueva. Un enlace vencido, usado o con error explica qué
- * hacer.
+ * sigue a la app o a elegir la contraseña nueva. Si el enlace no abre la sesión, explica qué hacer.
  */
 export function AuthCallbackScreen() {
   const { t } = useTranslation();
@@ -58,21 +58,11 @@ export function AuthCallbackScreen() {
     }
   }, [result, state, router]);
 
-  if (!code || result === 'failed') {
-    return (
-      <Screen edges={['top', 'bottom']} testID="auth-callback-error">
-        <EmptyState
-          icon={Link2Off}
-          title={t('auth.callback.errorTitle')}
-          description={t('auth.callback.errorBody')}
-          action={{
-            label: t('auth.callback.back'),
-            // Sin sesión, `/` está protegida: la bienvenida.
-            onPress: () => router.replace(state.status === 'signedIn' ? '/' : '/welcome'),
-          }}
-        />
-      </Screen>
-    );
+  if (!code) {
+    return <LinkProblem kind="rejected" />;
+  }
+  if (result === 'failed') {
+    return <LinkProblem kind="notExchanged" />;
   }
   return (
     <Screen edges={['top', 'bottom']} testID="auth-callback-loading">
@@ -80,6 +70,98 @@ export function AuthCallbackScreen() {
         <ActivityIndicator size="large" color={colors.primary} />
         <Text tone="muted">{t('auth.callback.loading')}</Text>
       </View>
+    </Screen>
+  );
+}
+
+/**
+ * Por qué el enlace no abrió la sesión. `rejected`: Supabase lo rechazó (ya se usó o pasaron los
+ * 30 minutos). `notExchanged`: Supabase lo aceptó, y con eso el correo del registro ya quedó
+ * confirmado, pero el código no se canjeó: pasaron más de 5 minutos desde que se pidió el correo,
+ * o se pidió en otro teléfono.
+ */
+type ProblemKind = 'rejected' | 'notExchanged';
+type ProblemAction = 'signIn' | 'newLink' | 'back';
+type ProblemBody = 'confirmedBody' | 'signupBody' | 'recoveryBody' | 'unknownBody' | 'signedInBody';
+
+interface ProblemView {
+  readonly icon: LucideIcon;
+  readonly title: `auth.callback.${'unusableTitle' | 'confirmedTitle'}`;
+  readonly body: `auth.callback.${ProblemBody}`;
+  readonly actions: readonly [ProblemAction, ProblemAction?];
+}
+
+/** Qué decir según el problema y el último correo pedido en este teléfono (si se sabe). */
+function describeProblem(kind: ProblemKind, flow: EmailFlow | 'signedIn' | null): ProblemView {
+  const unusable = { icon: Link2Off, title: 'auth.callback.unusableTitle' } as const;
+  switch (flow) {
+    case 'signedIn':
+      return { ...unusable, body: 'auth.callback.signedInBody', actions: ['back'] };
+    case 'signup':
+      return kind === 'notExchanged'
+        ? {
+            icon: MailCheck,
+            title: 'auth.callback.confirmedTitle',
+            body: 'auth.callback.confirmedBody',
+            actions: ['signIn'],
+          }
+        : { ...unusable, body: 'auth.callback.signupBody', actions: ['signIn'] };
+    case 'recovery':
+      return { ...unusable, body: 'auth.callback.recoveryBody', actions: ['newLink'] };
+    default:
+      return { ...unusable, body: 'auth.callback.unknownBody', actions: ['signIn', 'newLink'] };
+  }
+}
+
+function LinkProblem({ kind }: { kind: ProblemKind }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { state, service } = useAuth();
+  // `undefined` mientras se lee del teléfono: es un instante.
+  const [pending, setPending] = useState<PendingEmailFlow | null | undefined>(undefined);
+
+  useEffect(() => {
+    let active = true;
+    service.pendingEmailFlow().then(
+      (value) => active && setPending(value),
+      () => active && setPending(null),
+    );
+    return () => {
+      active = false;
+    };
+  }, [service]);
+
+  if (pending === undefined) {
+    return null;
+  }
+  const view = describeProblem(
+    kind,
+    state.status === 'signedIn' ? 'signedIn' : (pending?.flow ?? null),
+  );
+  // El correo del último pedido ya va escrito en la pantalla siguiente.
+  const params = pending ? { email: pending.email } : {};
+  const actions: Record<ProblemAction, { label: string; onPress: () => void }> = {
+    signIn: {
+      label: t('auth.callback.signIn'),
+      onPress: () => router.replace({ pathname: '/sign-in', params }),
+    },
+    newLink: {
+      label: t('auth.callback.newLink'),
+      onPress: () => router.replace({ pathname: '/forgot-password', params }),
+    },
+    back: { label: t('auth.callback.back'), onPress: () => router.replace('/') },
+  };
+  const [primary, secondary] = view.actions;
+
+  return (
+    <Screen edges={['top', 'bottom']} testID="auth-callback-problem">
+      <EmptyState
+        icon={view.icon}
+        title={t(view.title)}
+        description={t(view.body)}
+        action={actions[primary]}
+        secondaryAction={secondary ? actions[secondary] : undefined}
+      />
     </Screen>
   );
 }

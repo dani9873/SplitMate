@@ -173,6 +173,12 @@ src/
 - **SMTP propio antes de invitar a otras personas.** El correo integrado de Supabase solo
   envía a miembros de la organización y unos pocos por hora. Antes de que otras personas se
   registren, configurar un proveedor SMTP (Resend, Brevo u otro) y subir el límite de envíos.
+  Sin SMTP, el panel no deja editar las plantillas: los correos son los predeterminados (solo el
+  enlace, en inglés) y la app no muestra el campo del código. Con SMTP, pegar las plantillas de
+  `supabase/templates` (es/en, enlace y código de 6 dígitos; pasos en
+  `design/fase-3/ajustes-panel.md`, sección 5), pasar `EMAIL_HAS_CODE` a `true` en
+  `src/features/auth/auth-service.ts` y hacer un build nuevo. El código cubre lo que el enlace no:
+  abrirlo en otro dispositivo o después de los 5 minutos en que Supabase canjea el enlace PKCE.
 
 ## Estado
 

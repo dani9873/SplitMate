@@ -1,4 +1,5 @@
 import { userEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { act, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import { openAccountDatabase } from '@/db/client';
@@ -79,7 +80,7 @@ describe('pantallas de auth', () => {
   });
 
   describe('registro', () => {
-    it('crear cuenta → revisa tu correo → código → la app', async () => {
+    it('crear cuenta → revisa tu correo (solo el enlace) → el enlace → la app', async () => {
       const user = userEvent.setup();
       service = createFakeAuthService();
       await renderRouter(routes(), { initialUrl: '/' });
@@ -97,13 +98,19 @@ describe('pantallas de auth', () => {
         locale: 'es',
       });
       expect(await screen.findByTestId('check-email-screen')).toBeOnTheScreen();
-      expect(screen.getByText(/Te enviamos un correo a ana@example\.com/)).toBeOnTheScreen();
+      expect(
+        screen.getByText(
+          'Te enviamos un enlace a ana@example.com. Ábrelo en este teléfono para confirmar tu cuenta.',
+        ),
+      ).toBeOnTheScreen();
+      // Sin SMTP propio, los correos de Supabase traen solo el enlace: nada de código.
+      expect(screen.queryByTestId('check-email-code')).toBeNull();
+      expect(screen.queryByText(/código/i)).toBeNull();
 
-      await user.type(screen.getByTestId('check-email-code'), '123456');
-      await press(user, 'check-email-submit');
-
-      expect(service.verifyCode).toHaveBeenCalledWith(EMAIL, '123456', 'signup');
+      // El enlace vuelve a la app por auth/callback con el código PKCE.
+      await act(() => router.push('/auth/callback?code=abc-123'));
       expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
+      expect(service.exchangeCode).toHaveBeenCalledWith('abc-123', null);
     });
 
     it('valida los campos y enfoca el formulario sin llamar al servicio', async () => {
@@ -202,25 +209,33 @@ describe('pantallas de auth', () => {
   });
 
   describe('recuperar la contraseña', () => {
-    it('correo → código → contraseña nueva → la app', async () => {
+    it('correo → revisa tu correo → el enlace → contraseña nueva → la app', async () => {
       const user = userEvent.setup();
-      service = createFakeAuthService();
+      service = createFakeAuthService({
+        exchangeCode: async () => ({ session: TEST_SESSION, recovery: true }),
+      });
       await renderRouter(routes(), { initialUrl: '/sign-in' });
 
       await user.type(await screen.findByTestId('sign-in-email'), EMAIL);
       await press(user, 'sign-in-forgot');
       // El correo escrito pasa a la pantalla de recuperar.
       expect(await screen.findByTestId('forgot-password-email')).toHaveDisplayValue(EMAIL);
+      expect(
+        screen.getByText('Escribe el correo de tu cuenta y te enviaremos un enlace.'),
+      ).toBeOnTheScreen();
       await press(user, 'forgot-password-submit');
 
       expect(service.requestPasswordReset).toHaveBeenCalledWith(EMAIL);
+      // Supabase solo canjea el enlace en los 5 minutos siguientes a pedirlo.
       expect(
-        await screen.findByText(/Si existe una cuenta con ana@example\.com/),
+        await screen.findByText(
+          'Si existe una cuenta con ana@example.com, te enviamos un enlace. Ábrelo en este teléfono en los próximos 5 minutos para elegir una contraseña nueva.',
+        ),
       ).toBeOnTheScreen();
+      expect(screen.queryByTestId('check-email-code')).toBeNull();
+      expect(screen.queryByTestId('check-email-confirmed')).toBeNull();
 
-      await user.type(screen.getByTestId('check-email-code'), '654321');
-      await press(user, 'check-email-submit');
-      expect(service.verifyCode).toHaveBeenCalledWith(EMAIL, '654321', 'recovery');
+      await act(() => router.push('/auth/callback?code=abc-123'));
 
       // Con la sesión de recuperación solo existe la pantalla de la contraseña nueva.
       expect(await screen.findByTestId('reset-password-screen')).toBeOnTheScreen();
@@ -262,7 +277,58 @@ describe('pantallas de auth', () => {
       expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
     });
 
-    it('un enlace vencido explica qué hacer y vuelve a la bienvenida', async () => {
+    it('pasados 5 minutos, el enlace del registro confirma el correo y lleva a entrar', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({
+        // Supabase confirmó el correo al abrir el enlace, pero ya no canjea el código.
+        exchangeCode: async () => {
+          throw new AuthError('linkExpired');
+        },
+        pendingEmailFlow: async () => ({ flow: 'signup', email: EMAIL }),
+      });
+      await renderRouter(routes(), { initialUrl: '/auth/callback?code=abc-123' });
+
+      expect(await screen.findByText('Tu correo está confirmado')).toBeOnTheScreen();
+      expect(screen.getByText('Entra con tu correo y tu contraseña.')).toBeOnTheScreen();
+      await user.press(screen.getByRole('button', { name: 'Entrar' }));
+      expect(await screen.findByTestId('sign-in-email')).toHaveDisplayValue(EMAIL);
+    });
+
+    it('un enlace del registro usado o vencido lleva a entrar con el correo', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({
+        pendingEmailFlow: async () => ({ flow: 'signup', email: EMAIL }),
+      });
+      await renderRouter(routes(), {
+        initialUrl: '/auth/callback?error=access_denied&error_code=otp_expired',
+      });
+
+      expect(await screen.findByText('Este enlace ya no sirve')).toBeOnTheScreen();
+      expect(
+        screen.getByText(/si tu correo todavía no está confirmado, podrás pedir otro enlace/),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Pedir otro enlace' })).toBeNull();
+      await user.press(screen.getByRole('button', { name: 'Entrar' }));
+      expect(await screen.findByTestId('sign-in-email')).toHaveDisplayValue(EMAIL);
+      expect(service.exchangeCode).not.toHaveBeenCalled();
+    });
+
+    it('un enlace de recuperación usado o vencido lleva a pedir otro con el correo', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({
+        pendingEmailFlow: async () => ({ flow: 'recovery', email: EMAIL }),
+      });
+      await renderRouter(routes(), {
+        initialUrl: '/auth/callback?error=access_denied&error_code=otp_expired',
+      });
+
+      expect(await screen.findByText(/pasaron más de 5 minutos/)).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Entrar' })).toBeNull();
+      await user.press(screen.getByRole('button', { name: 'Pedir otro enlace' }));
+      expect(await screen.findByTestId('forgot-password-email')).toHaveDisplayValue(EMAIL);
+    });
+
+    it('sin un correo pendiente en este teléfono ofrece entrar o pedir otro enlace', async () => {
       const user = userEvent.setup();
       service = createFakeAuthService({
         exchangeCode: async () => {
@@ -271,18 +337,25 @@ describe('pantallas de auth', () => {
       });
       await renderRouter(routes(), { initialUrl: '/auth/callback?code=abc-123' });
 
-      expect(await screen.findByTestId('auth-callback-error')).toBeOnTheScreen();
-      await user.press(screen.getByRole('button', { name: 'Volver' }));
-      expect(await screen.findByTestId('welcome-screen')).toBeOnTheScreen();
+      expect(await screen.findByTestId('auth-callback-problem')).toBeOnTheScreen();
+      expect(screen.getByText(/Si era para confirmar tu correo/)).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Pedir otro enlace' })).toBeOnTheScreen();
+      await user.press(screen.getByRole('button', { name: 'Entrar' }));
+      expect(await screen.findByTestId('sign-in-email')).toHaveDisplayValue('');
     });
 
-    it('un enlace con error de Supabase no intenta canjear nada', async () => {
-      service = createFakeAuthService();
+    it('con la sesión abierta, un enlace que no sirve solo ofrece volver a la app', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({ restore: async () => TEST_SESSION });
       await renderRouter(routes(), {
         initialUrl: '/auth/callback?error=access_denied&error_code=otp_expired',
       });
-      expect(await screen.findByTestId('auth-callback-error')).toBeOnTheScreen();
-      expect(service.exchangeCode).not.toHaveBeenCalled();
+
+      expect(
+        await screen.findByText('Ya tienes la sesión abierta en este teléfono.'),
+      ).toBeOnTheScreen();
+      await user.press(screen.getByRole('button', { name: 'Volver' }));
+      expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
     });
   });
 
@@ -298,9 +371,62 @@ describe('pantallas de auth', () => {
       expect(resend).toHaveTextContent(/Reenviar en (60|59) s/);
     });
 
-    it('un código incompleto no se envía', async () => {
+    it('si ya confirmaste el correo, lleva a entrar con él escrito', async () => {
       const user = userEvent.setup();
       service = createFakeAuthService();
+      await renderRouter(routes(), {
+        initialUrl: `/check-email?flow=signup&email=${encodeURIComponent(EMAIL)}`,
+      });
+
+      await press(user, 'check-email-confirmed');
+      expect(await screen.findByTestId('sign-in-email')).toHaveDisplayValue(EMAIL);
+    });
+
+    it('sin un correo válido en los parámetros vuelve a la bienvenida', async () => {
+      service = createFakeAuthService();
+      await renderRouter(routes(), { initialUrl: '/check-email?flow=signup&email=nada' });
+      await waitFor(() => expect(screen.getByTestId('welcome-screen')).toBeOnTheScreen());
+    });
+  });
+
+  describe('con las plantillas propias (correo con código)', () => {
+    it('crear cuenta → revisa tu correo → código → la app', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({ emailHasCode: () => true });
+      await renderRouter(routes(), {
+        initialUrl: `/check-email?flow=signup&email=${encodeURIComponent(EMAIL)}`,
+      });
+
+      expect(
+        await screen.findByText(
+          'Te enviamos un correo a ana@example.com. Toca el enlace o escribe el código para confirmar tu cuenta.',
+        ),
+      ).toBeOnTheScreen();
+      await user.type(screen.getByTestId('check-email-code'), '123456');
+      await press(user, 'check-email-submit');
+
+      expect(service.verifyCode).toHaveBeenCalledWith(EMAIL, '123456', 'signup');
+      expect(await screen.findByTestId('groups-screen')).toBeOnTheScreen();
+    });
+
+    it('recuperar: código → contraseña nueva', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({ emailHasCode: () => true });
+      await renderRouter(routes(), {
+        initialUrl: `/check-email?flow=recovery&email=${encodeURIComponent(EMAIL)}`,
+      });
+
+      expect(await screen.findByText(/Toca el enlace o escribe el código/)).toBeOnTheScreen();
+      await user.type(screen.getByTestId('check-email-code'), '654321');
+      await press(user, 'check-email-submit');
+
+      expect(service.verifyCode).toHaveBeenCalledWith(EMAIL, '654321', 'recovery');
+      expect(await screen.findByTestId('reset-password-screen')).toBeOnTheScreen();
+    });
+
+    it('un código incompleto no se envía', async () => {
+      const user = userEvent.setup();
+      service = createFakeAuthService({ emailHasCode: () => true });
       await renderRouter(routes(), {
         initialUrl: `/check-email?flow=signup&email=${encodeURIComponent(EMAIL)}`,
       });
@@ -310,12 +436,6 @@ describe('pantallas de auth', () => {
       await press(user, 'check-email-submit');
       expect(await screen.findByText('El código tiene 6 dígitos.')).toBeOnTheScreen();
       expect(service.verifyCode).not.toHaveBeenCalled();
-    });
-
-    it('sin un correo válido en los parámetros vuelve a la bienvenida', async () => {
-      service = createFakeAuthService();
-      await renderRouter(routes(), { initialUrl: '/check-email?flow=signup&email=nada' });
-      await waitFor(() => expect(screen.getByTestId('welcome-screen')).toBeOnTheScreen());
     });
   });
 });

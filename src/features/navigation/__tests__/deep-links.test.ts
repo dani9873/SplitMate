@@ -27,10 +27,37 @@ describe('enlaces que llegan desde fuera de la app', () => {
         'con descripción',
         'splitmate://auth/callback#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired',
       ],
+      // Las dos redirecciones reales de Supabase Auth 2.197 para un enlace usado o vencido
+      // (comprobadas contra el proyecto el 2026-10-13). Con PKCE, el error va en la consulta y
+      // se repite en el fragmento, más `sb`, la marca de Supabase.
+      [
+        'del flujo PKCE (consulta y fragmento)',
+        'splitmate://auth/callback?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired&sb=',
+      ],
+      [
+        'del flujo implícito (solo fragmento)',
+        'splitmate://auth/callback#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired&sb=',
+      ],
     ])('lleva el error de Supabase %s, sin la descripción', (_, link) => {
       expect(resolveIncomingLink(link)).toBe(
         '/auth/callback?error=access_denied&error_code=otp_expired',
       );
+    });
+
+    it('un error repetido con otro valor en el fragmento va al inicio', () => {
+      expect(
+        resolveIncomingLink(
+          'splitmate://auth/callback?error=access_denied&error_code=otp_expired#error_code=otra_cosa',
+        ),
+      ).toBe('/');
+    });
+
+    it('la sesión en el fragmento (flujo implícito) no se acepta: la app solo canjea códigos', () => {
+      expect(
+        resolveIncomingLink(
+          'splitmate://auth/callback#access_token=ey.x.y&expires_at=1&expires_in=3600&refresh_token=r&token_type=bearer&type=signup',
+        ),
+      ).toBe('/');
     });
 
     it.each([

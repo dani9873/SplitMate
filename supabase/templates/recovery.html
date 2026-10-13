@@ -1,6 +1,8 @@
 <!doctype html>
 <!-- Recuperación de la contraseña. El idioma sale de user_metadata.locale, que guarda la app al
-     registrarse; sin él, español. `print` evita que una cuenta sin locale rompa la plantilla. -->
+     registrarse; sin él, español. `print` evita que una cuenta sin locale rompa la plantilla.
+     El botón (PKCE) solo abre la sesión en la app durante 5 minutos desde que se pide el correo;
+     el código vale lo que diga OTP expiration (30 minutos). -->
 <html lang="{{ if eq (print .Data.locale) "en" }}en{{ else }}es{{ end }}">
   <head>
     <meta charset="utf-8" />
@@ -23,7 +25,7 @@
                 </p>
                 <p style="margin: 0 0 8px; font-size: 15px; color: #4e5a57">Or enter this code in the app:</p>
                 <p style="margin: 0 0 24px; font-size: 32px; font-weight: 800; letter-spacing: 6px; font-family: 'SFMono-Regular', Consolas, monospace">{{ .Token }}</p>
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4e5a57">The link and the code expire in 30 minutes. If you did not ask for this, ignore this email: your password does not change.</p>
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4e5a57">The button works for 5 minutes and the code for 30. If you did not ask for this, ignore this email: your password does not change.</p>
                 {{ else }}
                 <h1 style="margin: 0 0 12px; font-size: 22px; line-height: 1.3">Elige una contraseña nueva</h1>
                 <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5; color: #4e5a57">Alguien pidió recuperar la contraseña de tu cuenta de SplitMate. Toca el botón para elegir una nueva en la app.</p>
@@ -32,7 +34,7 @@
                 </p>
                 <p style="margin: 0 0 8px; font-size: 15px; color: #4e5a57">O escribe este código en la app:</p>
                 <p style="margin: 0 0 24px; font-size: 32px; font-weight: 800; letter-spacing: 6px; font-family: 'SFMono-Regular', Consolas, monospace">{{ .Token }}</p>
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4e5a57">El enlace y el código vencen en 30 minutos. Si no lo pediste tú, ignora este correo: tu contraseña no cambia.</p>
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4e5a57">El botón sirve durante 5 minutos y el código, durante 30. Si no lo pediste tú, ignora este correo: tu contraseña no cambia.</p>
                 {{ end }}
               </td>
             </tr>

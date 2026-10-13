@@ -464,17 +464,20 @@
     },
     "checkEmail": {
       "title": "Revisa tu correo",
-      "signupBody": "Te enviamos un correo a {{email}}. Toca el enlace o escribe el código para confirmar tu cuenta.",
-      "recoveryBody": "Si existe una cuenta con {{email}}, te enviamos un correo. Toca el enlace o escribe el código para elegir una contraseña nueva.",
+      "signupBody": "Te enviamos un enlace a {{email}}. Ábrelo en este teléfono para confirmar tu cuenta.",
+      "recoveryBody": "Si existe una cuenta con {{email}}, te enviamos un enlace. Ábrelo en este teléfono en los próximos 5 minutos para elegir una contraseña nueva.",
+      "signupBodyWithCode": "Te enviamos un correo a {{email}}. Toca el enlace o escribe el código para confirmar tu cuenta.",
+      "recoveryBodyWithCode": "Si existe una cuenta con {{email}}, te enviamos un correo. Toca el enlace o escribe el código para elegir una contraseña nueva.",
       "submit": "Confirmar",
       "resend": "Reenviar correo",
       "resendIn": "Reenviar en {{seconds}} s",
       "resent": "Te enviamos otro correo.",
+      "confirmed": "Ya confirmé mi correo",
       "otherEmail": "Usar otro correo"
     },
     "forgot": {
       "title": "Recupera tu contraseña",
-      "body": "Escribe el correo de tu cuenta y te enviaremos un enlace y un código.",
+      "body": "Escribe el correo de tu cuenta y te enviaremos un enlace.",
       "submit": "Enviar"
     },
     "reset": {
@@ -484,8 +487,15 @@
     },
     "callback": {
       "loading": "Confirmando el enlace",
-      "errorTitle": "El enlace no sirve",
-      "errorBody": "Puede que haya vencido o que ya se haya usado. Pide otro correo o escribe el código que te enviamos.",
+      "unusableTitle": "Este enlace ya no sirve",
+      "confirmedTitle": "Tu correo está confirmado",
+      "confirmedBody": "Entra con tu correo y tu contraseña.",
+      "signupBody": "Ya se usó o venció. Entra con tu contraseña: si tu correo todavía no está confirmado, podrás pedir otro enlace.",
+      "recoveryBody": "Ya se usó, o pasaron más de 5 minutos desde que lo pediste. Pide otro y ábrelo enseguida en este teléfono.",
+      "unknownBody": "Si era para confirmar tu correo, entra con tu contraseña: si falta confirmarlo, podrás pedir otro enlace. Si era para cambiar la contraseña, pide otro.",
+      "signedInBody": "Ya tienes la sesión abierta en este teléfono.",
+      "signIn": "Entrar",
+      "newLink": "Pedir otro enlace",
       "back": "Volver"
     },
     "validation": {
@@ -508,7 +518,7 @@
       "invalidEmail": "Revisa el correo: no parece válido.",
       "emailNotAllowed": "Todavía no podemos enviar correos a esa dirección.",
       "invalidCode": "El código no es correcto o ya venció.",
-      "linkExpired": "El enlace venció o se abrió en otro teléfono. Escribe el código del correo.",
+      "linkExpired": "El enlace venció o se abrió en otro teléfono. Pide otro.",
       "sessionExpired": "Tu sesión venció. Empieza de nuevo.",
       "offline": "Sin conexión. Revisa tu internet e intenta de nuevo.",
       "unavailable": "El servicio no responde. Intenta de nuevo en un rato.",

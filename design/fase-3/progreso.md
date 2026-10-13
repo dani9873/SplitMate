@@ -3,9 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** 12e.2, correos con la plantilla predeterminada de Supabase (solo el enlace):
-la app funciona con lo que trae `splitmate://auth/callback` y "Revisa tu correo" no menciona el
-código mientras no haya SMTP propio.
+**Siguiente paso:** 12e.3, Data API: comprobar por REST, con un usuario de prueba autenticado,
+que la app crea y lee su `profile` y que `anon` sigue sin acceso. Si falta un permiso, migración
+solo para `authenticated` y preguntar antes de `db push`.
 
 ## Pasos
 
@@ -63,7 +63,8 @@ código mientras no haya SMTP propio.
           y `profiles` también a POST; una tabla inexistente da 404 `PGRST205`. Las 8 existen y
           `anon` no tiene acceso.
     - [x] Panel (el usuario, 2026-10-12): Email OTP expiration en 1800 y las dos plantillas de
-          30 minutos pegadas otra vez.
+          30 minutos pegadas otra vez. **Corrección del 2026-10-13:** las plantillas no se pudieron
+          pegar (el panel exige SMTP propio); quedan las predeterminadas. Ver 12e.2.
     - [x] La clave secreta de la prueba de `verify_jwt` no quedó en ningún historial: no hay
           `~/.bash_history`, y ni los dos historiales de PSReadLine ni las transcripciones de
           Claude Code la contienen (solo aparece la clave falsa de una prueba de Jest). No hace
@@ -78,9 +79,17 @@ código mientras no haya SMTP propio.
           correo y contraseña; fuera los pendientes de Google, Sign in with Apple (la regla 4.8 solo
           aplica con inicio de sesión de terceros) y la SHA-1 del keystore. El proveedor ya estaba
           apagado en el proyecto (`/auth/v1/settings`: `google: false`).
-    - [ ] 2. Correos con la plantilla predeterminada (solo enlace): la app funciona con lo que
-          trae `splitmate://auth/callback` y "Revisa tu correo" no menciona el código mientras no
-          haya SMTP. Las plantillas propias quedan en el repo (pendiente en CLAUDE.md).
+    - [x] 2. Correos con la plantilla predeterminada (solo enlace). Comprobado con el código de
+          Auth v2.197.0 (el del proyecto, por `/auth/v1/health`) y contra el proyecto: registro,
+          reenvío y recuperación usan PKCE; un enlace válido vuelve con `?code=<uuid>`; uno usado o
+          vencido, con el error en la consulta **y** repetido en el fragmento con `sb=`, que la app
+          mandaba al inicio sin explicar nada (corregido). Supabase solo canjea el código 5 minutos
+          después de pedir el correo (`flow_state_expired`), aunque el enlace confirme el correo:
+          la pantalla del enlace lo explica según el último correo pedido (el servicio lo recuerda
+          cifrado hasta entrar) y lleva a entrar o a pedir otro enlace con el correo escrito. "Revisa
+          tu correo" ya no muestra el código (`EMAIL_HAS_CODE = false`); el registro ofrece "Ya
+          confirmé mi correo". Plantillas propias en el repo (la de recuperación ahora dice que el
+          botón sirve 5 minutos) y el pendiente de SMTP ampliado en CLAUDE.md. 658 pruebas en verde.
     - [ ] 3. Data API ("0 of 8 tables exposed"): por REST, con un usuario de prueba, que
           `authenticated` cree y lea su `profile` y que `anon` siga sin acceso. Si falta un permiso,
           migración solo para `authenticated` y preguntar antes de `db push`.
@@ -93,6 +102,16 @@ código mientras no haya SMTP propio.
   - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
 
 ## Notas para retomar
+
+- **Correos del proyecto (12e.2):** plantillas predeterminadas de Supabase, solo el enlace y en
+  inglés. Enlace válido → `splitmate://auth/callback?code=<uuid>`; usado o vencido (30 min) →
+  `?error=access_denied&error_code=otp_expired&error_description=…#` + lo mismo + `&sb=`. El canje
+  PKCE vence a los 5 minutos de pedir el correo. Se reproduce sin secretos ni efectos con
+  `GET <url>/auth/v1/verify?token=pkce_<64 ceros>&type=signup&redirect_to=splitmate://auth/callback`
+  (con el `apikey` publicable) y leyendo el `Location`.
+- **Para probar en el teléfono:** el correo integrado tiene un límite de correos por hora
+  (`email_sent = 2` en `config.toml`; confirmar el del proyecto en el paso 4). Registro, un
+  reenvío y una recuperación pueden agotarlo.
 
 - En la PC no hay Docker. Para validar migraciones y pgTAP sin esperar al CI se usa PGlite
   (Postgres en WASM) en una carpeta temporal fuera de OneDrive:

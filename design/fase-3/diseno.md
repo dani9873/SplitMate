@@ -14,6 +14,11 @@ El avance paso a paso está en `progreso.md`.
 > del nombre para cuentas de Google sin nombre, la reautenticación con Google y
 > `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`. Borrar la cuenta pide siempre la contraseña. Las menciones a
 > Google de este documento quedan como historial.
+>
+> **Cambio del 2026-10-13: correos solo con enlace mientras no haya SMTP propio.** El panel exige
+> SMTP para editar las plantillas, así que el proyecto usa las predeterminadas: traen solo el
+> enlace. "Revisa tu correo" no muestra el campo del código (`EMAIL_HAS_CODE = false`). Detalle de
+> lo que trae el enlace al volver a la app en la sección "Correos".
 
 ## Objetivo
 
@@ -153,6 +158,27 @@ y el refresh token queda inservible porque ya no está en el teléfono.
 - **Envío.** El correo integrado de Supabase solo envía a miembros de la organización y unos
   pocos por hora: alcanza para probar. Antes de invitar a otras personas hace falta SMTP
   propio (pendiente en CLAUDE.md).
+
+### Lo que trae el enlace al volver (comprobado el 2026-10-13)
+
+Con Supabase Auth 2.197.0 (el del proyecto), leyendo su código y contra el proyecto real:
+
+- **Registro, reenvío y recuperación usan PKCE.** supabase-js 2.117 manda `code_challenge` en los
+  tres, y el enlace del correo lleva un token `pkce_…`.
+- **Enlace válido:** Supabase confirma el correo (o la recuperación) y redirige a
+  `splitmate://auth/callback?code=<uuid>`, sin fragmento ni `type`.
+- **Enlace usado o vencido (30 min):**
+  `?error=access_denied&error_code=otp_expired&error_description=…` y el mismo error repetido
+  en el fragmento, más `sb=`. La app aceptaba el error solo en uno de los dos: ahora acepta claves
+  repetidas con el mismo valor.
+- **Ventana de 5 minutos:** Supabase solo canjea el código hasta 5 minutos después de pedir el
+  correo (`flow_state_expired`; 300 s es el valor por omisión de Auth y su mínimo). Después, el
+  enlace igual confirma el correo, pero no abre la sesión: la app dice "Tu correo está
+  confirmado" y lleva a entrar con el correo ya escrito. En la recuperación pide otro enlace.
+- **Para saber qué explicar,** el servicio recuerda el último correo pedido en este teléfono
+  (flujo y correo, en el almacenamiento cifrado) hasta que se entra.
+- **El enlace con la sesión en el fragmento** (flujo implícito, por ejemplo uno enviado desde el
+  panel) no se acepta: la app solo canjea códigos PKCE.
 
 ## Pantallas
 
