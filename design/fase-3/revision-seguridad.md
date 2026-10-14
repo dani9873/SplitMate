@@ -147,10 +147,10 @@ Sin la contraseña de `prueba1`, la prueba se hizo en Postgres como la hace Post
 `supabase db query --linked`. Cada resultado muestra `current_user = authenticated` y el
 `auth.uid()` esperado, así que corrió con RLS:
 
-| Sesión | Perfiles visibles | Su perfil | Perfil ajeno por `id` | Comparten grupo |
-|---|---|---|---|---|
-| `prueba1` | 1 de 2 | 1 | 0 | no |
-| Cuenta real (control) | 1 de 2 | 1 | 0 | no |
+| Sesión                | Perfiles visibles | Su perfil | Perfil ajeno por `id` | Comparten grupo |
+| --------------------- | ----------------- | --------- | --------------------- | --------------- |
+| `prueba1`             | 1 de 2            | 1         | 0                     | no              |
+| Cuenta real (control) | 1 de 2            | 1         | 0                     | no              |
 
 Editar el perfil real como `prueba1` (un `update` sin cambios, dentro de un bloque que termina
 con un error para que todo se deshaga) afectó 0 filas, y el perfil real siguió en la versión 1
