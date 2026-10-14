@@ -143,6 +143,10 @@ src/
 
   La caída al abrir un enlace ya se verificó con un enlace simulado
   (`design/fase-3/crash-migracion-0003.md`).
+- **Fase 4b: acceso del creador.** Desde la Fase 4a, el creador de un grupo siempre tiene acceso a
+  él en RLS (`private.can_access_group`), aunque no tenga un miembro vinculado: así se suben los
+  grupos sin "yo". Cuando existan invitaciones y expulsiones, el acceso debe pasar a depender de la
+  membresía, o un creador expulsado seguiría viendo el grupo (`design/fase-4a/diseno.md`).
 - **Rutas tipadas de Expo Router desactivadas.** En Windows, el generador incremental de
   `.expo/types/router.d.ts` compara rutas con `'../'` y registra archivos de `src/` como
   rutas, lo que rompe `tsc` mientras Metro corre. Reevaluar en una fase futura o al

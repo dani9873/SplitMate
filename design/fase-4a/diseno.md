@@ -1,7 +1,21 @@
 # Fase 4a — Diseño: sincronización con Supabase
 
-Propuesta del 2026-10-14, pendiente de aprobación. El avance paso a paso está en `progreso.md` y
-las tareas en `plan.md`.
+Aprobado el 2026-10-14 con siete ajustes de la revisión, ya incorporados:
+
+1. Ningún conflicto borra datos del usuario: lo rechazado queda como borrador local por revisar.
+2. Concurrencia optimista estricta: un cambio con versión base vieja se rechaza, la app avisa y
+   guarda su versión como borrador. Se prueba con dos dispositivos simulados.
+3. Historial de cambios en el servidor, de solo agregar, escrito por las RPC.
+4. Cerrar sesión y borrar los datos ofrece sincronizar primero si hay cambios sin subir.
+5. La descarga es incremental por `change_seq`; completa solo la primera vez o al reiniciar.
+6. Límites de lote, de payload y de cada campo, validados en el servidor y probados con pgTAP.
+7. Pendiente para la 4b: el acceso del creador pasa a depender de la membresía.
+
+Se aprobaron también tres decisiones de la propuesta: el creador de un grupo siempre tiene acceso,
+borrar la cuenta borra en la nube sus grupos no compartidos y los gastos que llegan a un grupo
+archivado se aceptan.
+
+El avance paso a paso está en `progreso.md` y las tareas en `plan.md`.
 
 ## Objetivo
 
@@ -11,7 +25,7 @@ lee y escribe siempre en SQLite, y la sincronización sube y baja cambios por de
 
 En la Fase 4a cada grupo tiene una sola cuenta (todavía no hay invitaciones). Sincronizar es, por
 ahora, mantener iguales tus dispositivos y la copia en la nube. El protocolo ya sirve para grupos
-compartidos: el acceso lo decide RLS, el cursor es por grupo y los conflictos se resuelven igual
+compartidos: el acceso lo decide RLS, el cursor es por grupo y los conflictos se detectan igual
 entre dos personas que entre dos teléfonos.
 
 **Fuera de alcance (Fase 4b):** invitaciones por enlace, unirse a grupos, perfiles de otras
@@ -34,17 +48,19 @@ cuentas y lo que cambia al borrar una cuenta que comparte grupos.
 
 ## Decisiones
 
-| Tema               | Decisión                                                                                                                                                             | Alternativas descartadas                                                                                                                                                |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cola de envío      | Pendiente = fila con `version` distinta de `synced_version`. `sync_outbox` guarda cada envío en curso: su id y su contenido exacto                                   | Tabla outbox escrita por cada repositorio: una escritura nueva puede olvidarla. Triggers de SQLite: necesitan una bandera para ignorar lo que escribe la sincronización |
-| Cursor de descarga | Contador por grupo en el servidor (`change_seq`), asignado bajo el candado del contador del grupo                                                                    | Secuencia global: un commit tardío deja huecos y exige una ventana con `xmin`. `updated_at`: depende de relojes                                                         |
-| Escrituras         | RPC `sync_push` con `SECURITY INVOKER`: RLS y los privilegios por columna aplican adentro. Un trigger rechaza las escrituras directas                                | `SECURITY DEFINER` con chequeos propios: se salta RLS y un olvido es una fuga. Un rol propio dueño de la RPC: más piezas que mantener en Supabase                       |
-| Conflictos         | `version` por fila; gana el último cambio en llegar al servidor; reglas para los estados (borrar, archivar, moneda, "soy yo"); el gasto con sus partes es una unidad | Por campo: exige guardar la versión base de cada campo. El primero gana y el cliente rehace: interrumpe al usuario                                                      |
-| Descarga           | Estado actual de lo que cambió desde el cursor, por grupo completo, aplicado en una transacción                                                                      | Registro de eventos: crece sin límite y repite trabajo                                                                                                                  |
-| Acceso a un grupo  | Su creador o un miembro vinculado activo                                                                                                                             | Solo miembros vinculados: un grupo sin "yo" ("Ninguno de ellos", permitido desde la Fase 2) no se podría subir                                                          |
-| Realtime           | Después, en la Fase 4b (sección "Realtime")                                                                                                                          | Ahora: con una cuenta por grupo aporta poco                                                                                                                             |
-| Detección de red   | `expo-network` (módulo del SDK)                                                                                                                                      | `@react-native-community/netinfo`: hace lo mismo y no es del SDK                                                                                                        |
-| Pruebas del motor  | Contra el SQL real: PGlite 0.5.8 (Postgres en WASM) dentro de Jest                                                                                                   | Un servidor falso en TypeScript: dos implementaciones de las reglas que pueden divergir                                                                                 |
+| Tema               | Decisión                                                                                                                                                 | Alternativas descartadas                                                                                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cola de envío      | Pendiente = fila con `version` distinta de `synced_version`. `sync_outbox` guarda cada envío en curso: su id y su contenido exacto                       | Tabla outbox escrita por cada repositorio: una escritura nueva puede olvidarla. Triggers de SQLite: necesitan una bandera para ignorar lo que escribe la sincronización |
+| Cursor de descarga | Contador por grupo en el servidor (`change_seq`), asignado bajo el candado del contador del grupo                                                        | Secuencia global: un commit tardío deja huecos y exige una ventana con `xmin`. `updated_at`: depende de relojes                                                         |
+| Escrituras         | RPC `sync_push` con `SECURITY INVOKER`: RLS y los privilegios por columna aplican adentro. Un trigger rechaza las escrituras directas                    | `SECURITY DEFINER` con chequeos propios: se salta RLS y un olvido es una fuga. Un rol propio dueño de la RPC: más piezas que mantener en Supabase                       |
+| Concurrencia       | Optimista estricta: cada cambio lleva su versión base y el servidor lo rechaza si tiene una más nueva. El gasto con sus pagadores y partes es una unidad | Gana el último en llegar: pisa cambios ajenos sin avisar. Fusión por campo: exige guardar la versión base de cada campo                                                 |
+| Cambio rechazado   | La app vuelve al estado del servidor, avisa y guarda su versión en `sync_conflicts` hasta que el usuario la revisa. Ningún conflicto borra datos         | Descartarlo tras el aviso: se pierde si el aviso pasa desapercibido                                                                                                     |
+| Historial          | `change_log`, de solo agregar, escrita por las RPC: una entrada por cambio aplicado con quién, qué y cuándo. La leen quienes tienen acceso al grupo      | Triggers por fila: una entrada por cada parte de un gasto y también lo que no viene de la app                                                                           |
+| Descarga           | Incremental por grupo: solo lo que cambió desde su cursor, sin partir un grupo entre páginas, aplicado en una transacción                                | Registro de eventos: crece sin límite y repite trabajo                                                                                                                  |
+| Acceso a un grupo  | Su creador o un miembro vinculado activo. En la 4b pasa a depender de la membresía                                                                       | Solo miembros vinculados: un grupo sin "yo" ("Ninguno de ellos", permitido desde la Fase 2) no se podría subir                                                          |
+| Realtime           | Después, en la Fase 4b (sección "Realtime")                                                                                                              | Ahora: con una cuenta por grupo aporta poco                                                                                                                             |
+| Detección de red   | `expo-network` (módulo del SDK)                                                                                                                          | `@react-native-community/netinfo`: hace lo mismo y no es del SDK                                                                                                        |
+| Pruebas del motor  | Contra el SQL real: PGlite 0.5.8 (Postgres en WASM) dentro de Jest                                                                                       | Un servidor falso en TypeScript: dos implementaciones de las reglas que pueden divergir                                                                                 |
 
 ## Cómo funciona, de punta a punta
 
@@ -54,8 +70,9 @@ Escribir (repositorio) ─► fila pendiente (version ≠ synced_version)
         ▼                     ▼
   bus 'local'  ─────────► ciclo de sincronización (uno a la vez)
                               1. perfil remoto asegurado
-                              2. envío por lotes ──► sync_push ──► respuesta con el estado final
-                              3. descarga por grupo ◄── sync_pull(cursores)
+                              2. envío por lotes ──► sync_push ──► aplicado o rechazado
+                                                     (rechazado: estado del servidor + borrador)
+                              3. descarga incremental ◄── sync_pull(cursores por grupo)
                               4. bus 'sync' ──► las pantallas vuelven a leer (useLiveQuery)
 ```
 
@@ -90,8 +107,6 @@ Era un pendiente anotado en el diseño de la Fase 3.
   ya ve todo lo anterior a N. Con una secuencia global eso no pasa: una transacción puede tomar el
   número 100, otra el 101, la segunda confirma primero, alguien lee 101 y el 100 aparece después,
   detrás del cursor.
-- **Un grupo nuevo para el cliente empieza en 0.** En la Fase 4b, al unirse a un grupo, se descarga
-  completo sin nada especial.
 - Índice `(group_id, change_seq)` en cada tabla.
 
 ### Solo `sync_push` escribe
@@ -118,9 +133,9 @@ Era un pendiente anotado en el diseño de la Fase 3.
 - Sale `private.can_bootstrap_group`: con el acceso del creador ya no hace falta el orden "grupo,
   luego primer miembro" que exigía la Fase 3.
 - **Por qué el creador:** desde la Fase 2 un grupo puede no tener "yo" (la opción "Ninguno de
-  ellos"). Con acceso solo para miembros vinculados, ese grupo no se podría subir ni leer. En la
-  Fase 4b, quien se une entra como miembro vinculado; qué pasa si el creador sale del grupo se
-  decide allí.
+  ellos"). Con acceso solo para miembros vinculados, ese grupo no se podría subir ni leer.
+- **En la Fase 4b** (pendiente en CLAUDE.md): con invitaciones y expulsiones, el acceso del creador
+  pasa a depender de la membresía. Si no, un creador expulsado seguiría viendo el grupo.
 
 ### Reglas en la base
 
@@ -138,6 +153,38 @@ está `group_amount`. La app la guarda al calcular. Sin ella, un gasto calculado
 teléfono sin conexión podría subir después de que otro teléfono cambiara la moneda del grupo a
 EUR, y quedaría con montos en la moneda equivocada.
 
+### Concurrencia
+
+Cada cambio lleva `base`: la versión del servidor que el dispositivo tenía cuando lo hizo.
+
+| Caso                                                                  | Resultado                                                   |
+| --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `base` es la `version` actual del servidor                            | Se aplica                                                   |
+| El servidor tiene una versión más nueva                               | `rejected: conflict`, con el estado actual del servidor     |
+| El cambio deja la unidad igual a como está en el servidor             | Se acepta sin escribir (`applied`), aunque `base` sea vieja |
+| Unidad nueva (`base` nula) que no existe en el servidor               | Se crea                                                     |
+| `base` de una unidad que ya no existe en el servidor                  | `failed: not_found`                                         |
+| "Soy yo" sobre un miembro cuando otro ya tiene tu cuenta en ese grupo | `rejected: conflict` (alguien movió "soy yo" en otro lado)  |
+| Cambio de moneda con movimientos activos en el servidor               | `rejected: currency_locked`                                 |
+| Movimiento calculado con otra moneda de grupo                         | `rejected: group_currency_changed`                          |
+
+- Vale igual para editar, borrar, restaurar, archivar y desarchivar: con una base vieja, nada se
+  aplica. Nadie pisa un cambio que no vio.
+- **Gasto como unidad:** su `version` sube con cualquier cambio de sus pagadores o partes, así que
+  la base del gasto cubre todo. Nunca quedan pagadores de un cambio con partes de otro.
+- **Lo propio no choca consigo mismo:** un reenvío con el mismo id devuelve el resultado guardado
+  (sección "Idempotencia"), y un cambio hecho mientras el anterior viajaba sale con la base que
+  devolvió el servidor.
+- **Grupo archivado (decisión aprobada):** un gasto nuevo en un grupo que otro dispositivo archivó
+  se guarda y el grupo sigue archivado. Un alta no tiene versión vieja con la que chocar, y
+  rechazarla haría perder lo escrito sin conexión. El archivado es de solo lectura en la app, pero no
+  es una barrera de seguridad: cualquier miembro lo desarchiva. Lo mismo pasa con un grupo borrado:
+  el gasto queda guardado en la nube dentro del grupo borrado.
+- **Quitar miembros:** las reglas "sin saldo" y "no el último" las sigue revisando la app. Si un
+  dispositivo quita a Beto mientras otro registra un gasto nuevo con él, el servidor guarda ambos y
+  Beto aparece en Saldos con la nota "ya no está en el grupo", un estado que la app ya muestra desde
+  la Fase 2.
+
 ### `sync_push(p_mutations jsonb) → jsonb`
 
 `SECURITY INVOKER`, `set search_path = ''`, solo para `authenticated`. Recibe hasta 50 envíos:
@@ -146,14 +193,16 @@ EUR, y quedaría con montos en la moneda equivocada.
 { "id": "<uuid del envío>", "entity": "expense", "base": 3, "data": { "...": "..." } }
 ```
 
-- `base`: la versión del servidor sobre la que se hizo el cambio; `null` si la fila es nueva.
-- `data` por unidad:
+- `data` por unidad (exactamente estas claves; una clave desconocida es un error):
   - `group`: `id`, `name`, `currency`, `emoji`, `color`, `archived`, `deleted`.
   - `member`: `id`, `group_id`, `display_name`, `user_id`, `role`, `deleted`.
   - `category` (personalizada): `id`, `group_id`, `name`, `icon`, `deleted`.
-  - `expense`: los campos del gasto, `group_currency`, `deleted`, y sus pagadores y partes activos
-    (`payers` y `splits`, con `id`, `member_id`, `amount`, `group_amount` e `input_value`).
-  - `transfer`: los campos de la transferencia, `group_currency` y `deleted`.
+  - `expense`: `id`, `group_id`, `kind`, `title`, `amount`, `currency`, `group_currency`,
+    `group_amount`, `exchange_rate`, `rate_date`, `split_method`, `category_id`, `occurred_on`,
+    `notes`, `deleted`, `payers` (`id`, `member_id`, `amount`, `group_amount`) y `splits` (lo mismo
+    más `input_value`), solo los activos.
+  - `transfer`: `id`, `group_id`, `from_member_id`, `to_member_id`, `amount`, `currency`,
+    `group_currency`, `group_amount`, `exchange_rate`, `rate_date`, `occurred_on`, `deleted`.
 - El servidor nunca toma del cliente `created_by` (es siempre `auth.uid()`), las fechas de
   auditoría, `version` ni `change_seq`.
 
@@ -161,32 +210,31 @@ Responde una lista en el mismo orden:
 
 ```json
 { "id": "...", "status": "applied", "version": 4, "current": [{ "table": "expenses", "row": {} }] }
-{ "id": "...", "status": "rejected", "reason": "deleted", "current": [] }
-{ "id": "...", "status": "failed", "reason": "invalid" }
+{ "id": "...", "status": "rejected", "reason": "conflict", "current": [] }
+{ "id": "...", "status": "failed", "reason": "invalid", "field": "title" }
 ```
 
-- `applied`: se aplicó, o ya se había aplicado (reenvío). `current` trae el estado final en el
-  servidor: la fila, o el gasto con todos sus pagadores y partes.
-- `rejected`: un conflicto esperado (tabla de conflictos). `current` trae el estado del servidor,
-  vacío si la unidad no existe allí. El cliente vuelve a ese estado y avisa.
+- `applied`: se aplicó, o ya se había aplicado (reenvío). `version` es la que dejó este envío y
+  `current` el estado actual en el servidor: la fila, o el gasto con todos sus pagadores y partes.
+- `rejected`: `conflict`, `currency_locked` o `group_currency_changed`. `current` trae el estado del
+  servidor, vacío si la unidad no existe allí.
 - `failed`: algo que no debería pasar con una app correcta: `forbidden` (RLS), `invalid` (datos o
-  sumas), `not_found` (la unidad tenía versión y ya no existe) o `error`. El cliente conserva sus
-  datos y aparta el envío.
+  sumas, con el campo), `not_found` o `error`. El cliente conserva sus datos y aparta el envío.
 
 **Cómo procesa:**
 
-1. Valida la forma: arreglo de hasta 50 envíos (vacío devuelve `[]`), unidades conocidas, ids UUID.
-   Si falla, error 400 de toda la llamada (es un error de programación).
-2. Recorre los envíos por grupo. Antes de tocar un grupo bloquea su contador, y por eso dos envíos
-   al mismo grupo esperan en vez de cruzarse (sin interbloqueos entre filas). La app ya los manda
-   ordenados por grupo; la RPC procesa en el orden recibido.
-3. Por envío: candado `pg_advisory_xact_lock` sobre su id; si ya figura en `private.sync_mutations`
-   como aplicado, responde `applied` con la versión guardada y el estado actual, sin volver a
-   aplicarlo.
-4. Aplica la unidad dentro de un bloque `BEGIN ... EXCEPTION` (un punto de guardado): si falla, se
-   deshace solo ese envío y la RPC sigue con los demás. Los interbloqueos (`40P01`) y los errores
-   de serialización se relanzan: la llamada entera falla y el cliente la repite.
-5. Registra el envío aplicado en `private.sync_mutations` (cuenta, id, unidad, versión).
+1. Valida el sobre (sección "Límites"). Si falla, la llamada entera responde un error: es un error
+   de programación.
+2. Recorre los envíos en el orden recibido; la app los manda ordenados por grupo. Antes de tocar un
+   grupo bloquea su contador, así dos llamadas sobre el mismo grupo esperan en vez de cruzarse (sin
+   interbloqueos entre filas).
+3. Por envío: candado `pg_advisory_xact_lock` sobre su id; si ya figura en `private.sync_mutations`,
+   responde `applied` con la versión guardada y el estado actual, sin volver a aplicarlo.
+4. Valida cada campo, bloquea la fila (`FOR UPDATE`), compara con `base` y aplica, todo dentro de un
+   bloque `BEGIN ... EXCEPTION` (un punto de guardado): si falla, se deshace solo ese envío y la RPC
+   sigue con los demás. Los interbloqueos (`40P01`) y los errores de serialización se relanzan: la
+   llamada entera falla y el cliente la repite.
+5. Si escribió algo, registra el envío en `private.sync_mutations` y una entrada en `change_log`.
 
 Con 50 envíos por llamada, la RPC queda por debajo de las 64 subtransacciones que Postgres guarda
 en memoria por sesión.
@@ -195,56 +243,40 @@ en memoria por sesión.
 
 - Un gasto activo tiene de 1 a 50 pagadores y de 1 a 50 partes, sin miembros repetidos. Los
   pagadores suman `amount` y `group_amount`, y las partes también. Si `currency` es la del grupo,
-  la tasa es `1` y `group_amount = amount` en el gasto y en cada parte.
+  la tasa es `1` y `group_amount = amount` en el gasto y en cada parte. Un gasto borrado viene sin
+  partes.
 - Las partes no se editan: una parte que ya existe solo cambia `deleted_at`. Una edición crea partes
   nuevas, como en la base local.
 - `group_id` de una fila existente no cambia.
-- Un cambio idéntico al estado del servidor no escribe nada: devuelve `applied` con la versión
-  actual. Así no se generan versiones ni descargas de más.
 
-**Gasto como unidad.** El servidor bloquea el gasto (`FOR UPDATE`) y decide el conflicto con su
-`version`. Si aplica: marca borradas las partes activas que no vienen, después crea o reactiva las
-que vienen (primero liberar, para no chocar con el índice único de miembro por gasto) y toca el
-gasto para que su `version` suba con cualquier cambio de sus partes. Un gasto borrado viene sin
-partes y el servidor borra las activas. Nunca quedan pagadores de un cambio con partes de otro.
+**Gasto como unidad.** Si aplica: marca borradas las partes activas que no vienen, después crea o
+reactiva las que vienen (primero liberar, para no chocar con el índice único de miembro por gasto)
+y toca el gasto para que su `version` suba con cualquier cambio de sus partes.
 
-### Conflictos
+### Límites
 
-Hay conflicto cuando `base` no es la `version` actual del servidor: alguien cambió la fila después
-de lo último que vio este dispositivo. Gana el último cambio en llegar al servidor, con estas reglas
-para los campos de estado:
+El servidor valida todo antes de escribir, con estos topes:
 
-| Campo                           | Con la versión al día                                                  | Con una versión vieja               |
-| ------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
-| Borrar                          | Se aplica                                                              | Se aplica: borrar gana              |
-| Editar o restaurar algo borrado | Se aplica                                                              | `rejected: deleted`: sigue borrado  |
-| Archivar                        | Se aplica                                                              | Se aplica: archivar gana            |
-| Desarchivar                     | Se aplica                                                              | Se ignora: sigue archivado          |
-| Moneda del grupo                | Se aplica si no hay movimientos; si hay, `rejected: currency_locked`   | Se ignora: queda la del servidor    |
-| "Soy yo" (`user_id`)            | Se aplica y mueve tu vínculo: el miembro que lo tenía queda sin cuenta | Se ignora: queda el del servidor    |
-| Resto de los campos             | Se aplica                                                              | Se aplica: gana el último en llegar |
-| Gasto con pagadores y partes    | Se aplica como unidad                                                  | Se aplica como unidad               |
+| Qué                                      | Límite                                                                                                                                 | Si se pasa                     |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Envíos por llamada a `sync_push`         | 0 a 50                                                                                                                                 | Error de la llamada (400)      |
+| Tamaño de `p_mutations`                  | 512 KiB                                                                                                                                | Error de la llamada (413)      |
+| Sobre de cada envío                      | Solo `id` (UUID), `entity` (una de las cinco), `base` (nula o entero ≥ 1) y `data` (objeto)                                            | Error de la llamada (400)      |
+| Claves de `data`                         | Solo las de su unidad                                                                                                                  | `failed: invalid` con el campo |
+| Textos                                   | Nombres 1–80, título 1–120, notas hasta 1000, emoji 1–16, categoría 1–40, ícono 1–40, tasa hasta 32; sin textos vacíos o solo espacios | `failed: invalid` con el campo |
+| Montos                                   | Enteros JSON (no texto ni decimales): 1 a 99 999 999 999 999; los convertidos y las partes desde 0                                     | `failed: invalid` con el campo |
+| Monedas, tasas, fechas, ids y enumerados | ISO de 3 letras, decimal positivo, `YYYY-MM-DD` que exista, UUID y valores conocidos                                                   | `failed: invalid` con el campo |
+| Pagadores y partes por gasto             | 1 a 50 cada uno (0 si el gasto está borrado)                                                                                           | `failed: invalid` con el campo |
+| Cursores en `sync_pull`                  | Hasta 1000 grupos; claves UUID; valores enteros de 0 a 9 007 199 254 740 991                                                           | Error de la llamada (400)      |
+| Filas por respuesta de `sync_pull`       | `p_max_rows` de 100 a 5000                                                                                                             | Error de la llamada (400)      |
+| Tiempo por llamada en la app             | 20 s                                                                                                                                   | Se reintenta                   |
 
-Además, un movimiento calculado con otra moneda de grupo se rechaza con `group_currency_changed`,
-tenga o no la versión al día.
-
-**Por qué así.** Con una versión vieja, el envío trae los valores de estado que tenía el teléfono,
-no necesariamente los que el usuario quiso cambiar. Si ganaran siempre, renombrar un grupo en un
-teléfono atrasado lo desarchivaría, devolvería una moneda vieja o movería "soy yo". Borrar y
-archivar ganan porque son acciones explícitas, y lo que deshacen se puede volver a hacer con la
-versión al día. No se fusiona campo por campo: con una cuenta por grupo los choques son raros y la
-regla por fila se explica en una línea. Si en la Fase 4b resultan frecuentes, se revisa.
-
-**Grupo archivado o borrado.** El servidor no rechaza un gasto nuevo en un grupo que otro
-dispositivo archivó o borró: el gasto se guarda y el grupo sigue archivado o borrado. El grupo
-archivado es de solo lectura en la app, pero no es una barrera de seguridad (cualquier miembro lo
-desarchiva), y rechazar haría perder lo que el usuario escribió sin conexión. Era una de las
-"revisiones pendientes para la Fase 4" del diseño de la Fase 3; queda resuelta con esta regla.
-
-**Quitar miembros.** Las reglas "sin saldo" y "no el último" las sigue revisando la app. Si dos
-dispositivos chocan (por ejemplo, uno quita a Beto y otro registra un gasto con él), el servidor
-guarda ambos y Beto aparece en Saldos con la nota "ya no está en el grupo", un estado que la app ya
-muestra desde la Fase 2.
+- Los textos y montos coinciden con los CHECK de las tablas y con la validación de la app. El tope de
+  montos de la app baja de `Number.MAX_SAFE_INTEGER` a 99 999 999 999 999, el del servidor: así la
+  app no guarda algo que después no puede subir.
+- Los errores de la llamada usan `22023` (400) y `54000` (413), que PostgREST traduce a esos estados.
+- La app arma lotes de hasta 50 envíos y 256 KiB: un gasto con 50 pagadores, 50 partes y notas
+  largas ocupa unos 20 KiB, así que siempre cabe.
 
 ### Idempotencia
 
@@ -252,8 +284,8 @@ muestra desde la Fase 2.
   exacto. Si no llega la respuesta, el teléfono repite **el mismo envío**.
 - El servidor guarda los envíos aplicados en `private.sync_mutations (user_id, mutation_id, entity,
 entity_id, version, applied_at)`, con clave `(user_id, mutation_id)`. Un envío repetido devuelve
-  el resultado guardado y no vuelve a aplicar nada: sin filas ni versiones de más, y sin pisar
-  cambios que otros hicieron después.
+  el resultado guardado y no vuelve a aplicar nada: sin filas, versiones ni entradas de historial de
+  más.
 - Los ids de las filas son UUID v7 generados en el cliente: repetir un alta nunca duplica una fila.
 - El candado por id de envío cubre el caso de dos llamadas con el mismo envío a la vez (una que se
   dio por perdida y su reintento).
@@ -262,16 +294,46 @@ entity_id, version, applied_at)`, con clave `(user_id, mutation_id)`. Un envío 
   filas de `auth.uid()`. Se borran en cascada con la cuenta. No se purgan en esta fase (son unos 100
   bytes por cambio).
 
+### Historial de cambios
+
+`public.change_log`, de solo agregar:
+
+| Columna               | Qué guarda                                                                     |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `id`                  | `bigint` generado: el orden de los cambios                                     |
+| `group_id`            | El grupo (FK con `on delete cascade`)                                          |
+| `entity`, `entity_id` | Qué cambió: grupo, miembro, categoría, gasto o transferencia, y su id          |
+| `action`              | `create`, `update`, `delete` o `restore`                                       |
+| `fields`              | Los campos que cambiaron (`payers` y `splits` para las partes de un gasto)     |
+| `snapshot`            | La unidad completa después del cambio (el gasto con sus pagadores y partes)    |
+| `version`             | La versión que dejó el cambio                                                  |
+| `actor`               | Quién: `auth.uid()`. Sin FK, para no tener que editarlo si esa cuenta se borra |
+| `mutation_id`         | El envío que lo produjo                                                        |
+| `changed_at`          | Cuándo: `now()` del servidor                                                   |
+
+- **La escriben las RPC:** `sync_push` llama a `private.record_change(...)` (`SECURITY DEFINER`, que
+  toma el autor de `auth.uid()` y revisa el acceso al grupo) por cada cambio aplicado. Un reenvío,
+  un cambio idéntico o un rechazo no escriben nada. En la 4b, las RPC de invitaciones harán lo mismo.
+- **La leen** quienes pueden abrir el grupo: RLS con `private.can_access_group(group_id)`.
+- **Nadie la edita ni la borra:** ni `anon`, ni `authenticated`, ni `service_role` tienen `INSERT`,
+  `UPDATE`, `DELETE` ni `TRUNCATE`. Un trigger rechaza `UPDATE`, `DELETE` y `TRUNCATE` también para
+  `postgres`. Solo deja pasar el `DELETE` que llega en cascada al borrar un grupo con la cuenta (el
+  trigger lo reconoce porque corre anidado en otro trigger). Quitar esa protección exige ser dueño de
+  la tabla y desactivar el trigger: la garantía es para los roles de la API.
+- Sin pantalla en esta fase. En la 4b servirá para "quién cambió qué".
+
 ### `sync_pull(p_cursors jsonb, p_max_rows integer default 2000) → jsonb`
 
 `SECURITY INVOKER` y `STABLE`: todas sus consultas ven la misma foto de la base, así que no puede
 devolver un gasto sin el miembro que creó la transacción siguiente.
 
-- `p_cursors`: `{ "<id de grupo>": <change_seq>, ... }`, hasta 1000 grupos. Un grupo que no viene
-  empieza en 0.
-- Devuelve los grupos visibles por RLS (los tuyos, borrados incluidos) que tengan cambios, cada uno
-  **completo**, ordenados por id. Junta grupos hasta `p_max_rows` filas (entre 100 y 5000) y siempre
-  devuelve al menos uno aunque lo supere:
+- **Incremental.** `p_cursors` es `{ "<id de grupo>": <change_seq>, ... }`. Por cada grupo visible por
+  RLS (los tuyos, borrados incluidos) devuelve solo las filas con `change_seq` mayor que su cursor.
+- **Completa solo con el cursor en 0:** la primera vez en un dispositivo (base nueva), después de
+  "Reiniciar los datos de este teléfono" o, en la 4b, al unirse a un grupo. En los demás casos baja
+  solo lo nuevo.
+- Junta grupos con cambios, ordenados por id, hasta `p_max_rows` filas. Los cambios de un grupo
+  nunca se parten entre páginas: si un grupo solo supera el límite, sale solo en su página.
 
 ```json
 {
@@ -280,31 +342,31 @@ devolver un gasto sin el miembro que creó la transacción siguiente.
 }
 ```
 
-- Cada fila va con todas sus columnas, también las borradas lógicamente.
-- `cursor` es el `change_seq` más alto del grupo en esa foto.
-- Por qué grupos completos: la descarga es el estado actual, no un registro. Una fila cambiada otra
-  vez después queda con su `change_seq` nuevo, y cortar un grupo por la mitad podría traer un hijo
-  antes que su padre. Las reglas de unicidad y las FKs son todas dentro de un grupo, así que un grupo
-  completo siempre se puede aplicar.
+- Cada fila va con todas sus columnas, también las borradas lógicamente. `cursor` es el `change_seq`
+  más alto del grupo en esa foto.
+- Por qué no partir un grupo: lo que se descarga es el estado actual de lo que cambió, no un
+  registro. Una fila cambiada otra vez después queda con su `change_seq` nuevo, y cortar los cambios
+  de un grupo podría traer un hijo antes que su padre. Las reglas de unicidad y las FKs son todas
+  dentro de un grupo, así que sus cambios juntos siempre se pueden aplicar.
 - Supabase limita las respuestas de tablas a `max_rows`, pero una función que devuelve un solo
   `jsonb` no se corta.
 
 ### Privilegios
 
-| Rol             | Cambio                                                                                                                                                                                                               |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `authenticated` | Pierde `UPDATE` de `updated_at` y `version` (las pone el servidor). Gana `UPDATE` de `group_members.user_id` y de `group_currency`. En pagadores y partes, solo `deleted_at`. `EXECUTE` en `sync_push` y `sync_pull` |
-| `authenticated` | `EXECUTE` en las funciones de `private` que llaman las políticas, los triggers y la RPC. `private` sigue fuera de la Data API                                                                                        |
-| `anon`          | Nada, como hasta ahora                                                                                                                                                                                               |
-| `service_role`  | Ningún privilegio en las tablas de `public`: igual que el remoto desde el cambio del panel (pendiente de CLAUDE.md). `delete-account` solo usa `auth.admin`                                                          |
-| Por omisión     | `postgres` en `public` no da nada a `anon`, `authenticated` ni `service_role`, ni `EXECUTE` a `PUBLIC` en funciones nuevas: el repo queda igual que el remoto                                                        |
+| Rol             | Cambio                                                                                                                                                                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authenticated` | Pierde `UPDATE` de `updated_at` y `version` (las pone el servidor). Gana `UPDATE` de `group_members.user_id` y de `group_currency`. En pagadores y partes, solo `deleted_at`. `SELECT` en `change_log`. `EXECUTE` en `sync_push` y `sync_pull` |
+| `authenticated` | `EXECUTE` en las funciones de `private` que llaman las políticas, los triggers y las RPC. `private` sigue fuera de la Data API                                                                                                                 |
+| `anon`          | Nada, como hasta ahora                                                                                                                                                                                                                         |
+| `service_role`  | Ningún privilegio en las tablas de `public`: igual que el remoto desde el cambio del panel (pendiente de CLAUDE.md). `delete-account` solo usa `auth.admin`                                                                                    |
+| Por omisión     | `postgres` en `public` no da nada a `anon`, `authenticated` ni `service_role`, ni `EXECUTE` a `PUBLIC` en funciones nuevas: el repo queda igual que el remoto                                                                                  |
 
 Cada función nueva lleva en su migración `revoke all ... from public, anon` y el `grant` exacto.
 `006-privilegios.test.sql` se actualiza con la matriz nueva y `npm run check:data-api` suma:
 
-- `anon` no ejecuta `sync_push` ni `sync_pull` (401 `42501`);
+- `anon` no ejecuta `sync_push` ni `sync_pull` y no lee `change_log` (401 `42501`);
 - `authenticated` ejecuta `sync_pull` (200, sin grupos para `prueba1`) y `sync_push` con una lista
-  vacía (200, `[]`);
+  vacía (200, `[]`), lee `change_log` (vacío) y no le escribe;
 - un `POST` directo a `groups` con un nombre vacío responde `42501` de la guardia. Si la guardia
   faltara, respondería `23514` (CHECK) y tampoco escribiría nada.
 
@@ -312,19 +374,19 @@ Cada función nueva lleva en su migración `revoke all ... from public, anon` y 
 
 Un trigger `BEFORE DELETE` en `profiles` (corre en la cascada de `auth.admin.deleteUser`) borra los
 grupos que nadie más podría abrir: los creados por la cuenta o con su miembro, sin otro miembro
-vinculado activo. En la Fase 4a son todos los grupos de la cuenta, y sus filas caen en cascada.
-Sin esto, borrar la cuenta dejaría sus gastos huérfanos en la nube. Es lo que ya promete la
-pantalla de borrar la cuenta. Lo que pasa con los grupos compartidos sigue en la Fase 4b.
+vinculado activo. En la Fase 4a son todos los grupos de la cuenta, y sus filas y su historial caen
+en cascada. Sin esto, borrar la cuenta dejaría sus gastos huérfanos en la nube. Es lo que ya
+promete la pantalla de borrar la cuenta. Lo que pasa con los grupos compartidos sigue en la 4b.
 
 ### Migraciones
 
-Tres archivos en `supabase/migrations`, aplicados juntos con un `db push` en el punto de control:
+Cuatro archivos en `supabase/migrations`, aplicados juntos con un `db push` en el punto de control:
 
 1. `<fecha>_sincronizacion_base.sql`: `change_seq`, `group_changes`, `group_currency`, los
    triggers, la guardia, RLS con el acceso del creador y los privilegios.
-2. `<fecha>_sincronizacion_rpc.sql`: `sync_mutations`, `sync_push`, `sync_pull` y sus funciones de
-   apoyo.
-3. `<fecha>_borrar_cuenta_grupos.sql`: el trigger de `profiles`.
+2. `<fecha>_sync_push.sql`: `sync_mutations`, `change_log`, `sync_push` y sus funciones de apoyo.
+3. `<fecha>_sync_pull.sql`: `sync_pull`.
+4. `<fecha>_borrar_cuenta_grupos.sql`: el trigger de `profiles`.
 
 El remoto no tiene grupos (0 grupos y 2 perfiles el 2026-10-14), así que los rellenos no tocan datos
 reales.
@@ -351,6 +413,8 @@ También:
 - `sync_outbox (entity, entity_id, mutation_id, sent_version, payload, state, reason, attempts,
 updated_at)`: un envío en curso (`sent`) o apartado (`failed`) por unidad.
 - `sync_cursors (group_id, seq, updated_at)`.
+- `sync_conflicts (id, entity, entity_id, group_id, reason, payload, server_deleted, was_new,
+was_deletion, created_at)`: los borradores por revisar (sección siguiente).
 - Índices parciales de filas pendientes, para contarlas y recorrerlas sin leer toda la tabla.
 - Las 9 categorías predefinidas quedan sincronizadas (existen iguales en el servidor). Todo lo demás
   queda pendiente: **la primera sincronización sube todo lo creado en las Fases 1 a 3**, incluidos
@@ -358,7 +422,8 @@ updated_at)`: un envío en curso (`sent`) o apartado (`failed`) por unidad.
 
 Los repositorios guardan `group_currency` al registrar o editar un movimiento. Restaurar un
 movimiento borrado cuya moneda de grupo ya no es la actual se rechaza (`CURRENCY_CHANGED`): hoy la
-app lo permitiría y dejaría montos en otra moneda.
+app lo permitiría y dejaría montos en otra moneda. El tope de los montos baja a
+99 999 999 999 999, el del servidor.
 
 ### Unidades de sincronización
 
@@ -368,20 +433,37 @@ app lo permitiría y dejaría montos en otra moneda.
 
 ### Envío
 
-1. Toma hasta 50 unidades pendientes y no apartadas, ordenadas por grupo y, dentro del grupo, por
-   dependencias: grupo, miembros, categorías, gastos y transferencias.
+1. Toma hasta 50 unidades pendientes y no apartadas (y hasta 256 KiB), ordenadas por grupo y, dentro
+   del grupo, por dependencias: grupo, miembros, categorías, gastos y transferencias.
 2. Antes de enviarlas las guarda en `sync_outbox` con un id nuevo y el contenido exacto. Si una
    unidad ya tenía un envío sin respuesta, repite ese mismo.
 3. Con la respuesta:
    - `applied`: si la unidad no cambió mientras viajaba, aplica `current` y queda al día. Si cambió,
      solo guarda `server_version` y sigue pendiente: el próximo lote lleva lo nuevo con la base
      correcta.
-   - `rejected`: aplica `current` (si viene vacío, la unidad nunca existió en el servidor y se borra
-     del teléfono) y emite un aviso.
+   - `rejected`: guarda la versión del teléfono como borrador en `sync_conflicts`, aplica `current`
+     (si viene vacío, la unidad sale de los movimientos y sus datos quedan en el borrador) y emite un
+     aviso.
    - `failed`: deja el envío apartado y los datos como están. El estado pasa a "error". Se reintenta
      al abrir la app de nuevo o con "Reintentar".
 4. Sin red, con un error del servidor o sin respuesta, el envío queda en `sync_outbox` y se repite
    igual en el próximo intento.
+
+### Borradores por revisar
+
+Nada se pierde por un conflicto. La versión rechazada queda en `sync_conflicts` (en la base cifrada,
+sin sincronizar) hasta que el usuario decide:
+
+| Borrador                                        | Acciones                                                                                                                                                                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gasto, ingreso o transferencia (edición o alta) | **Revisar** abre el formulario con tu versión: si el movimiento sigue activo, como edición sobre la versión actual; si no existe o se borró, como movimiento nuevo (con la moneda actual del grupo). Al guardar, el borrador se va. **Descartar** |
+| Un borrado que no se aplicó                     | **Borrar ahora** (sobre la versión actual) o **Mantener**                                                                                                                                                                                         |
+| Grupo o miembro                                 | Muestra tu versión junto a la actual en los campos que difieren (nombre, moneda, emoji, color, archivado, "soy yo"). **Entendido**: el cambio se repite a mano si se quiere                                                                       |
+
+- Aviso al ocurrir, con la acción **Revisar**.
+- Un aviso fijo en el detalle del grupo: "N cambios por revisar", que abre la lista del grupo.
+- La hoja de sincronización cuenta los borradores de todos los grupos.
+- El formulario se llena con `valuesFromExpense` y `valuesFromTransfer`, que ya existen para editar.
 
 ### Aplicar datos del servidor
 
@@ -400,7 +482,8 @@ Vale para la descarga y para el `current` de cada respuesta:
 - Si una fila falla por una restricción, el cursor del grupo no avanza y se reintenta en el próximo
   ciclo. Si falla sin unidades pendientes en ese grupo, es una inconsistencia: estado "error".
 - Al aplicar el gasto completo de un `current`, se borran del teléfono las partes de ese gasto que
-  el servidor no tiene: las de un cambio rechazado o restos locales ya borrados.
+  el servidor no tiene: las de un cambio rechazado (sus datos están en el borrador) o restos locales
+  ya borrados.
 - Al terminar, un solo aviso en el bus con `source: 'sync'` y el grupo: las pantallas vuelven a leer
   con `useLiveQuery`.
 
@@ -420,7 +503,7 @@ Vale para la descarga y para el `current` de cada respuesta:
   no envía, porque `groups.created_by` lo exige, pero sí descarga, y lo reintenta en el siguiente.
 - Fallas: sin red, estado "sin conexión" hasta reconectar o volver al primer plano. Error del
   servidor o tiempo agotado (20 s por llamada): reintentos a los 5 s, 15 s, 45 s, 2 min y luego cada
-  5 min, con variación aleatoria. Un 400 (error de programación): estado "error".
+  5 min, con variación aleatoria. Un 400 o un 413 (error de programación): estado "error".
 - El token lo renueva supabase-js antes de cada llamada. Si la sesión ya no sirve, el
   `AuthProvider` de la Fase 3 la cierra.
 
@@ -428,39 +511,49 @@ Vale para la descarga y para el `current` de cada respuesta:
 
 - Estados: **sincronizado** (nada pendiente), **pendiente** (cambios por subir o un ciclo en curso),
   **sin conexión** y **error** (envíos apartados o falla del servidor). Además: cuántos cambios
-  pendientes, cuántos apartados y la última sincronización completa.
+  pendientes, cuántos apartados, cuántos borradores por revisar y la última sincronización completa.
 - Un ícono discreto en el encabezado de Grupos: nube con ✓, nube con flecha, nube tachada o nube
   con alerta, en los colores del tema. Área táctil de 44 px y nombre accesible ("Sincronización:
   sincronizado").
 - Al tocarlo, una hoja con el estado en palabras, "N cambios sin subir", "Última sincronización:
   hace 2 minutos" y **Sincronizar ahora**. Con envíos apartados: "N cambios no se pudieron subir.
-  Siguen en este teléfono." y **Reintentar**.
+  Siguen en este teléfono." y **Reintentar**. Con borradores: "N cambios por revisar" y los grupos
+  donde están.
 
 ### Cerrar sesión, borrar la cuenta y reiniciar la base local
 
-- **Cerrar sesión y borrar los datos del teléfono:** la confirmación ya no dice que nada está en la
-  nube. Sin pendientes: "Tus datos están guardados en la nube; al volver a entrar se descargan." Con
-  pendientes: "Hay N cambios sin subir: si borras los datos, se pierden."
+- **Cerrar sesión** (sin borrar): los datos quedan cifrados en el teléfono y lo que no se subió se
+  sube al volver a entrar. El texto lo dice.
+- **Cerrar sesión y borrar los datos del teléfono:**
+  - sin cambios pendientes ni borradores: "Tus grupos y movimientos están guardados en la nube. Al
+    volver a entrar se descargan." y **Borrar y cerrar sesión**;
+  - con cambios pendientes o borradores: "Hay N cambios sin subir y M borradores por revisar. Si
+    borras los datos ahora, se pierden." con **Sincronizar primero**, **Borrar de todos modos** y
+    **Cancelar**. Sincronizar primero corre un ciclo y espera: si todo subió y no quedan borradores,
+    sigue con la confirmación normal; si no (sin conexión, por ejemplo), vuelve a avisar con los
+    números nuevos. Los borradores no se suben solos: hay que revisarlos.
+  - Sale el texto que decía que los datos todavía no se guardan en la nube.
 - **Borrar la cuenta:** la lista dice que también se borran tus grupos en la nube.
 - **Clave perdida (pendiente de CLAUDE.md):** la pantalla de error de la base suma "Reiniciar los
   datos de este teléfono". Tras confirmar, borra la base de la cuenta, su clave y su registro, abre
-  una base nueva y la sincronización descarga todo. Lo que no se había subido ya era ilegible sin la
-  clave.
+  una base nueva y la sincronización la descarga completa. Lo que no se había subido ya era ilegible
+  sin la clave.
 
 ## Cómo se ve un conflicto en la app
 
-| Situación                                                                       | Qué ve el usuario                                                                                                                                                             |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| El mismo gasto editado en el teléfono y en la tablet, los dos sin conexión      | Gana la edición que sincroniza última, completa (montos, pagadores y partes). El otro dispositivo lo ve cambiar solo al sincronizar. Sin mensaje: es una actualización normal |
-| Un formulario abierto sobre algo que cambió en otro dispositivo                 | Al guardar, el mensaje que ya existe: "Esto cambió mientras lo editabas. Vuelve a abrirlo para ver la última versión."                                                        |
-| Editaste algo que otro dispositivo borró                                        | Desaparece y un aviso dice: "No se aplicó tu cambio en «Cena»: se borró en otro dispositivo."                                                                                 |
-| Borraste algo que otro dispositivo editó                                        | Queda borrado en todos, sin mensaje                                                                                                                                           |
-| Renombraste un grupo que otro dispositivo archivó                               | El grupo queda archivado con el nombre nuevo                                                                                                                                  |
-| Registraste un gasto sin conexión y otro dispositivo cambió la moneda del grupo | El gasto desaparece y un aviso dice: "No se guardó «Taxi»: la moneda del grupo cambió en otro dispositivo. Vuelve a registrarlo."                                             |
-| Cambiaste la moneda de un grupo que ya tiene movimientos en otro dispositivo    | Vuelve la moneda anterior y un aviso dice: "No se cambió la moneda de «Viaje»: el grupo ya tiene movimientos."                                                                |
-| Un envío que el servidor no acepta por otra razón                               | El indicador pasa a "error". La hoja dice cuántos cambios no se pudieron subir, que siguen en el teléfono, y ofrece "Reintentar"                                              |
+| Situación                                                                       | Qué ve el usuario                                                                                                                                                                         |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| El mismo gasto editado en el teléfono y en la tablet, los dos sin conexión      | Queda el que sincroniza primero. En el otro, el gasto vuelve a esa versión y un aviso dice: "«Cena» cambió mientras estabas sin conexión. Guardamos tu versión para que la revises."      |
+| Editaste algo que otro dispositivo borró                                        | Desaparece y un aviso dice: "«Cena» se borró en otro dispositivo. Guardamos tu versión para que la revises." Al revisarla se puede registrar de nuevo                                     |
+| Borraste algo que otro dispositivo editó                                        | Vuelve con la versión nueva y un aviso dice: "No se borró «Cena»: cambió mientras estabas sin conexión." Al revisarlo: "Borrar ahora" o "Mantener"                                        |
+| Cambiaste un grupo o un miembro que cambió en otro dispositivo                  | Vuelve la versión del servidor y un aviso dice: "No se aplicó tu cambio en «Viaje»: cambió mientras estabas sin conexión." En "por revisar" se ve tu versión junto a la actual            |
+| Registraste un gasto sin conexión y otro dispositivo cambió la moneda del grupo | Sale de los movimientos (sus montos estaban en la moneda vieja) y queda como borrador. Aviso: "«Taxi» no se guardó: la moneda del grupo cambió. Quedó como borrador para que lo revises." |
+| Cambiaste la moneda de un grupo que ya tiene movimientos en otro dispositivo    | Vuelve la moneda anterior y un aviso dice: "No se cambió la moneda de «Viaje»: el grupo ya tiene movimientos."                                                                            |
+| Hiciste el mismo cambio en los dos dispositivos                                 | Nada: el servidor ve que el resultado es igual y lo acepta                                                                                                                                |
+| Un formulario abierto sobre algo que cambió en otro dispositivo                 | Al guardar, el mensaje que ya existe: "Esto cambió mientras lo editabas. Vuelve a abrirlo para ver la última versión."                                                                    |
+| Un envío que el servidor no acepta por otra razón                               | El indicador pasa a "error". La hoja dice cuántos cambios no se pudieron subir, que siguen en el teléfono, y ofrece "Reintentar"                                                          |
 
-Los avisos usan el `Toast` de la app, sin "Deshacer", y se leen con el lector de pantalla.
+Los avisos usan el `Toast` de la app con la acción "Revisar" y se leen con el lector de pantalla.
 
 ## Realtime
 
@@ -474,17 +567,17 @@ Los avisos usan el `Toast` de la app, sin "Deshacer", y se leen con el lector de
   vez, y el ciclo al abrir, al volver y al escribir ya los mantiene al día.
 - **Recomendación:** dejarlo para la Fase 4b, cuando los grupos sean compartidos. Entraría como un
   aviso ("cambió el grupo X") que dispara un ciclo, un disparador más del motor. Los datos seguirían
-  llegando por `sync_pull`, que valida y aplica cada grupo completo.
+  llegando por `sync_pull`, que valida y aplica los cambios de cada grupo juntos.
 
 ## Seguridad
 
 - Toda escritura pasa por `sync_push`, con RLS y privilegios por columna adentro. Las reglas de
   integridad viven en la base (CHECK, FKs, triggers), no solo en la RPC.
 - Nada de lo que define identidad o auditoría viene del cliente: `created_by`, fechas, `version`,
-  `change_seq`. `user_id` solo puede ser la cuenta de la sesión, y el rol `owner` solo lo inserta el
-  creador.
-- Límites: 50 envíos por llamada, 50 pagadores y 50 partes por gasto, entre 100 y 5000 filas por
-  descarga, 1000 cursores y 20 s por llamada en la app.
+  `change_seq`, el autor del historial. `user_id` solo puede ser la cuenta de la sesión, y el rol
+  `owner` solo lo inserta el creador.
+- Límites de lote, payload y campos validados en el servidor (sección "Límites").
+- `change_log` no se edita ni se borra desde la API.
 - La app valida con zod todo lo que llega del servidor antes de escribirlo.
 - Los registros no incluyen montos, nombres ni tokens. Solo códigos y conteos.
 - Al cerrar: revisión con la skill security-code-review y `check:data-api` contra el remoto.
@@ -493,40 +586,47 @@ Los avisos usan el `Toast` de la app, sin "Deshacer", y se leen con el lector de
 
 - **pgTAP** (`supabase/tests/database`):
   - `007-sync-columnas`: columnas del servidor, `change_seq` por grupo, la guardia, la moneda
-    bloqueada, `group_currency` y "soy yo";
-  - `008-sync-push`: alta de grupo, miembros y gasto; reenvío idéntico sin duplicados; último en
-    llegar; borrar gana; archivar gana; moneda y "soy yo" con versión vieja; sumas inválidas;
-    parte editada; grupo ajeno; lote demasiado grande; un envío inválido no frena a los demás;
-    cambio idéntico sin versión nueva;
-  - `009-sync-pull`: cursores, grupos completos, páginas, borrados incluidos, solo grupos con
-    acceso, `anon` sin acceso;
-  - `010-borrar-cuenta`: se borran los grupos no compartidos y quedan los compartidos;
+    bloqueada, `group_currency`, "soy yo" y el acceso del creador;
+  - `008-sync-push`: altas; reenvío idéntico sin duplicados; base vieja rechazada al editar, borrar,
+    restaurar, archivar y en "soy yo"; cambio idéntico aceptado sin escribir; moneda; sumas; partes
+    inmutables; grupo ajeno; un envío inválido no frena a los demás; **cada límite** de la tabla;
+  - `009-historial`: una entrada por cambio aplicado con autor, acción, campos y versión; nada por
+    reenvíos, cambios idénticos o rechazos; lectura solo con acceso al grupo; nadie la edita, la
+    borra ni la vacía, salvo la cascada de borrar la cuenta;
+  - `010-sync-pull`: incremental por cursor; completa con cursor 0; páginas sin partir grupos;
+    borrados incluidos; solo grupos con acceso; **cada límite**; `anon` sin acceso;
+  - `011-borrar-cuenta`: se borran los grupos no compartidos con su historial y quedan los
+    compartidos;
   - `000` a `006` se ajustan: las pruebas de RLS escriben con la marca de `sync_push`, que
     `tests.autenticar_como` pone por omisión.
 - **Motor con TDD**, en Jest contra el SQL real (PGlite con las migraciones de Supabase y un
-  transporte que puede fallar a propósito):
-  - dos dispositivos con la misma cuenta que convergen;
-  - cortes de red antes de enviar y después del commit (respuesta perdida);
-  - reintentos sin duplicar;
-  - conflictos de la tabla anterior;
-  - descarga por páginas;
-  - subida inicial de datos viejos;
-  - una segunda cuenta que no ve nada de la primera.
+  transporte que puede fallar a propósito), con **dos dispositivos simulados**:
+  - convergen tras cambios en uno y en el otro;
+  - conflictos de la tabla anterior: el segundo en sincronizar recibe el rechazo, vuelve a la versión
+    del servidor, guarda su borrador y avisa; al guardar el borrador, los dos convergen;
+  - cortes de red antes de enviar y después del commit (respuesta perdida), y reintentos sin
+    duplicar;
+  - descarga incremental: un segundo ciclo sin cambios no baja nada;
+  - subida inicial de datos viejos y una segunda cuenta que no ve nada de la primera.
 - **Programación y estado** con un servidor falso y temporizadores falsos: espera de 2 s, un ciclo
-  a la vez, reintentos, reconexión y primer plano.
-- **Pantallas** con RNTL: indicador, hoja, avisos, textos de cerrar sesión y reinicio de la base.
+  a la vez, reintentos, reconexión, primer plano y "Sincronizar ahora".
+- **Pantallas** con RNTL: indicador, hoja, avisos, borradores (revisar, borrar ahora, descartar),
+  cerrar sesión con "Sincronizar primero" y reinicio de la base.
 - **Flujo completo:** la app crea un grupo y un gasto, el indicador pasa de pendiente a
   sincronizado y un segundo dispositivo los descarga, contra PGlite.
 - **En el teléfono, al cierre:** APK de preview sin internet (abrir, registrar, ver "pendiente",
-  reconectar), el teléfono y el emulador con la misma cuenta, y reinstalar para ver la descarga.
+  reconectar), el teléfono y el emulador con la misma cuenta (un cambio en cada uno y un conflicto
+  con su borrador), y reinstalar para ver la descarga completa.
 
 ## Pendientes para la Fase 4b o después
 
 - Invitaciones, unirse a grupos y borrar una cuenta con grupos compartidos.
+- **Acceso del creador:** cuando existan invitaciones y expulsiones, debe pasar a depender de la
+  membresía (también en CLAUDE.md).
 - Perfiles de otras cuentas: `created_by` y `user_id` de otras personas necesitan su fila local en
   `users` (las FKs locales hoy apuntan solo a la cuenta propia).
 - Perder el acceso a un grupo: `sync_pull` debería avisar qué grupos ya no ves.
+- Pantalla de historial con `change_log` ("quién cambió qué").
 - Realtime como aviso de cambios.
-- Fusión por campo si los choques en grupos compartidos se vuelven frecuentes.
+- Fusión por campo, si los rechazos en grupos compartidos resultan frecuentes.
 - Purga de `private.sync_mutations` si crece.
-- Rescatar como borrador un movimiento nuevo que el servidor rechazó, en lugar de solo avisar.
