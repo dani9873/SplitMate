@@ -213,4 +213,4 @@ src/
 - [x] Fase 0 — Limpieza y cimientos (PR #1 integrado en `main`)
 - [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (PR #2 integrado en `main`)
 - [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (PR #3 integrado en `main`)
-- [ ] Fase 3 — Cuentas y nube con Supabase: login obligatorio, esquema en Postgres con RLS, sin sincronizar todavía (rama `fase-3-supabase-auth`, en curso)
+- [x] Fase 3 — Cuentas y nube con Supabase: login obligatorio, esquema en Postgres con RLS, sin sincronizar todavía (PR #4 integrado en `main`; antes de probar la Fase 4 con otra persona, las dos pruebas manuales de "Pendientes técnicos")

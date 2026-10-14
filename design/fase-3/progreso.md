@@ -3,8 +3,9 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** 12f.3, CLAUDE.md (Estado), push, PR, CI en verde y merge según la regla; después
-12f.4.
+**Siguiente paso:** Fase 3 cerrada (PR #4). Antes de probar la Fase 4 con otra persona, las dos
+pruebas manuales al inicio de "Pendientes técnicos" en CLAUDE.md. La Fase 4 empieza con su propio
+plan en `design/fase-4/`.
 
 ## Pasos
 
@@ -44,7 +45,7 @@
       probado en Jest. 649 pruebas en verde.
 - [x] Punto de control: permiso para desplegar la Edge Function `delete-account` (concedido el
       2026-10-12).
-- [ ] 12. Cierre:
+- [x] 12. Cierre:
   - [x] 12a. Verificaciones: tsc, lint, 649 pruebas, cobertura al 100 %, `check:bundle` y
         `expo-doctor` (21/21).
   - [x] 12b. Revisión de seguridad en `revision-seguridad.md`: 1 media, 2 bajas y 1 a
@@ -167,7 +168,7 @@
           código corregido: abre con la sesión guardada y el enlace con código falso da el error
           controlado en frío, con la app abierta y en segundo plano. Sin build nuevo; Metro se
           reinicia con `--clear`. Detalle en `crash-migracion-0003.md`.
-  - [ ] 12f. Cierre de la fase (pedido del usuario del 2026-10-14). Commit por paso:
+  - [x] 12f. Cierre de la fase (pedido del usuario del 2026-10-14). Commit por paso:
     - [x] 1. Lectura cruzada y revisión final de seguridad (`revision-seguridad.md`, sección
           final): sin hallazgos nuevos. En el remoto, `prueba1` y la cuenta real del usuario, cada
           una con su perfil y sin grupos. Sin la contraseña de `prueba1`, la prueba se hizo como la
@@ -179,10 +180,12 @@
     - [x] 2. CLAUDE.md: al inicio de "Pendientes técnicos", las dos pruebas manuales que faltan
           (registro con un correo real y confirmación por enlace; recuperar la contraseña), antes de
           probar la Fase 4 con otra persona.
-    - [ ] 3. CLAUDE.md (Estado), push, PR, CI en verde y merge con merge commit (el usuario probó
-          la fase en su teléfono). `prueba2` ya no existe; `prueba1` se conserva para
-          `check:data-api`.
-    - [ ] 4. `progreso.md` al día y detenerse.
+    - [x] 3. CLAUDE.md (Estado: Fase 3 integrada con el PR #4), push y PR #4. El merge, con merge
+          commit y sin volver a preguntar (el usuario probó la fase en su teléfono), se hace cuando
+          el CI quede en verde sobre este commit, el último de la rama. `prueba2` ya no existía (lo
+          borró la app en la prueba del teléfono); `prueba1` se conserva para `check:data-api`. Una
+          caída de red de unos minutos en la PC retrasó el push, sin otros efectos.
+    - [x] 4. `progreso.md` al día.
 
 ## Notas para retomar
 
