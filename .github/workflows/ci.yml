@@ -40,3 +40,24 @@ jobs:
 
       - name: Pantalla de desarrollo fuera del bundle de producción
         run: npm run check:bundle
+
+  database:
+    name: Base de datos y RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Versión fija: la misma CLI que creó supabase/ (npx supabase@2.120.0).
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.120.0
+
+      # Solo Postgres, con las migraciones de supabase/migrations aplicadas en orden.
+      - name: Postgres local con las migraciones
+        run: supabase db start
+
+      # pgTAP de supabase/tests/database: estructura, RLS por tabla, suplantación, integridad
+      # y perfiles.
+      - name: Pruebas de seguridad de la base
+        run: supabase test db

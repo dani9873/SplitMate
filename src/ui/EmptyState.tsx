@@ -13,6 +13,8 @@ export interface EmptyStateProps {
   title: string;
   description?: string;
   action?: { label: string; onPress: () => void };
+  /** Otra salida, menos destacada, debajo de la acción. */
+  secondaryAction?: { label: string; onPress: () => void };
   className?: string;
   testID?: string;
 }
@@ -26,6 +28,7 @@ export function EmptyState({
   title,
   description,
   action,
+  secondaryAction,
   className,
   testID,
 }: EmptyStateProps) {
@@ -62,6 +65,9 @@ export function EmptyState({
           variant="secondary"
           className="mt-3"
         />
+      ) : null}
+      {secondaryAction ? (
+        <Button label={secondaryAction.label} onPress={secondaryAction.onPress} variant="ghost" />
       ) : null}
     </View>
   );

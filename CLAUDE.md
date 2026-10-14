@@ -30,7 +30,8 @@ eSIM ni pagos reales**: solo registro, cálculo y control de gastos.
 - Gastos recurrentes (renta, servicios) y recordatorios de pago (notificaciones locales).
 - Exportar a PDF y Excel.
 - Funciona sin conexión y sincroniza al reconectar.
-- Login obligatorio: correo y Google.
+- Login obligatorio con correo y contraseña. Sin Google ni otros proveedores (decisión del
+  2026-10-13).
 - Multidioma: cualquier idioma vía archivos de traducción. Inicialmente `es` y `en`.
 - Modo claro y oscuro.
 
@@ -41,7 +42,7 @@ eSIM ni pagos reales**: solo registro, cálculo y control de gastos.
 | Base | Expo (última versión estable de SDK), Expo Router, TypeScript `strict` |
 | Estilos | NativeWind (Tailwind) con tokens de diseño propios; dark mode por `colorScheme` |
 | Datos locales | SQLite en el dispositivo (`expo-sqlite`) + Drizzle ORM. **Fuente de verdad local** |
-| Nube | Supabase: Postgres, Auth (correo + Google), Storage, Row Level Security |
+| Nube | Supabase: Postgres, Auth (solo correo y contraseña), Storage, Row Level Security |
 | Sincronización | Offline-first. El esquema local se diseña listo para sincronizar desde el día 1 |
 | Formularios | react-hook-form + zod (zod también valida en la frontera de datos) |
 | Estado de UI | Zustand solo para estado de UI; los datos se leen de SQLite con consultas reactivas |
@@ -68,6 +69,11 @@ Cambiar cualquiera de estas decisiones requiere proponerlo y esperar aprobación
 - Toda tabla sincronizable tiene `created_at`, `updated_at`, `deleted_at` (borrado lógico)
   y `version`.
 - Ninguna operación depende de tener red.
+- Migraciones locales (drizzle-kit): cada `.sql` es un módulo propio para Metro y Jest
+  (`scripts/sql-module.js`). No volver a `babel-plugin-inline-import`, aunque lo sugiera la guía de
+  Drizzle: Metro servía un `.sql` viejo desde su caché y la app se cerraba
+  (`design/fase-3/crash-migracion-0003.md`). Una migración `--custom` lleva su SQL antes de abrir
+  la app: un trozo sin SQL da `MIGRATION_INVALID`.
 
 ## Arquitectura de carpetas
 
@@ -91,6 +97,14 @@ src/
 - Validar con zod toda entrada del usuario y todo dato que llegue de la red.
 - Enlaces de invitación con token aleatorio, expirable y revocable.
 - Al cerrar cada fase con cambios relevantes, ejecutar una revisión de seguridad del código.
+- Toda migración que cree una tabla, función o secuencia en `public` trae en el mismo archivo sus
+  GRANT explícitos (solo a los roles que la usan, nunca a `anon`), RLS y políticas, y actualiza
+  `001-estructura` y `006-privilegios`. El proyecto no expone nada nuevo por omisión.
+- Los privilegios cambian solo por migraciones, nunca desde el panel: desactivar la exposición
+  automática en Data API revocó también los de las tablas existentes
+  (`design/fase-3/data-api-privilegios.md`). Después de cada `supabase db push`,
+  `npm run check:data-api` debe pasar (usuario de prueba `prueba1@splitmate.test`; la contraseña la
+  da el usuario y solo va en la variable de entorno o en el aviso del script).
 
 ## Skills a usar (si están disponibles en la sesión)
 
@@ -112,9 +126,23 @@ src/
    tomadas y pendientes para la siguiente fase. Actualiza el "Estado" de abajo.
 6. Cuando el usuario confirme que probó la fase en su teléfono y el CI esté en verde, haz
    merge del PR con merge commit sin volver a preguntar.
+7. Toda la comunicación con el usuario, los planes, los PR y los commits van en español.
+8. Para no perder avance si la sesión se corta: commit al terminar cada paso del plan, aunque
+   sea pequeño, y `design/fase-N/progreso.md` al día, con la lista de pasos (los terminados
+   con `[x]`) y una línea de "Siguiente paso". Al retomar, se empieza por ese archivo.
 
 ## Pendientes técnicos
 
+- **Dos pruebas manuales de la Fase 3, antes de probar la Fase 4 con otra persona.** El límite de
+  correos del proyecto (2 por hora) las dejó fuera de la prueba del teléfono del 2026-10-14:
+  1. Registro nuevo con un correo real y confirmación por enlace: el enlace abre la app y entra.
+     Si pasaron más de 5 minutos, la pantalla dice que el correo quedó confirmado y lleva a entrar.
+     Si se usa el mismo correo de la prueba anterior, borrar antes esa cuenta desde la app.
+  2. Recuperar la contraseña: llega el correo, el enlace abre "contraseña nueva", y después la
+     nueva sirve para entrar y la anterior no.
+
+  La caída al abrir un enlace ya se verificó con un enlace simulado
+  (`design/fase-3/crash-migracion-0003.md`).
 - **Rutas tipadas de Expo Router desactivadas.** En Windows, el generador incremental de
   `.expo/types/router.d.ts` compara rutas con `'../'` y registra archivos de `src/` como
   rutas, lo que rompe `tsc` mientras Metro corre. Reevaluar en una fase futura o al
@@ -160,9 +188,29 @@ src/
 - **Foco automático dentro de las hojas.** En Android, el campo para renombrar un miembro
   recibe el foco al abrir la hoja, pero el teclado no se abre solo dentro del Modal: hay que
   tocar el campo. Revisarlo cuando otra hoja necesite escribir apenas se abre.
+- **service_role sin privilegios en el remoto.** El panel le quitó los de las 8 tablas y no se
+  devolvieron: las migraciones le dan lectura y escritura sin DELETE ni TRUNCATE, y el remoto, nada.
+  Hoy no afecta (`delete-account` solo usa `auth.admin`). En la fase de sincronización, quitárselos
+  también en una migración (privilegio mínimo, repo igual al remoto) o devolvérselos si un proceso
+  del servidor los necesita.
+- **MFA.** Supabase Auth admite un segundo factor (TOTP). Ofrecerlo en Ajustes, al menos
+  como opción, antes de la publicación.
+- **CAPTCHA en el registro si hay abuso.** Supabase admite hCaptcha y Cloudflare Turnstile en
+  registro, inicio de sesión y recuperación. Activarlo si aparecen registros automatizados;
+  hasta entonces bastan los límites de intentos de Auth.
+- **SMTP propio antes de invitar a otras personas.** El correo integrado de Supabase solo
+  envía a miembros de la organización y unos pocos por hora. Antes de que otras personas se
+  registren, configurar un proveedor SMTP (Resend, Brevo u otro) y subir el límite de envíos.
+  Sin SMTP, el panel no deja editar las plantillas: los correos son los predeterminados (solo el
+  enlace, en inglés) y la app no muestra el campo del código. Con SMTP, pegar las plantillas de
+  `supabase/templates` (es/en, enlace y código de 6 dígitos; pasos en
+  `design/fase-3/ajustes-panel.md`, sección 5), pasar `EMAIL_HAS_CODE` a `true` en
+  `src/features/auth/auth-service.ts` y hacer un build nuevo. El código cubre lo que el enlace no:
+  abrirlo en otro dispositivo o después de los 5 minutos en que Supabase canjea el enlace PKCE.
 
 ## Estado
 
 - [x] Fase 0 — Limpieza y cimientos (PR #1 integrado en `main`)
 - [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (PR #2 integrado en `main`)
-- [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (rama `fase-2-mvp-pantallas`, PR hacia `main` en revisión)
+- [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (PR #3 integrado en `main`)
+- [x] Fase 3 — Cuentas y nube con Supabase: login obligatorio, esquema en Postgres con RLS, sin sincronizar todavía (PR #4 integrado en `main`; antes de probar la Fase 4 con otra persona, las dos pruebas manuales de "Pendientes técnicos")

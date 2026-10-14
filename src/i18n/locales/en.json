@@ -430,5 +430,141 @@
       "DUPLICATE_MEMBER": "Someone appears twice.",
       "UNBALANCED": "The amounts don't add up."
     }
+  },
+  "auth": {
+    "welcome": {
+      "title": "SplitMate",
+      "tagline": "Track shared expenses and keep accounts clear.",
+      "createAccount": "Create account",
+      "signIn": "I have an account"
+    },
+    "fields": {
+      "name": "Your name",
+      "namePlaceholder": "How your groups will see you",
+      "email": "Email",
+      "emailPlaceholder": "you@email.com",
+      "password": "Password",
+      "newPassword": "New password",
+      "passwordHint": "At least 8 characters.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "code": "6-digit code"
+    },
+    "signUp": {
+      "title": "Create your account",
+      "submit": "Create account",
+      "haveAccount": "I have an account"
+    },
+    "signIn": {
+      "title": "Sign in to your account",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "noAccount": "Create an account",
+      "resendConfirmation": "Resend the confirmation email"
+    },
+    "checkEmail": {
+      "title": "Check your email",
+      "signupBody": "We sent a link to {{email}}. Open it on this phone to confirm your account.",
+      "recoveryBody": "If there is an account with {{email}}, we sent it a link. Open it on this phone within the next 5 minutes to choose a new password.",
+      "signupBodyWithCode": "We sent an email to {{email}}. Tap the link or enter the code to confirm your account.",
+      "recoveryBodyWithCode": "If there is an account with {{email}}, we sent it an email. Tap the link or enter the code to choose a new password.",
+      "submit": "Confirm",
+      "resend": "Resend email",
+      "resendIn": "Resend in {{seconds}} s",
+      "resent": "We sent you another email.",
+      "confirmed": "I already confirmed my email",
+      "otherEmail": "Use another email"
+    },
+    "forgot": {
+      "title": "Recover your password",
+      "body": "Enter your account email and we will send you a link.",
+      "submit": "Send"
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "body": "You will use it to sign in from now on.",
+      "submit": "Save password"
+    },
+    "callback": {
+      "loading": "Confirming the link",
+      "unusableTitle": "This link no longer works",
+      "confirmedTitle": "Your email is confirmed",
+      "confirmedBody": "Sign in with your email and password.",
+      "signupBody": "It was already used or it expired. Sign in with your password: if your email is not confirmed yet, you can ask for another link.",
+      "recoveryBody": "It was already used, or more than 5 minutes passed since you asked for it. Ask for another one and open it on this phone right away.",
+      "unknownBody": "If it was to confirm your email, sign in with your password: if it still needs confirming, you can ask for another link. If it was to change your password, ask for another one.",
+      "signedInBody": "You are already signed in on this phone.",
+      "signIn": "Sign in",
+      "newLink": "Get a new link",
+      "back": "Back"
+    },
+    "validation": {
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "Use 80 characters at most.",
+      "emailRequired": "Enter your email.",
+      "emailInvalid": "Check the email: it looks incomplete.",
+      "emailTooLong": "The email is too long.",
+      "passwordRequired": "Enter the password.",
+      "passwordTooShort": "Use at least 8 characters.",
+      "passwordTooLong": "The password is too long.",
+      "codeInvalid": "The code has 6 digits."
+    },
+    "errors": {
+      "invalidCredentials": "Wrong email or password.",
+      "emailNotConfirmed": "Confirm your email before signing in.",
+      "tooManyAttempts": "Too many attempts. Wait a few minutes.",
+      "weakPassword": "That password is easy to guess. Try a longer one.",
+      "samePassword": "The new password must be different from the old one.",
+      "invalidEmail": "Check the email: it does not look valid.",
+      "emailNotAllowed": "We cannot send emails to that address yet.",
+      "invalidCode": "The code is wrong or has expired.",
+      "linkExpired": "The link expired or was opened on another phone. Ask for another one.",
+      "sessionExpired": "Your session expired. Start again.",
+      "offline": "No connection. Check your internet and try again.",
+      "unavailable": "The service is not responding. Try again later.",
+      "unknown": "Something went wrong. Try again.",
+      "reauthenticationRequired": "For your security, confirm it is you again."
+    }
+  },
+  "config": {
+    "error": {
+      "title": "The app is not set up",
+      "description": "This build is missing the settings to connect to the server. Check the .env file and open the app again."
+    }
+  },
+  "account": {
+    "defaultName": "User",
+    "title": "Account",
+    "signedInAs": "Signed in as {{email}}",
+    "signOut": "Sign out",
+    "delete": "Delete account",
+    "signOutSheet": {
+      "title": "Sign out",
+      "keep": "Sign out",
+      "keepHint": "Your data stays encrypted on this phone for when you sign in again.",
+      "wipe": "Sign out and delete the data on this phone",
+      "wipeHint": "To leave the phone without your data, for example if it is not yours.",
+      "confirmTitle": "Delete the data on this phone?",
+      "confirmBody": "Your groups and entries are not saved in the cloud yet: if you delete them, they cannot be recovered.",
+      "confirm": "Delete and sign out"
+    },
+    "deleteScreen": {
+      "title": "Delete your account",
+      "intro": "This permanently deletes:",
+      "itemAccount": "Your SplitMate account and profile.",
+      "itemPhone": "The data of this account on this phone.",
+      "itemGroups": "Once groups are shared: the groups with nobody else who has an account. In the others, your name stays without an account.",
+      "email": "Enter your email to confirm",
+      "emailMismatch": "It does not match the email of this account.",
+      "password": "Your password",
+      "submit": "Delete my account"
+    },
+    "notices": {
+      "accountDeleted": "Your account was deleted.",
+      "accountDeletedDataKept": "Your account was deleted, but the data on this phone could not be deleted. It stays encrypted; uninstalling the app also deletes it.",
+      "dataDeleted": "You signed out and the data on this phone was deleted.",
+      "dataDeleteFailed": "You signed out, but the data on this phone could not be deleted. It stays encrypted; uninstalling the app also deletes it.",
+      "dismiss": "Got it"
+    }
   }
 }

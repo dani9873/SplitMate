@@ -15,10 +15,14 @@
     "check": "npm run typecheck && npm run lint && npm test",
     "icons": "node scripts/generate-icons.mjs",
     "test:coverage": "jest --coverage",
-    "check:bundle": "node scripts/check-prod-bundle.mjs"
+    "check:bundle": "node scripts/check-prod-bundle.mjs",
+    "check:data-api": "node scripts/check-data-api.mjs"
   },
   "jest": {
     "preset": "jest-expo",
+    "transform": {
+      "\\.sql$": "<rootDir>/scripts/jest-sql-transformer.js"
+    },
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.ts"
     ],
@@ -52,6 +56,7 @@
     "@hookform/resolvers": "^5.9.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@shopify/flash-list": "2.0.2",
+    "@supabase/supabase-js": "^2.117.3",
     "drizzle-orm": "^0.45.3",
     "expo": "~57.0.27",
     "expo-constants": "~57.0.21",
@@ -90,7 +95,6 @@
     "@types/node": "^22.20.5",
     "@types/react": "~19.2.4",
     "@types/sql.js": "^1.4.11",
-    "babel-plugin-inline-import": "^3.0.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",

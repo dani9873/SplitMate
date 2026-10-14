@@ -20,12 +20,16 @@ const toHex = (bytes: Uint8Array) =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 
 /**
- * Devuelve la clave de cifrado de la base local: 256 bits aleatorios en hexadecimal.
- * Se genera en el primer arranque y se guarda en el almacén seguro del sistema. La clave
- * se valida como hexadecimal porque se interpola en `PRAGMA key`.
+ * Devuelve la clave de cifrado de una base local: 256 bits aleatorios en hexadecimal.
+ * Se genera la primera vez y se guarda en el almacén seguro del sistema. La clave se valida
+ * como hexadecimal porque se interpola en `PRAGMA key`. Sin nombre, es la de la base de las
+ * Fases 1 y 2; cada cuenta tiene la suya.
  */
-export async function getOrCreateDatabaseKey({ store, randomBytes }: KeyDeps): Promise<string> {
-  const existing = await store.getItemAsync(DATABASE_KEY_NAME);
+export async function getOrCreateDatabaseKey(
+  { store, randomBytes }: KeyDeps,
+  keyName: string = DATABASE_KEY_NAME,
+): Promise<string> {
+  const existing = await store.getItemAsync(keyName);
   if (existing !== null) {
     if (!KEY_PATTERN.test(existing)) {
       throw new DatabaseSetupError('KEY_INVALID', 'La clave guardada no tiene el formato esperado');
@@ -33,6 +37,6 @@ export async function getOrCreateDatabaseKey({ store, randomBytes }: KeyDeps): P
     return existing;
   }
   const key = toHex(randomBytes(KEY_BYTES));
-  await store.setItemAsync(DATABASE_KEY_NAME, key);
+  await store.setItemAsync(keyName, key);
   return key;
 }

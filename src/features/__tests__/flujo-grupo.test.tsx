@@ -1,15 +1,30 @@
-import { Stack } from 'expo-router';
+import { useState } from 'react';
 import { userEvent } from '@testing-library/react-native';
 import { act, renderRouter, screen, within } from 'expo-router/testing-library';
 
-import { DatabaseProvider } from '@/db/DatabaseProvider';
+import { openAccountDatabase } from '@/db/client';
 import { createTestRepositories, type TestRepositories } from '@/db/test-utils';
+import { AuthProvider } from '@/features/auth';
+import { TEST_SESSION, createFakeAuthService } from '@/features/auth/test-utils';
+import { RootNavigator } from '@/features/navigation';
 import { changeLanguage } from '@/i18n';
 
-import { UndoProvider } from '../undo';
-
-// Rutas reales de la app, salvo el layout raíz: aquí la base es sql.js y no hay splash.
+// Rutas reales de la app, salvo el layout raíz: aquí no hay splash, la sesión es falsa y la base
+// de la cuenta es sql.js.
 const route = (path: string) => require(`../../../app/${path}`).default;
+
+jest.mock('@/db/client', () => ({ openAccountDatabase: jest.fn() }));
+jest.mock('@/db/app-deps', () => {
+  const { createIdGenerator } = jest.requireActual('@/lib/ids');
+  let time = 1_760_000_000_000;
+  const now = () => (time += 1);
+  return {
+    appRepositoryDeps: {
+      now,
+      newId: createIdGenerator({ now, randomBytes: (n: number) => new Uint8Array(n).fill(7) }),
+    },
+  };
+});
 
 // Teléfono en español de Colombia: así lo aplican las preferencias al cargar Ajustes.
 jest.mock('expo-localization', () => {
@@ -19,28 +34,34 @@ jest.mock('expo-localization', () => {
 
 let ctx: TestRepositories;
 
-function TestLayout() {
+function TestRoot() {
+  const [service] = useState(() => createFakeAuthService({ restore: async () => TEST_SESSION }));
   return (
-    <DatabaseProvider value={{ db: ctx.db, repos: ctx.repos }}>
-      <UndoProvider>
-        <Stack screenOptions={{ headerShown: false }} />
-      </UndoProvider>
-    </DatabaseProvider>
+    <AuthProvider service={service}>
+      <RootNavigator />
+    </AuthProvider>
   );
 }
 
 const routes = () => ({
-  _layout: TestLayout,
-  '(tabs)/_layout': route('(tabs)/_layout'),
-  '(tabs)/index': route('(tabs)/index'),
-  '(tabs)/activity': route('(tabs)/activity'),
-  '(tabs)/settings': route('(tabs)/settings'),
-  'groups/new': route('groups/new'),
-  'groups/[groupId]/index': route('groups/[groupId]/index'),
-  'groups/[groupId]/settings': route('groups/[groupId]/settings'),
-  'groups/[groupId]/entries/new': route('groups/[groupId]/entries/new'),
-  'groups/[groupId]/entries/[entryId]/index': route('groups/[groupId]/entries/[entryId]/index'),
-  'groups/[groupId]/entries/[entryId]/edit': route('groups/[groupId]/entries/[entryId]/edit'),
+  _layout: TestRoot,
+  '(auth)/_layout': route('(auth)/_layout'),
+  '(auth)/welcome': route('(auth)/welcome'),
+  '(app)/_layout': route('(app)/_layout'),
+  '(app)/(tabs)/_layout': route('(app)/(tabs)/_layout'),
+  '(app)/(tabs)/index': route('(app)/(tabs)/index'),
+  '(app)/(tabs)/activity': route('(app)/(tabs)/activity'),
+  '(app)/(tabs)/settings': route('(app)/(tabs)/settings'),
+  '(app)/groups/new': route('(app)/groups/new'),
+  '(app)/groups/[groupId]/index': route('(app)/groups/[groupId]/index'),
+  '(app)/groups/[groupId]/settings': route('(app)/groups/[groupId]/settings'),
+  '(app)/groups/[groupId]/entries/new': route('(app)/groups/[groupId]/entries/new'),
+  '(app)/groups/[groupId]/entries/[entryId]/index': route(
+    '(app)/groups/[groupId]/entries/[entryId]/index',
+  ),
+  '(app)/groups/[groupId]/entries/[entryId]/edit': route(
+    '(app)/groups/[groupId]/entries/[entryId]/edit',
+  ),
 });
 
 type User = ReturnType<typeof userEvent.setup>;
@@ -74,6 +95,7 @@ async function choosePayer(user: User, name: string) {
 describe('flujo completo de un grupo', () => {
   beforeEach(async () => {
     ctx = await createTestRepositories();
+    jest.mocked(openAccountDatabase).mockResolvedValue({ db: ctx.db, close: jest.fn() });
     await act(() => changeLanguage('es'));
   });
 

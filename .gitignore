@@ -106,3 +106,25 @@ __snapshots__/
 /*.webp
 /*.gif
 /*.mp4
+
+# ----------------------------------------
+# DOCUMENTOS PERSONALES SUELTOS
+# Los documentos de oficina no son parte del proyecto, estén donde estén.
+*.docx
+*.doc
+*.odt
+*.rtf
+*.pptx
+*.ppt
+# Archivos de bloqueo de Office (~$Documento.docx) y de carpetas de Windows.
+~$*
+desktop.ini
+# Hojas de cálculo, PDF y comprimidos sueltos en la raíz. Las exportaciones de la app se
+# generan en el teléfono.
+/*.pdf
+/*.xlsx
+/*.xls
+/*.csv
+/*.zip
+/*.rar
+/*.7z

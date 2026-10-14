@@ -5,6 +5,12 @@ import type { RepositoryContext } from './types';
 
 export type Category = typeof categories.$inferSelect;
 
+/**
+ * Id fijo de la categoría predefinida "Otros" (clave `other`, migración 0001). Un gasto o
+ * ingreso sin categoría elegida se guarda con ella.
+ */
+export const OTHER_CATEGORY_ID = '0199c82c-c000-7000-8000-000000000009';
+
 export function createCategoriesRepository(ctx: RepositoryContext) {
   return {
     /**

@@ -9,6 +9,7 @@ import {
   supportedLanguages,
   type LanguagePreference,
 } from '@/i18n';
+import { AccountSection } from '@/features/account';
 import { Screen } from '@/ui';
 
 import { OptionGroup, type Option } from './components/OptionGroup';
@@ -22,7 +23,7 @@ const SampleDataButton: ComponentType | null = __DEV__
     require('@/features/sample-data').SampleDataButton
   : null;
 
-/** Ajustes de la app: idioma y apariencia. Los cambios se aplican al instante. */
+/** Ajustes de la app: idioma, apariencia y cuenta. Los cambios se aplican al instante. */
 export function SettingsScreen() {
   const { t } = useTranslation();
   const locales = useLocales();
@@ -68,6 +69,7 @@ export function SettingsScreen() {
         value={theme}
         onChange={setTheme}
       />
+      <AccountSection />
       {SampleDataButton ? <SampleDataButton /> : null}
     </Screen>
   );

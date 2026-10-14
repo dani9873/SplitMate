@@ -430,5 +430,141 @@
       "DUPLICATE_MEMBER": "Hay una persona repetida.",
       "UNBALANCED": "Los montos no cuadran."
     }
+  },
+  "auth": {
+    "welcome": {
+      "title": "SplitMate",
+      "tagline": "Registra gastos compartidos y deja las cuentas claras.",
+      "createAccount": "Crear cuenta",
+      "signIn": "Ya tengo cuenta"
+    },
+    "fields": {
+      "name": "Tu nombre",
+      "namePlaceholder": "Como te verán en tus grupos",
+      "email": "Correo",
+      "emailPlaceholder": "tu@correo.com",
+      "password": "Contraseña",
+      "newPassword": "Contraseña nueva",
+      "passwordHint": "Al menos 8 caracteres.",
+      "showPassword": "Mostrar contraseña",
+      "hidePassword": "Ocultar contraseña",
+      "code": "Código de 6 dígitos"
+    },
+    "signUp": {
+      "title": "Crea tu cuenta",
+      "submit": "Crear cuenta",
+      "haveAccount": "Ya tengo cuenta"
+    },
+    "signIn": {
+      "title": "Entra a tu cuenta",
+      "submit": "Entrar",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "noAccount": "Crear una cuenta",
+      "resendConfirmation": "Reenviar el correo de confirmación"
+    },
+    "checkEmail": {
+      "title": "Revisa tu correo",
+      "signupBody": "Te enviamos un enlace a {{email}}. Ábrelo en este teléfono para confirmar tu cuenta.",
+      "recoveryBody": "Si existe una cuenta con {{email}}, te enviamos un enlace. Ábrelo en este teléfono en los próximos 5 minutos para elegir una contraseña nueva.",
+      "signupBodyWithCode": "Te enviamos un correo a {{email}}. Toca el enlace o escribe el código para confirmar tu cuenta.",
+      "recoveryBodyWithCode": "Si existe una cuenta con {{email}}, te enviamos un correo. Toca el enlace o escribe el código para elegir una contraseña nueva.",
+      "submit": "Confirmar",
+      "resend": "Reenviar correo",
+      "resendIn": "Reenviar en {{seconds}} s",
+      "resent": "Te enviamos otro correo.",
+      "confirmed": "Ya confirmé mi correo",
+      "otherEmail": "Usar otro correo"
+    },
+    "forgot": {
+      "title": "Recupera tu contraseña",
+      "body": "Escribe el correo de tu cuenta y te enviaremos un enlace.",
+      "submit": "Enviar"
+    },
+    "reset": {
+      "title": "Elige una contraseña nueva",
+      "body": "La usarás para entrar desde ahora.",
+      "submit": "Guardar contraseña"
+    },
+    "callback": {
+      "loading": "Confirmando el enlace",
+      "unusableTitle": "Este enlace ya no sirve",
+      "confirmedTitle": "Tu correo está confirmado",
+      "confirmedBody": "Entra con tu correo y tu contraseña.",
+      "signupBody": "Ya se usó o venció. Entra con tu contraseña: si tu correo todavía no está confirmado, podrás pedir otro enlace.",
+      "recoveryBody": "Ya se usó, o pasaron más de 5 minutos desde que lo pediste. Pide otro y ábrelo enseguida en este teléfono.",
+      "unknownBody": "Si era para confirmar tu correo, entra con tu contraseña: si falta confirmarlo, podrás pedir otro enlace. Si era para cambiar la contraseña, pide otro.",
+      "signedInBody": "Ya tienes la sesión abierta en este teléfono.",
+      "signIn": "Entrar",
+      "newLink": "Pedir otro enlace",
+      "back": "Volver"
+    },
+    "validation": {
+      "nameRequired": "Escribe tu nombre.",
+      "nameTooLong": "Usa 80 caracteres como máximo.",
+      "emailRequired": "Escribe tu correo.",
+      "emailInvalid": "Revisa el correo: parece incompleto.",
+      "emailTooLong": "El correo es demasiado largo.",
+      "passwordRequired": "Escribe la contraseña.",
+      "passwordTooShort": "Usa al menos 8 caracteres.",
+      "passwordTooLong": "La contraseña es demasiado larga.",
+      "codeInvalid": "El código tiene 6 dígitos."
+    },
+    "errors": {
+      "invalidCredentials": "Correo o contraseña incorrectos.",
+      "emailNotConfirmed": "Confirma tu correo antes de entrar.",
+      "tooManyAttempts": "Demasiados intentos. Espera unos minutos.",
+      "weakPassword": "Esa contraseña es fácil de adivinar. Prueba con una más larga.",
+      "samePassword": "La contraseña nueva tiene que ser distinta de la anterior.",
+      "invalidEmail": "Revisa el correo: no parece válido.",
+      "emailNotAllowed": "Todavía no podemos enviar correos a esa dirección.",
+      "invalidCode": "El código no es correcto o ya venció.",
+      "linkExpired": "El enlace venció o se abrió en otro teléfono. Pide otro.",
+      "sessionExpired": "Tu sesión venció. Empieza de nuevo.",
+      "offline": "Sin conexión. Revisa tu internet e intenta de nuevo.",
+      "unavailable": "El servicio no responde. Intenta de nuevo en un rato.",
+      "unknown": "Algo falló. Intenta de nuevo.",
+      "reauthenticationRequired": "Por seguridad, vuelve a confirmar que eres tú."
+    }
+  },
+  "config": {
+    "error": {
+      "title": "Falta configurar la app",
+      "description": "A esta versión le faltan los datos para conectarse con el servidor. Revisa el archivo .env y vuelve a abrir la app."
+    }
+  },
+  "account": {
+    "defaultName": "Usuario",
+    "title": "Cuenta",
+    "signedInAs": "Entraste como {{email}}",
+    "signOut": "Cerrar sesión",
+    "delete": "Borrar cuenta",
+    "signOutSheet": {
+      "title": "Cerrar sesión",
+      "keep": "Cerrar sesión",
+      "keepHint": "Tus datos quedan cifrados en este teléfono para cuando vuelvas a entrar.",
+      "wipe": "Cerrar sesión y borrar los datos de este teléfono",
+      "wipeHint": "Para dejar el teléfono sin tus datos, por ejemplo si no es tuyo.",
+      "confirmTitle": "¿Borrar los datos de este teléfono?",
+      "confirmBody": "Tus grupos y movimientos todavía no se guardan en la nube: si los borras, no se pueden recuperar.",
+      "confirm": "Borrar y cerrar sesión"
+    },
+    "deleteScreen": {
+      "title": "Borrar tu cuenta",
+      "intro": "Esto borra para siempre:",
+      "itemAccount": "Tu cuenta y tu perfil en SplitMate.",
+      "itemPhone": "Los datos de esta cuenta en este teléfono.",
+      "itemGroups": "Cuando los grupos se compartan: los grupos donde no quede otra persona con cuenta. En los demás, tu nombre queda sin cuenta.",
+      "email": "Escribe tu correo para confirmar",
+      "emailMismatch": "No coincide con el correo de esta cuenta.",
+      "password": "Tu contraseña",
+      "submit": "Borrar mi cuenta"
+    },
+    "notices": {
+      "accountDeleted": "Tu cuenta se borró.",
+      "accountDeletedDataKept": "Tu cuenta se borró, pero no se pudieron borrar los datos de este teléfono. Siguen cifrados; desinstalar la app también los borra.",
+      "dataDeleted": "Cerraste sesión y se borraron los datos de este teléfono.",
+      "dataDeleteFailed": "Cerraste sesión, pero no se pudieron borrar los datos de este teléfono. Siguen cifrados; desinstalar la app también los borra.",
+      "dismiss": "Entendido"
+    }
   }
 }

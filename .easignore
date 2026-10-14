@@ -80,9 +80,31 @@ __snapshots__
 /*.gif
 /*.mp4
 
+# Documentos personales sueltos: documentos de oficina en cualquier carpeta, archivos de
+# bloqueo de Office y de Windows, y hojas de cálculo, PDF y comprimidos en la raíz.
+*.docx
+*.doc
+*.odt
+*.rtf
+*.pptx
+*.ppt
+~$*
+desktop.ini
+/*.pdf
+/*.xlsx
+/*.xls
+/*.csv
+/*.zip
+/*.rar
+/*.7z
+
 # Pruebas E2E de Maestro con sus capturas y resultados, y la configuración del CI.
 /.maestro
 /.github
+
+# Supabase: migraciones, pruebas pgTAP, plantillas de correo y Edge Functions. Viven en la
+# nube, no en el teléfono.
+/supabase
 
 # El historial de git: EAS lo copia con todos los archivos versionados, capturas incluidas.
 # El build no lo usa; el commit se envía aparte como dato del build.

@@ -17,6 +17,9 @@ module.exports = defineConfig([
       'expo-env.d.ts',
       // Generadas por drizzle-kit: no se editan a mano.
       'src/db/migrations/*',
+      // Entradas Deno de las Edge Functions (imports npm: y el global Deno). Su handler.ts sí
+      // pasa por el lint.
+      'supabase/functions/*/index.ts',
     ],
   },
   {
