@@ -16,7 +16,8 @@
     "icons": "node scripts/generate-icons.mjs",
     "test:coverage": "jest --coverage",
     "check:bundle": "node scripts/check-prod-bundle.mjs",
-    "check:data-api": "node scripts/check-data-api.mjs"
+    "check:data-api": "node scripts/check-data-api.mjs",
+    "test:db:local": "node scripts/test-db-local.mjs"
   },
   "jest": {
     "preset": "jest-expo",
@@ -89,6 +90,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@electric-sql/pglite": "0.5.8",
+    "@electric-sql/pglite-pgtap": "0.0.9",
     "@resvg/resvg-js": "^2.6.2",
     "@testing-library/react-native": "^14.1.0",
     "@types/jest": "^29.5.14",

@@ -32,18 +32,21 @@ select throws_ok(
 select throws_ok(
   $$
     insert into public.transfers
-      (id, group_id, from_member_id, to_member_id, amount, currency, group_amount, occurred_on)
+      (id, group_id, from_member_id, to_member_id, amount, currency, group_currency, group_amount,
+        occurred_on)
     values
-      (tests.id('nuevo_1'), tests.id('viaje'), tests.id('viaje_ana'), tests.id('oficina_yago'), 1, 'USD', 1, '2026-10-11')
+      (tests.id('nuevo_1'), tests.id('viaje'), tests.id('viaje_ana'), tests.id('oficina_yago'), 1,
+        'USD', 'USD', 1, '2026-10-11')
   $$,
   '23503', null, 'Una transferencia no va a un miembro de otro grupo'
 );
 select throws_ok(
   $$
     insert into public.expenses
-      (id, group_id, kind, title, amount, currency, group_amount, split_method, category_id, occurred_on)
+      (id, group_id, kind, title, amount, currency, group_currency, group_amount, split_method,
+        category_id, occurred_on)
     values
-      (tests.id('nuevo_1'), tests.id('viaje'), 'expense', 'Café', 100, 'USD', 100, 'equal',
+      (tests.id('nuevo_1'), tests.id('viaje'), 'expense', 'Café', 100, 'USD', 'USD', 100, 'equal',
         tests.id('cat_oficina'), '2026-10-11')
   $$,
   '23503', null, 'Un gasto no usa la categoría de otro grupo'

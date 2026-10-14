@@ -359,9 +359,11 @@ devolver un gasto sin el miembro que creó la transacción siguiente.
 | `authenticated` | `EXECUTE` en las funciones de `private` que llaman las políticas, los triggers y las RPC. `private` sigue fuera de la Data API                                                                                                                 |
 | `anon`          | Nada, como hasta ahora                                                                                                                                                                                                                         |
 | `service_role`  | Ningún privilegio en las tablas de `public`: igual que el remoto desde el cambio del panel (pendiente de CLAUDE.md). `delete-account` solo usa `auth.admin`                                                                                    |
-| Por omisión     | `postgres` en `public` no da nada a `anon`, `authenticated` ni `service_role`, ni `EXECUTE` a `PUBLIC` en funciones nuevas: el repo queda igual que el remoto                                                                                  |
+| Por omisión     | `postgres` en `public` no da nada a `anon`, `authenticated` ni `service_role`: el repo queda igual que el remoto                                                                                                                               |
 
-Cada función nueva lleva en su migración `revoke all ... from public, anon` y el `grant` exacto.
+Postgres da `EXECUTE` a `PUBLIC` en cada función nueva, y eso no se puede quitar por esquema (solo
+de forma global, lo que rompería extensiones como pgTAP). Por eso cada función nueva lleva en su
+migración `revoke all ... from public, anon, authenticated, service_role` y el `grant` exacto.
 `006-privilegios.test.sql` se actualiza con la matriz nueva y `npm run check:data-api` suma:
 
 - `anon` no ejecuta `sync_push` ni `sync_pull` y no lee `change_log` (401 `42501`);
