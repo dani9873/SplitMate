@@ -44,6 +44,9 @@
   detectadas (guardia, `version`, fechas, moneda, `group_currency`, "soy yo", acceso del creador,
   `owner`, `change_seq`, `service_role` y columnas editables).
 
+  CI verde en el run 38544898812: "Base de datos y RLS" con `Files=8, Tests=178, Result: PASS`
+  sobre Postgres 17, y 676 pruebas de Jest.
+
 - [ ] 3. Servidor: `sync_push` con concurrencia estricta, límites e historial.
 - [ ] 4. Servidor: `sync_pull` incremental, borrar la cuenta borra sus grupos no compartidos y
       `check:data-api` ampliado.
