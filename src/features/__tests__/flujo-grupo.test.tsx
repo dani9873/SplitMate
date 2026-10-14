@@ -26,6 +26,10 @@ jest.mock('@/db/app-deps', () => {
   };
 });
 
+// El flujo recorre la app entera. Sin otras suites tarda unos 15 s, pero con todas en paralelo en
+// la PC a veces pasaba los 20 s del límite general (igual con las versiones anteriores de Expo).
+jest.setTimeout(60_000);
+
 // Teléfono en español de Colombia: así lo aplican las preferencias al cargar Ajustes.
 jest.mock('expo-localization', () => {
   const locales = [{ languageCode: 'es', languageTag: 'es-CO', regionCode: 'CO' }];

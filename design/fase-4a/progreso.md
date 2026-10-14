@@ -4,7 +4,7 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** paso 1, parches de Expo y perfil preview de EAS.
+**Siguiente paso:** paso 2, servidor: migración base con pgTAP en PGlite y en CI.
 
 ## Pasos
 
@@ -12,7 +12,19 @@
       de borrar datos, concurrencia optimista estricta, historial `change_log`, cerrar sesión con
       "Sincronizar primero", descarga incremental, límites validados en el servidor y el pendiente
       del acceso del creador para la 4b (también en CLAUDE.md).
-- [ ] 1. Parches de Expo y perfil preview de EAS.
+- [x] 1. Parches de Expo y perfil preview de EAS:
+  - `npx expo install --fix`: expo 57.0.28, expo-crypto 57.0.4, expo-dev-client 57.0.20,
+    expo-router 57.0.26, expo-splash-screen 57.0.10 y jest-expo 57.0.6. expo-doctor 21/21.
+    `npm audit --omit=dev` sin cambios: 68 avisos de los mismos seis paquetes aceptados.
+  - Perfil `preview` con `environment: preview`. `EXPO_PUBLIC_SUPABASE_URL` y
+    `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` creadas en el entorno `preview` de EAS como sensibles
+    (`eas env:set`), comparadas con `.env` sin mostrarlas: iguales.
+  - Keystore: eas-cli 24.12.1 lo genera al azar y lo guarda en EAS sin preguntar en modo no
+    interactivo (`CreateKeystore.provideOrGenerateAsync`). Lo crea el primer build de preview, al
+    cierre; no hace falta que el usuario corra nada antes.
+  - `flujo-grupo.test.tsx` pasaba el límite de 20 s con todas las suites en paralelo. No es por los
+    parches: con `main` en una copia fuera de OneDrive tardó 15,2 s y en la rama 14,6 s. Ese archivo
+    usa `jest.setTimeout(60_000)`. tsc, lint y 676 pruebas en verde.
 - [ ] 2. Servidor: migración base (columnas del servidor, cambios por grupo, guardia, reglas, RLS y
       privilegios) con pgTAP en PGlite y en CI.
 - [ ] 3. Servidor: `sync_push` con concurrencia estricta, límites e historial.
@@ -41,3 +53,5 @@
   usa para abrir un borrador.
 - La app acepta montos hasta `Number.MAX_SAFE_INTEGER` y el servidor hasta 99 999 999 999 999: el
   paso 5 alinea la app con el servidor.
+- `eas env:list` oculta los valores sensibles (`***** (...)`): para comparar con `.env` sin
+  mostrarlos, `--include-sensitive` y la comparación dentro del mismo comando.
