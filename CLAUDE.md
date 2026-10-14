@@ -133,6 +133,16 @@ src/
 
 ## Pendientes técnicos
 
+- **Dos pruebas manuales de la Fase 3, antes de probar la Fase 4 con otra persona.** El límite de
+  correos del proyecto (2 por hora) las dejó fuera de la prueba del teléfono del 2026-10-14:
+  1. Registro nuevo con un correo real y confirmación por enlace: el enlace abre la app y entra.
+     Si pasaron más de 5 minutos, la pantalla dice que el correo quedó confirmado y lleva a entrar.
+     Si se usa el mismo correo de la prueba anterior, borrar antes esa cuenta desde la app.
+  2. Recuperar la contraseña: llega el correo, el enlace abre "contraseña nueva", y después la
+     nueva sirve para entrar y la anterior no.
+
+  La caída al abrir un enlace ya se verificó con un enlace simulado
+  (`design/fase-3/crash-migracion-0003.md`).
 - **Rutas tipadas de Expo Router desactivadas.** En Windows, el generador incremental de
   `.expo/types/router.d.ts` compara rutas con `'../'` y registra archivos de `src/` como
   rutas, lo que rompe `tsc` mientras Metro corre. Reevaluar en una fase futura o al

@@ -3,8 +3,8 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** 12f.2, anotar en CLAUDE.md (Pendientes) las dos pruebas manuales que faltan,
-y después 12f.3 (push, PR, CI en verde y merge según la regla) y 12f.4.
+**Siguiente paso:** 12f.3, CLAUDE.md (Estado), push, PR, CI en verde y merge según la regla; después
+12f.4.
 
 ## Pasos
 
@@ -176,7 +176,8 @@ y después 12f.3 (push, PR, CI en verde y merge según la regla) y 12f.4.
           filas en los dos sentidos, y editar el perfil real como `prueba1` afecta 0 filas (en un
           bloque que se deshace solo). Sin avisos nuevos en `npm audit --omit=dev` (los mismos
           seis paquetes). tsc, lint y pruebas en verde.
-    - [ ] 2. CLAUDE.md: en "Pendientes técnicos", las dos pruebas manuales que faltan, antes de
+    - [x] 2. CLAUDE.md: al inicio de "Pendientes técnicos", las dos pruebas manuales que faltan
+          (registro con un correo real y confirmación por enlace; recuperar la contraseña), antes de
           probar la Fase 4 con otra persona.
     - [ ] 3. CLAUDE.md (Estado), push, PR, CI en verde y merge con merge commit (el usuario probó
           la fase en su teléfono). `prueba2` ya no existe; `prueba1` se conserva para
