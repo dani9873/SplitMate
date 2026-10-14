@@ -39,7 +39,7 @@
     `public`, igual que el remoto.
 
   Banco local `npm run test:db:local` (PGlite 0.5.8 y pgTAP 0.0.9, con
-  `supabase/tests/pglite/plataforma.sql`): 178 pruebas en verde, antes 128. `007-sync-columnas`
+  `supabase/pglite/plataforma.sql`): 178 pruebas en verde, antes 128. `007-sync-columnas`
   es nuevo (46) y `000` a `006` se ajustaron a las reglas nuevas. 12 mutaciones de la migración
   detectadas (guardia, `version`, fechas, moneda, `group_currency`, "soy yo", acceso del creador,
   `owner`, `change_seq`, `service_role` y columnas editables).
@@ -80,3 +80,6 @@
 - `has_column_privilege` sobre una columna que no está en todas las tablas va dentro de un `CASE`:
   el orden del `WHERE` no está fijo (pasó con `deleted_at` y `auth.users`).
 - `EXECUTE` para `PUBLIC` en funciones nuevas no se quita por esquema: cada función lo revoca.
+- `supabase test db` corre como prueba todo `.sql` bajo `supabase/tests`: los archivos de apoyo
+  van fuera (`supabase/pglite/plataforma.sql`). El primer CI del paso 2 (run 38544389269) falló por
+  eso, con las 178 pruebas pgTAP en verde sobre Postgres 17.

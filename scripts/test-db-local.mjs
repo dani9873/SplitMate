@@ -1,6 +1,6 @@
 // Corre en la PC, sin Docker, lo mismo que el job "Base de datos y RLS" del CI: aplica
 // supabase/migrations sobre PGlite (Postgres en WASM, con lo mínimo de la plataforma de Supabase de
-// supabase/tests/pglite/plataforma.sql) y ejecuta las pruebas pgTAP de supabase/tests/database.
+// supabase/pglite/plataforma.sql) y ejecuta las pruebas pgTAP de supabase/tests/database.
 // El CI (supabase test db, Postgres 17) sigue siendo la fuente de verdad: PGlite es Postgres 18.
 //
 // Uso: npm run test:db:local [-- 007 008]  (sin argumentos corre todos; 000-setup corre siempre)
@@ -12,7 +12,7 @@ import { pgtap } from '@electric-sql/pglite-pgtap';
 
 const MIGRATIONS = 'supabase/migrations';
 const TESTS = 'supabase/tests/database';
-const PLATFORM = 'supabase/tests/pglite/plataforma.sql';
+const PLATFORM = 'supabase/pglite/plataforma.sql';
 
 const only = process.argv.slice(2);
 const sqlFiles = (dir, suffix) =>

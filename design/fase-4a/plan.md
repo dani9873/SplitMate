@@ -55,7 +55,7 @@ ajustes de la revisión.
 | `supabase/migrations/*_sync_pull.sql`                                  | `sync_pull`                                                               |
 | `supabase/migrations/*_borrar_cuenta_grupos.sql`                       | Borrar la cuenta borra sus grupos no compartidos                          |
 | `supabase/tests/database/007` a `011`                                  | pgTAP de columnas, envío, historial, descarga y borrado de cuenta         |
-| `supabase/tests/pglite/plataforma.sql`                                 | Lo mínimo de Supabase para PGlite: roles, `auth.users`, `auth.uid()`      |
+| `supabase/pglite/plataforma.sql`                                       | Lo mínimo de Supabase para PGlite: roles, `auth.users`, `auth.uid()`      |
 | `scripts/test-db-local.mjs`                                            | `npm run test:db:local`: migraciones y pgTAP en PGlite, sin Docker        |
 | `scripts/check-data-api.mjs`                                           | Suma las comprobaciones de las RPC, del historial y de la guardia         |
 | `src/db/schema.ts` y `src/db/migrations/0004_*`                        | `server_version`, `synced_version`, `group_currency` y tablas de sync     |
@@ -244,7 +244,7 @@ export interface SyncEngine {
 
 **Archivos:** `supabase/migrations/*_sincronizacion_base.sql`, `supabase/tests/database/000`,
 `001`, `002`, `003`, `006` y `007-sync-columnas.test.sql` (nuevo),
-`supabase/tests/pglite/plataforma.sql`, `scripts/test-db-local.mjs`, `package.json`.
+`supabase/pglite/plataforma.sql`, `scripts/test-db-local.mjs`, `package.json`.
 
 **Produce (SQL):**
 
