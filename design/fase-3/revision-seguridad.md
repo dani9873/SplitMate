@@ -11,6 +11,9 @@ Rama `fase-3-supabase-auth` contra `main`, hecha con la skill security-code-revi
 >
 > **2026-10-13:** Google se retiró de la app (paso 12e). El hallazgo medio y su residuo ya no
 > aplican: borrar la cuenta pide siempre la contraseña del correo de la sesión.
+>
+> **2026-10-14:** revisión final del cierre (paso 12f), al final de este archivo: sin hallazgos
+> nuevos, y la lectura cruzada con `prueba1` contra un perfil real queda comprobada.
 
 ## Resumen
 
@@ -119,3 +122,82 @@ desplegar la función.
   emulador al cerrar la fase.
 - La configuración del proyecto remoto (panel de Supabase y Google Cloud) depende de que se
   apliquen `ajustes-panel.md` y `google-config.md`.
+
+## Revisión final (paso 12f, 2026-10-14)
+
+Cambios desde la revisión anterior (`0b6072b..6164052`): Google retirado, correos solo con enlace,
+la migración de privilegios de `authenticated`, `check:data-api`, el contrato pgTAP de privilegios
+y la carga de las migraciones `.sql` como módulos. Hecha con la skill security-code-review, con el
+código y con consultas de solo lectura al proyecto remoto.
+
+### Resumen
+
+No hay hallazgos nuevos. La app no muestra texto que llegue en un enlace, la reautenticación ya no
+puede cambiar de cuenta, y en el remoto cada cuenta ve y edita solo su perfil.
+
+### Lectura cruzada con `prueba1`
+
+En el remoto hay dos cuentas confirmadas, cada una con su perfil: `prueba1@splitmate.test` y la
+cuenta real del usuario, creada en la prueba del teléfono. Ninguna tiene grupos (0 grupos y 0
+miembros en el remoto). `prueba2` ya no existe: la borró el flujo de borrar la cuenta en la prueba
+del teléfono, y su perfil no quedó huérfano.
+
+Sin la contraseña de `prueba1`, la prueba se hizo en Postgres como la hace PostgREST:
+`set local role authenticated` y `request.jwt.claims` con el `sub` de cada cuenta, con
+`supabase db query --linked`. Cada resultado muestra `current_user = authenticated` y el
+`auth.uid()` esperado, así que corrió con RLS:
+
+| Sesión | Perfiles visibles | Su perfil | Perfil ajeno por `id` | Comparten grupo |
+|---|---|---|---|---|
+| `prueba1` | 1 de 2 | 1 | 0 | no |
+| Cuenta real (control) | 1 de 2 | 1 | 0 | no |
+
+Editar el perfil real como `prueba1` (un `update` sin cambios, dentro de un bloque que termina
+con un error para que todo se deshaga) afectó 0 filas, y el perfil real siguió en la versión 1
+con el mismo `updated_at`. RLS está activa en las 8 tablas, y las políticas de `profiles` son las
+de la migración: leer el propio o el de alguien con quien se comparte un grupo, e insertar y
+editar solo el propio.
+
+La ruta REST con JWT ya estaba comprobada (paso 12e.3 y `verify_jwt`). Ahora que el remoto tiene
+dos perfiles, la comprobación "no ve perfiles ajenos" de `npm run check:data-api` también tiene
+contra qué fallar en la próxima corrida.
+
+### Revisado sin hallazgos
+
+- **Reautenticar antes de borrar:** siempre con la contraseña y con el correo de la sesión. Si
+  entra otra cuenta (el correo ya es de otra), cierra la sesión del teléfono y lanza
+  `sessionExpired` sin borrar nada.
+- **Enlaces:** `+native-intent` acepta una clave en la consulta y en el fragmento solo si trae el
+  mismo valor en los dos (Supabase repite el error así). Con valores distintos manda al inicio. La
+  pantalla del enlace muestra solo textos traducidos, nunca el `error_description` del enlace.
+- **Último correo pedido:** se guarda en el almacenamiento cifrado de la sesión y se valida con
+  zod al leerlo. Se borra al abrir una sesión, y si no se puede guardar, solo cambian los
+  mensajes.
+- **Migración `20261013143100_privilegios_authenticated.sql`:** solo `authenticated`; UPDATE por
+  columnas editables; sin DELETE, TRUNCATE ni nada para `anon`. `private` no está expuesto a la
+  Data API: `anon` no tiene USAGE sobre él y no hay funciones ni vistas en `public`.
+  `006-privilegios.test.sql` fija la matriz.
+- **`check:data-api`:** contraseña por variable de entorno o pedida sin mostrarla; no imprime la
+  contraseña ni el token y cierra su sesión al terminar. Sus escrituras solo tocan la fila de
+  `prueba1`.
+- **Migraciones `.sql` como módulos:** el texto se convierte con `JSON.stringify`, más los
+  escapes de U+2028 y U+2029, y solo lee archivos del repo. `assertMigrationsHaveSql` convierte un
+  trozo vacío en `MIGRATION_INVALID` en vez de cerrar la app.
+- **Proyecto remoto:** el único proveedor activo es el correo, con la confirmación obligatoria
+  (`mailer_autoconfirm: false`). No hay buckets ni tablas en Realtime. `delete-account` sigue en
+  la versión 1 con `verify_jwt = true`: desde ese despliegue, `handler.ts` solo cambió un
+  comentario.
+- **Secretos:** `.env` no está en el repo. En el historial de la rama, la única clave con forma de
+  secreta es la falsa de una prueba de Jest (`sb_secret_AbC123…`). Ninguna contraseña de prueba
+  quedó escrita.
+- **Dependencias:** `npm audit --omit=dev` cuenta 68 avisos, que vienen de los mismos seis
+  paquetes aceptados en CLAUDE.md (braces, decode-uri-component, node-forge,
+  postcss-selector-parser, sprintf-js y uuid). El resto son paquetes que dependen de ellos. La fase
+  no agrega ninguno.
+
+### Fuera de alcance
+
+- Sigue sin haber gitleaks, semgrep ni osv-scanner en la PC: el barrido fue con grep sobre el
+  historial de la rama.
+- El registro con un correo real y la confirmación por enlace, y la recuperación de la contraseña,
+  quedan para la prueba manual pendiente en CLAUDE.md (límite de correos del proyecto).

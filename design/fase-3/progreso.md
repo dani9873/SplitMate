@@ -3,10 +3,8 @@
 > Se actualiza con el commit de cada paso. Si una sesión se corta, se retoma desde
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`.
 
-**Siguiente paso:** el usuario reinicia su Metro (`npx expo start --dev-client --clear`) y repite
-la prueba completa del teléfono (12e.6, build `1f07df1f`; la recuperación, cuando pase el límite
-de correos). Con su confirmación, el cierre 12f: lectura cruzada con `prueba1`, revisión final,
-CLAUDE.md (Estado), push, PR, CI en verde y merge según la regla. No empezar el cierre antes.
+**Siguiente paso:** 12f.2, anotar en CLAUDE.md (Pendientes) las dos pruebas manuales que faltan,
+y después 12f.3 (push, PR, CI en verde y merge según la regla) y 12f.4.
 
 ## Pasos
 
@@ -71,7 +69,7 @@ CLAUDE.md (Estado), push, PR, CI en verde y merge según la regla. No empezar el
           Claude Code la contienen (solo aparece la clave falsa de una prueba de Jest). No hace
           falta rotarla.
     - [x] `*.docx` y documentos personales sueltos en `.gitignore` y `.easignore` (`cb50fe6`).
-  - [ ] 12e. Cambios de decisión del usuario (2026-10-13) y development build. Commit por paso:
+  - [x] 12e. Cambios de decisión del usuario (2026-10-13) y development build. Commit por paso:
     - [x] 1. Sin Google: fuera el módulo `splitmate-google-auth`, el botón, la pantalla del nombre
           (solo existía para Google), la reautenticación con Google, sus pruebas y textos,
           `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` y `google-config.md`. `AuthSession` ya no trae
@@ -122,7 +120,7 @@ CLAUDE.md (Estado), push, PR, CI en verde y merge según la regla. No empezar el
           build, el JS lo sirve Metro con el `.env` de la PC: estas variables cuentan en los builds
           que empaquetan el JS (preview) y en `eas env:pull`. `env:create` está obsoleto; el
           reemplazo es `eas env:set`.
-    - [ ] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
+    - [x] 6. Development build, enlace y pasos de prueba en el teléfono: registro, confirmación por
           enlace, entrar, abrir sin internet, cerrar sesión con ambas opciones y borrar la cuenta.
           Build `1f07df1f-71fe-4f17-a290-3b9bb2120b09` (perfil development, desde `8d819cf`): en cola
           desde las 14:39 UTC del 2026-10-13, terminado a las 15:19 UTC (APK en la página del
@@ -132,8 +130,11 @@ CLAUDE.md (Estado), push, PR, CI en verde y merge según la regla. No empezar el
           final, recuperar la contraseña (correo 2). **Primera prueba del usuario:** el registro y el
           login dejaban la sesión y el perfil en Supabase, pero la app se cerraba al entrar (paso
           10); la recuperación chocó con el límite de correos. Falta repetir la prueba con Metro
-          reiniciado. Al cerrar: lectura cruzada por REST con `prueba1` contra el perfil real, si
-          el usuario confirma en Table Editor que su fila existe.
+          reiniciado. **2026-10-14:** con Metro reiniciado, las pruebas 1 a 5 salieron bien en el
+          teléfono del usuario (`prueba2` quedó borrado por la app). Quedan dos pruebas manuales,
+          por el límite de correos: el registro nuevo con el correo real y la confirmación por
+          enlace, y la recuperación de la contraseña (pendiente en CLAUDE.md, paso 12f.2). La caída
+          al abrir el enlace ya se verificó con el enlace simulado (paso 10).
     - [x] 7. Causa de los privilegios perdidos (pedido del usuario tras el paso 3, confirmado con
           consultas de solo lectura `supabase db query --linked`): no fue la migración ni un event
           trigger. El panel de Data API, a las 07:23:28 UTC del 2026-10-13, al desactivar
@@ -166,7 +167,21 @@ CLAUDE.md (Estado), push, PR, CI en verde y merge según la regla. No empezar el
           código corregido: abre con la sesión guardada y el enlace con código falso da el error
           controlado en frío, con la app abierta y en segundo plano. Sin build nuevo; Metro se
           reinicia con `--clear`. Detalle en `crash-migracion-0003.md`.
-  - [ ] 12f. CLAUDE.md (Estado), push, PR y CI en verde.
+  - [ ] 12f. Cierre de la fase (pedido del usuario del 2026-10-14). Commit por paso:
+    - [x] 1. Lectura cruzada y revisión final de seguridad (`revision-seguridad.md`, sección
+          final): sin hallazgos nuevos. En el remoto, `prueba1` y la cuenta real del usuario, cada
+          una con su perfil y sin grupos. Sin la contraseña de `prueba1`, la prueba se hizo como la
+          hace PostgREST (`set local role authenticated` y `request.jwt.claims` con su `sub`, por
+          `supabase db query --linked`): cada cuenta ve 1 de 2 perfiles, el ajeno por `id` da 0
+          filas en los dos sentidos, y editar el perfil real como `prueba1` afecta 0 filas (en un
+          bloque que se deshace solo). Sin avisos nuevos en `npm audit --omit=dev` (los mismos
+          seis paquetes). tsc, lint y pruebas en verde.
+    - [ ] 2. CLAUDE.md: en "Pendientes técnicos", las dos pruebas manuales que faltan, antes de
+          probar la Fase 4 con otra persona.
+    - [ ] 3. CLAUDE.md (Estado), push, PR, CI en verde y merge con merge commit (el usuario probó
+          la fase en su teléfono). `prueba2` ya no existe; `prueba1` se conserva para
+          `check:data-api`.
+    - [ ] 4. `progreso.md` al día y detenerse.
 
 ## Notas para retomar
 
