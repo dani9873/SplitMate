@@ -4,7 +4,7 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 7, motor parte 1 (TDD): envío y borradores de conflicto.
+**Siguiente paso:** 8, motor parte 2 (TDD): descarga y conflictos entre dos dispositivos.
 
 ## Pasos
 
@@ -150,7 +150,47 @@
     src/lib/supabase`: 8 suites y 110 pruebas en verde; `npx tsc --noEmit` sin errores. Sin suite
     completa. El servidor de prueba tarda unos 5 s en arrancar por archivo; por eso las pruebas que lo
     usan comparten uno en `beforeAll`.
-- [ ] 7. Motor, parte 1 (TDD): envío y borradores de conflicto.
+- [x] 7. Motor, parte 1 (TDD): envío y borradores de conflicto. Solo envía; la descarga es del paso 8.
+  - `src/db/sync/`: `units.ts` (unidad → `Mutation.data`, orden grupo → miembro → categoría → gasto →
+    transferencia; el gasto lleva solo pagadores y partes activos, borrado va con listas vacías; las
+    predefinidas nunca), `outbox.ts` (lotes y respuestas), `conflicts.ts` (borradores),
+    `apply.ts` (valida con zod las filas del servidor y reemplaza la unidad local por la del
+    servidor), `instant.ts` (`timestamptz` de Postgres a milisegundos, con la fracción llevada a 3
+    dígitos por si Hermes no acepta más), `store.ts` (`SyncStore`), `types.ts` e `index.ts`.
+    `src/features/sync/`: `cycle.ts` (`runSyncCycle`, solo envío, con `onNotice` y tope de lotes) y
+    `test-utils.ts` (`createDevice`, `serverSnapshot`).
+  - **Decisiones:**
+    - Sin columnas nuevas: «aplicado» deja la unidad al día solo si su contenido actual es igual al
+      enviado (si no, hubo cambios en vuelo: guarda `server_version` y sigue pendiente).
+    - «Rechazado»: la unidad vuelve al estado del servidor con `version` local + 1 (un formulario
+      abierto da `CONFLICT`) y el borrador guarda lo **último** que tenía el usuario, que incluye lo
+      enviado aunque siguiera editando mientras el envío estaba en vuelo.
+    - Sin estado del servidor (`current` vacío) y unidad nueva: solo un gasto o una transferencia
+      salen de los movimientos (borrado lógico local, al día) y queda el borrador completo.
+    - Si no se puede aplicar lo del servidor (por ejemplo, falta localmente un miembro que aún no
+      se descarga) o es otra entidad sin `current`: el envío queda **apartado** (`failed`, motivo
+      `error`), sin borrador y con lo del usuario intacto. Tras la descarga del paso 8,
+      `retryFailed` lo vuelve a armar y entonces sí da el rechazo normal.
+    - `retryFailed` borra los envíos apartados; la unidad sigue pendiente y se arma de nuevo con id
+      nuevo. `counts().pending` no cuenta los apartados.
+    - `SyncStore` trae también `listConflicts`, `getConflict` y `discardConflict` (los usarán las
+      pantallas del paso 11). `cursors` y `applyRemoteGroup` se suman en el paso 8.
+  - **Casos con el servidor de prueba** (`push.int.test.ts`, PGlite con las migraciones reales):
+    sin red (`offline`, no llega a la base y al volver sube una sola vez, una entrada de historial
+    por unidad), `server-error` en el segundo lote (el primero queda confirmado, el segundo sale
+    otra vez con los mismos ids), `lost-response` (reintento sin duplicar filas, versiones ni
+    historial), subida inicial con un grupo sin «yo» y un miembro quitado que sigue en un gasto, y
+    conflictos de versión (editado en los dos, editar algo borrado, borrar algo editado, gasto nuevo
+    con la moneda del grupo cambiada, mismo cambio en los dos): el servidor no se pisa y lo del
+    usuario queda en el borrador. El «otro dispositivo» es un `push` directo con la misma cuenta;
+    con la descarga del paso 8 pasa a ser un dispositivo completo.
+  - **Paginación de pull:** este ciclo no descarga, así que aquí solo hay una prueba de lectura
+    (`remote.pull` con `maxRows` 100 sobre 3 grupos: las páginas encadenan por `hasMore`, ningún
+    grupo se parte y juntas traen todo). Aplicar páginas con `pullMaxRows` chico es del paso 8.
+  - **Verificación:** `npx jest src/db/sync src/test src/features/sync`: 10 suites y 136 pruebas en
+    verde; `npx tsc --noEmit` y `eslint` de las carpetas tocadas sin errores. Sin suite completa.
+    4 mutaciones detectadas (sin marcar al día, sin borrador, ids nuevos en vuelo, base siempre
+    nula).
 - [ ] 8. Motor, parte 2 (TDD): descarga y conflictos entre dos dispositivos.
 - [ ] 9. Motor, parte 3 (TDD): cuándo sincronizar y estado.
 - [ ] 10. Pantallas: indicador, avisos, sesión y reinicio de la base.
@@ -172,6 +212,11 @@
   paso 5 alinea la app con el servidor.
 - `eas env:list` oculta los valores sensibles (`***** (...)`): para comparar con `.env` sin
   mostrarlos, `--include-sensitive` y la comparación dentro del mismo comando.
+- Para el paso 8: las filas del servidor traen `created_by` y `user_id` de la cuenta; localmente son
+  el id del usuario local (que ya es el id de la cuenta). Un grupo nuevo que llega del servidor
+  necesita ese usuario en `users`. `apply.ts` ya valida las filas por tabla (`parseRemoteRows`) y
+  reconcilia pagadores y partes (`replaceUnitFromServer`); el paso 8 suma `applyRemoteGroup` con
+  FKs diferidas (`PRAGMA defer_foreign_keys`), un punto de guardado por fila y el cursor.
 - pgTAP en la PC: `npm run test:db:local` (unos 3 s) o `npm run test:db:local -- 007` para un
   archivo (000-setup corre siempre). El CI sigue siendo la fuente de verdad.
 - En las pruebas, para preparar fechas o versiones viejas hay que apagar el trigger
