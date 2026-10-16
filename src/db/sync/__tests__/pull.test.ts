@@ -41,6 +41,15 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/** Todo lo que se pasó a logger.error, con el mensaje y la causa de cada error. */
+function loggedText(): string {
+  return JSON.stringify(jest.mocked(logger.error).mock.calls, (_key, value: unknown) =>
+    value instanceof Error
+      ? { name: value.name, message: value.message, cause: value.cause }
+      : value,
+  );
+}
+
 /** Un dispositivo vacío: solo el usuario local, igual que tras iniciar sesión por primera vez. */
 async function setup() {
   const ctx = await createTestRepositories();
@@ -520,6 +529,11 @@ describe('applyRemoteGroup: datos que llegan de la red', () => {
     const outcome = s.store.applyRemoteGroup(page(groupRows(s, { amount: 0 })));
 
     expect(outcome.held).toBe(true);
+    // El registro no repite datos de la fila. Con drivers síncronos (expo-sqlite, sql.js) Drizzle
+    // lanza el error de SQLite, que solo nombra la restricción; DrizzleQueryError, que sí trae los
+    // parámetros, es de los drivers asíncronos. Si eso cambia, esta prueba lo detecta.
+    expect(logger.error).toHaveBeenCalled();
+    expect(loggedText()).not.toContain('Cena');
     expect(s.store.cursors()).toEqual({});
     expect(rows(s, `SELECT COUNT(*) AS n FROM expenses`)).toEqual([{ n: 0 }]);
     const afterFailure = rows(s, `SELECT COUNT(*) AS n FROM group_members`);
