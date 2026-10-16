@@ -23,6 +23,15 @@ module.exports = defineConfig([
     ],
   },
   {
+    // Procesos hijo de las pruebas (PGlite): scripts de Node puro, con require y __dirname.
+    files: ['src/test/**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { __dirname: 'readonly', process: 'readonly', require: 'readonly' },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     // Los mocks de Jest usan require() dentro de sus fábricas.
     files: ['jest.setup.ts', '**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
     rules: { '@typescript-eslint/no-require-imports': 'off' },
