@@ -44,6 +44,25 @@ const DAY_OPTIONS: Record<DayStyle, Intl.DateTimeFormatOptions> = {
   weekday: { weekday: 'long', day: 'numeric', month: 'long' },
 };
 
+const INSTANT_OPTIONS: Intl.DateTimeFormatOptions = {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+};
+
+/** Formatea un instante (milisegundos desde 1970) en la zona horaria del teléfono. */
+export function formatInstant(value: number, locale: string): string {
+  const key = `${locale}|instant`;
+  let format = dateFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, INSTANT_OPTIONS);
+    dateFormats.set(key, format);
+  }
+  return format.format(new Date(value));
+}
+
 /** Formatea un día de calendario sin que la zona horaria lo corra. */
 export function formatDay(value: CalendarDate, locale: string, style: DayStyle): string {
   const key = `${locale}|${style}`;

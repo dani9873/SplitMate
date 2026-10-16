@@ -533,6 +533,64 @@
       "description": "A esta versión le faltan los datos para conectarse con el servidor. Revisa el archivo .env y vuelve a abrir la app."
     }
   },
+  "sync": {
+    "button": {
+      "hint": "Abre el estado de la sincronización",
+      "synced": "Sincronización: todo al día",
+      "pending": "Sincronización: cambios por subir",
+      "offline": "Sincronización: sin conexión",
+      "error": "Sincronización: necesita tu atención",
+      "syncing": "Sincronizando"
+    },
+    "sheet": {
+      "title": "Sincronización"
+    },
+    "state": {
+      "synced": {
+        "title": "Todo al día",
+        "body": "Tus cambios están guardados en la nube."
+      },
+      "pending": {
+        "title": "Cambios por subir",
+        "body": "Se suben solos en cuanto se puede. No tienes que hacer nada."
+      },
+      "offline": {
+        "title": "Sin conexión",
+        "body": "Puedes seguir usando la app. Los cambios se suben cuando vuelva internet."
+      },
+      "error": {
+        "title": "Algo necesita tu atención",
+        "body": "Hay datos que no se pudieron sincronizar. El detalle está abajo."
+      },
+      "syncing": {
+        "title": "Sincronizando…",
+        "body": "Estamos subiendo y bajando cambios."
+      }
+    },
+    "pending_one": "{{count}} cambio por subir",
+    "pending_other": "{{count}} cambios por subir",
+    "failed_one": "{{count}} cambio que el servidor no aceptó",
+    "failed_other": "{{count}} cambios que el servidor no aceptó",
+    "failedHint": "Tus datos siguen en este teléfono; no se perdió nada. Toca Reintentar para enviarlos otra vez.",
+    "conflicts_one": "{{count}} cambio por revisar",
+    "conflicts_other": "{{count}} cambios por revisar",
+    "conflictsHint": "Dos personas cambiaron lo mismo. Tu versión quedó guardada como borrador para que decidas.",
+    "held_one": "{{count}} grupo con datos que no se pudieron guardar",
+    "held_other": "{{count}} grupos con datos que no se pudieron guardar",
+    "heldHint": "Llegaron datos de la nube que no se pudieron guardar aquí. El resto de la app sigue funcionando. Reintentar vuelve a probar.",
+    "lastSynced": "Última sincronización: {{when}}",
+    "neverSynced": "Todavía no se ha sincronizado",
+    "error": {
+      "offline": "No hay conexión con el servidor.",
+      "timeout": "El servidor tardó demasiado en responder.",
+      "server": "El servidor tuvo un problema.",
+      "auth": "Tu sesión ya no es válida. Cierra sesión y vuelve a entrar.",
+      "protocol": "El servidor no entendió el último envío."
+    },
+    "syncNow": "Sincronizar ahora",
+    "syncingNow": "Sincronizando…",
+    "retry": "Reintentar"
+  },
   "account": {
     "defaultName": "Usuario",
     "title": "Cuenta",

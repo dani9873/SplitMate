@@ -533,6 +533,64 @@
       "description": "This build is missing the settings to connect to the server. Check the .env file and open the app again."
     }
   },
+  "sync": {
+    "button": {
+      "hint": "Opens the sync status",
+      "synced": "Sync: up to date",
+      "pending": "Sync: changes to upload",
+      "offline": "Sync: offline",
+      "error": "Sync: needs your attention",
+      "syncing": "Syncing"
+    },
+    "sheet": {
+      "title": "Sync"
+    },
+    "state": {
+      "synced": {
+        "title": "All up to date",
+        "body": "Your changes are saved in the cloud."
+      },
+      "pending": {
+        "title": "Changes to upload",
+        "body": "They upload on their own as soon as they can. You don't need to do anything."
+      },
+      "offline": {
+        "title": "Offline",
+        "body": "You can keep using the app. Changes upload when the internet is back."
+      },
+      "error": {
+        "title": "Something needs your attention",
+        "body": "Some data could not be synced. The details are below."
+      },
+      "syncing": {
+        "title": "Syncing…",
+        "body": "We are uploading and downloading changes."
+      }
+    },
+    "pending_one": "{{count}} change to upload",
+    "pending_other": "{{count}} changes to upload",
+    "failed_one": "{{count}} change the server did not accept",
+    "failed_other": "{{count}} changes the server did not accept",
+    "failedHint": "Your data is still on this phone; nothing was lost. Tap Retry to send it again.",
+    "conflicts_one": "{{count}} change to review",
+    "conflicts_other": "{{count}} changes to review",
+    "conflictsHint": "Two people changed the same thing. Your version was saved as a draft so you can decide.",
+    "held_one": "{{count}} group with data that could not be saved",
+    "held_other": "{{count}} groups with data that could not be saved",
+    "heldHint": "Data arrived from the cloud that could not be saved here. The rest of the app keeps working. Retry tries again.",
+    "lastSynced": "Last synced: {{when}}",
+    "neverSynced": "Not synced yet",
+    "error": {
+      "offline": "There is no connection to the server.",
+      "timeout": "The server took too long to answer.",
+      "server": "The server had a problem.",
+      "auth": "Your session is no longer valid. Sign out and sign in again.",
+      "protocol": "The server did not understand the last upload."
+    },
+    "syncNow": "Sync now",
+    "syncingNow": "Syncing…",
+    "retry": "Retry"
+  },
   "account": {
     "defaultName": "User",
     "title": "Account",

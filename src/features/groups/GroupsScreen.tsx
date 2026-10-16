@@ -10,6 +10,8 @@ import type { GroupSummary } from '@/db/repositories';
 import { useLiveQuery } from '@/db/use-live-query';
 import { EmptyState, ErrorState, IconButton, LoadingState, Screen, Text, useAppTheme } from '@/ui';
 
+import { SyncStatusButton } from '@/features/sync';
+
 import { GroupCard } from './GroupCard';
 
 type Row =
@@ -47,6 +49,7 @@ export function GroupsScreen() {
         <Text variant="title" className="flex-1">
           {t('groups.title')}
         </Text>
+        <SyncStatusButton />
         <IconButton
           testID="new-group"
           icon={Plus}

@@ -88,9 +88,10 @@ export interface AuthService {
   onSignedOut(listener: () => void): () => void;
   /**
    * Crea el perfil remoto si falta, con el nombre ya resuelto (el de la cuenta o el de respaldo).
-   * Nunca lanza: sin red, se reintenta en el próximo arranque.
+   * Nunca lanza: `pending` si no se pudo (sin red, por ejemplo); el motor de sincronización lo
+   * reintenta en el siguiente ciclo.
    */
-  ensureProfile(profile: RemoteProfile): Promise<void>;
+  ensureProfile(profile: RemoteProfile): Promise<'synced' | 'pending'>;
   /**
    * Vuelve a pedir la contraseña: una sesión nueva y reciente para borrar la cuenta. Si el correo
    * ya es de otra cuenta, cierra la sesión de este teléfono y lanza `sessionExpired`.
@@ -284,8 +285,8 @@ export function createSupabaseAuthService(
       return () => data.subscription.unsubscribe();
     },
 
-    async ensureProfile(profile) {
-      await ensureRemoteProfile(client, profile);
+    ensureProfile(profile) {
+      return ensureRemoteProfile(client, profile);
     },
 
     async reauthenticateWithPassword(session, password) {

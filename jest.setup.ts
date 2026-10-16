@@ -23,3 +23,15 @@ jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => ({
   measureFirstChildLayout: () => ({ x: 0, y: 0, width: 400, height: 2000 }),
   measureItemLayout: () => ({ x: 0, y: 0, width: 400, height: 60 }),
 }));
+
+// El motor real de sincronización habla con Supabase y la red del sistema. En las pruebas de
+// pantallas es uno falso que, como el real, asegura el perfil remoto al arrancar. Las pruebas del
+// motor usan el suyo (`createSyncEngine`) y el proveedor recibe `createEngine` por propiedad.
+jest.mock('@/features/sync/app-engine', () => ({
+  createAppSyncEngine: ({ ensureProfile }: { ensureProfile: () => Promise<unknown> }) => {
+    const { createFakeSyncEngine } = jest.requireActual('@/features/sync/fake-engine');
+    const engine = createFakeSyncEngine();
+    engine.start.mockImplementation(() => void ensureProfile());
+    return engine;
+  },
+}));

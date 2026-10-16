@@ -4,7 +4,9 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 10, pantallas: indicador, avisos, sesión y reinicio de la base.
+**Siguiente paso:** 11, pantallas: borradores por revisar. Antes, decidir dónde entran los
+pendientes del paso 10 (cerrar sesión y borrar cuenta con "Sincronizar primero", avisos con `Toast` y
+"Reiniciar los datos de este teléfono"; ver el paso 10).
 
 ## Pasos
 
@@ -258,7 +260,31 @@
     `status`, `network`, `engine`); `npx tsc --noEmit` y eslint de `src/features/sync` sin errores.
     Sin suite completa. 5 mutaciones detectadas (origen `sync`, ciclo repetido, espera del reintento,
     lectura de red fallida y envío sin perfil).
-- [ ] 10. Pantallas: indicador, avisos, sesión y reinicio de la base.
+- [x] 10. Pantallas: indicador y hoja de estado (parte del paso 10 del plan).
+  - `SyncProvider` (dentro de `DatabaseGate` en `app/(app)/_layout.tsx`, así que solo hay motor con
+    sesión y base abierta): crea el motor con la base y el bus de la cuenta, lo arranca, pide un ciclo
+    al volver la app al primer plano y lo detiene al desmontarse (cerrar sesión). `SyncEngineProvider`
+    entrega un motor ya hecho (pruebas); `useSyncStatus` usa `useSyncExternalStore`. El motor real se
+    arma en `app-engine.ts` (Supabase, red del sistema, reloj real).
+  - `DatabaseContextValue` suma `bus` (el mismo de los repositorios). `AuthService.ensureProfile`
+    devuelve `'synced' | 'pending'` y el efecto del layout pasó al motor.
+  - `SyncStatusButton` (en el encabezado de Grupos): un ícono por estado (al día, por subir, sin
+    conexión, atención y sincronizando) con nombre accesible y pista. `SyncStatusSheet`: frase de
+    estado, filas solo con cuenta > 0 (por subir, por revisar, apartados, grupos retenidos) cada una
+    con una explicación simple, último error traducido, última sincronización con `Intl`
+    (`formatInstant`), "Sincronizar ahora" y "Reintentar" (con apartados, retenidos o un fallo).
+  - Textos `sync.*` en `es` y `en`; solo tokens y componentes de `src/ui`.
+  - **Pruebas:** `SyncStatusButton`, `SyncStatusSheet` y `SyncProvider` (motor falso en
+    `fake-engine.ts`). `jest.setup.ts` simula `app-engine` en todas las pruebas de pantallas con un
+    motor falso que asegura el perfil al arrancar; `renderWithDatabase` envuelve con uno.
+    `npx jest` de `src/features/{sync/__tests__/Sync*,account,auth,navigation,__tests__}`, `src/i18n`
+    y las de `DatabaseProvider`: en verde; `npx tsc --noEmit` y eslint/prettier de lo tocado sin
+    errores. Sin suite completa.
+  - **Pendiente del paso 10 del plan (no entró, a decidir):** cerrar sesión y borrar cuenta con
+    "Sincronizar primero" (hoy el texto viejo "todavía no se guardan en la nube" sigue en
+    `account.signOutSheet.confirmBody`), avisos de conflicto con `Toast` y "Revisar" (`onNotice`), la
+    pantalla de error de la base con "Reiniciar los datos de este teléfono", y la prueba
+    `flujo-sincronizacion.test.tsx` con PGlite.
 - [ ] 11. Pantallas: borradores por revisar.
 - [ ] 12. Cierre: verificaciones, revisión de seguridad, CLAUDE.md, PR, builds y prueba en el
       teléfono.

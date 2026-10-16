@@ -8,6 +8,7 @@ import { EmptyState, Screen, useAppTheme } from '@/ui';
 
 import type { OpenedDatabase } from './accounts';
 import { appRepositoryDeps } from './app-deps';
+import { createChangeBus, type ChangeBus } from './changes';
 import {
   createRepositories,
   type AppDatabase,
@@ -18,6 +19,8 @@ import {
 export interface DatabaseContextValue {
   readonly db: AppDatabase;
   readonly repos: Repositories;
+  /** El mismo bus de los repositorios: la sincronización escucha y avisa por él. */
+  readonly bus: ChangeBus;
 }
 
 type SetupState =
@@ -56,9 +59,10 @@ export function useDatabaseSetup(
           return;
         }
         opened = result;
+        const bus = createChangeBus();
         setState({
           status: 'ready',
-          value: { db: result.db, repos: createRepositories(result.db, deps) },
+          value: { db: result.db, repos: createRepositories(result.db, deps, { bus }), bus },
         });
         setSettledOnce(true);
       },
