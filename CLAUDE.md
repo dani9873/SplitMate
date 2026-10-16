@@ -218,3 +218,10 @@ src/
 - [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (PR #2 integrado en `main`)
 - [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (PR #3 integrado en `main`)
 - [x] Fase 3 — Cuentas y nube con Supabase: login obligatorio, esquema en Postgres con RLS, sin sincronizar todavía (PR #4 integrado en `main`; antes de probar la Fase 4 con otra persona, las dos pruebas manuales de "Pendientes técnicos")
+
+## Exploración de código
+
+- Usa primero el grafo (`get_architecture`, `search_graph`, `trace_path`, `get_code_snippet`) antes de Grep o de leer archivos completos.
+- Lee el archivo real antes de editar o de afirmar que algo no existe o no tiene llamadores.
+- Usa `detect_changes` antes de la revisión de seguridad al cerrar una fase.
+- Si el índice parece viejo tras cambiar de rama, vuelve a correr `index_repository`.

@@ -1,0 +1,17 @@
+# Lo generado o pesado que no es código (sintaxis gitignore).
+.expo/
+coverage/
+android/
+ios/
+.gradle/
+
+# Imágenes de design/ (los .md de design/ sí se indexan)
+design/**/*.png
+design/**/*.jpg
+design/**/*.jpeg
+design/**/*.webp
+design/**/*.gif
+design/**/*.svg
+
+# Lockfile
+package-lock.json

@@ -128,3 +128,7 @@ desktop.ini
 /*.zip
 /*.rar
 /*.7z
+
+# ----------------------------------------
+# ÍNDICE DE codebase-memory-mcp (se regenera)
+.codebase-memory/
