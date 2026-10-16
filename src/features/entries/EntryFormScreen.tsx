@@ -38,7 +38,9 @@ import {
   entryDraftSchema,
   evaluateEntry,
   hasContent,
+  memberIdsOfConflictDraft,
   problemOf,
+  valuesFromConflictDraft,
   valuesFromExpense,
   valuesFromTransfer,
   type EntryContext,
@@ -71,11 +73,14 @@ interface FormData {
   readonly members: readonly FormMember[];
   readonly initial: EntryFormValues;
   readonly existing: Existing | null;
+  /** Borrador de conflicto del que salen los valores; se descarta al guardar. */
+  readonly conflictId: string | null;
 }
 
 interface LoadOptions {
   readonly groupId: string;
   readonly entryId: string | null;
+  readonly conflictId: string | null;
   readonly type: EntryType;
   readonly today: CalendarDate;
   readonly you: (name: string) => string;
@@ -95,11 +100,21 @@ function loadForm(repos: Repositories, options: LoadOptions): FormData | null {
   if (options.entryId && !expense && !transfer) {
     return null;
   }
-  // Activos más los quitados que ya están en el movimiento que se edita.
+  // Un borrador de conflicto solo vale para este grupo y, al editar, para este mismo movimiento.
+  const candidate = options.conflictId ? repos.conflicts.get(options.conflictId) : undefined;
+  const conflict =
+    candidate &&
+    candidate.groupId === group.id &&
+    (options.entryId === null || candidate.entityId === options.entryId) &&
+    (!options.entryId || candidate.entity === (expense ? 'expense' : 'transfer'))
+      ? candidate
+      : undefined;
+  // Activos más los quitados que ya están en el movimiento que se edita o en el borrador.
   const referenced = new Set<string>([
     ...(expense?.payers.map((p) => p.memberId) ?? []),
     ...(expense?.splits.map((s) => s.memberId) ?? []),
     ...(transfer ? [transfer.fromMemberId, transfer.toMemberId] : []),
+    ...(conflict ? memberIdsOfConflictDraft(conflict) : []),
   ]);
   const members = all
     .filter((m) => m.deletedAt === null || referenced.has(m.id))
@@ -139,11 +154,13 @@ function loadForm(repos: Repositories, options: LoadOptions): FormData | null {
           values: valuesFromTransfer(transfer, base),
         }
       : null;
+  const fromConflict = conflict ? valuesFromConflictDraft(conflict, base) : null;
   return {
     context: { groupId: group.id, groupCurrency: group.currency, memberIds },
     members,
-    initial: existing?.values ?? base,
+    initial: fromConflict ?? existing?.values ?? base,
     existing,
+    conflictId: fromConflict && conflict ? conflict.id : null,
   };
 }
 
@@ -154,6 +171,7 @@ export function EntryFormScreen() {
   const insets = useSafeAreaInsets();
   const groupId = useRouteId('groupId');
   const entryId = useRouteId('entryId');
+  const conflictId = useRouteId('fromConflict');
   const type = useRouteChoice('type', ENTRY_TYPES, 'expense');
   // La fecha de hoy se fija al abrir: si el formulario queda abierto pasada la medianoche, no
   // cambia sola.
@@ -164,6 +182,7 @@ export function EntryFormScreen() {
         ? loadForm(repos, {
             groupId,
             entryId,
+            conflictId,
             type,
             today,
             you: (name) => t('common.youSuffix', { name }),
@@ -171,7 +190,7 @@ export function EntryFormScreen() {
           })
         : null,
     { tables: ALL_TABLES, groupId: groupId ?? undefined },
-    [groupId, entryId, type, today],
+    [groupId, entryId, conflictId, type, today],
   );
   // El formulario se arma una sola vez con los datos del primer momento; los cambios
   // posteriores de la base no lo reinician mientras se edita.
@@ -216,13 +235,17 @@ function EntryForm({ data, today }: { data: FormData; today: CalendarDate }) {
   const formatters = useFormatters();
   const categories = useCategories();
   const { context, members, existing } = data;
+  const { conflictId } = data;
   const isNew = existing === null;
+  // Un movimiento que viene de un conflicto no usa el borrador local del formulario: el suyo es el
+  // borrador del conflicto, que solo se descarta al guardar.
+  const usesLocalDraft = isNew && conflictId === null;
   const [activeField, setActiveField] = useState<string | null>(isNew ? 'total' : null);
   const [pickingCurrency, setPickingCurrency] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState(() =>
-    isNew ? repos.drafts.get(context.groupId, entryDraftSchema) : null,
+    usesLocalDraft ? repos.drafts.get(context.groupId, entryDraftSchema) : null,
   );
   const saved = useRef(false);
 
@@ -262,10 +285,10 @@ function EntryForm({ data, today }: { data: FormData; today: CalendarDate }) {
   // Borrador: se guarda al pasar a segundo plano y al salir sin guardar, si hay algo escrito.
   const saveDraft = useCallback(() => {
     const current = getValues();
-    if (isNew && !saved.current && hasContent(current)) {
+    if (usesLocalDraft && !saved.current && hasContent(current)) {
       repos.drafts.save(context.groupId, { v: 1, values: current });
     }
-  }, [context.groupId, getValues, isNew, repos]);
+  }, [context.groupId, getValues, repos, usesLocalDraft]);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') {
@@ -359,8 +382,12 @@ function EntryForm({ data, today }: { data: FormData; today: CalendarDate }) {
             repos.transfers.add(result.input.value);
           }
           saved.current = true;
-          if (isNew) {
+          if (usesLocalDraft) {
             repos.drafts.discard(context.groupId);
+          }
+          if (conflictId !== null) {
+            // Después de guardar: si algo falla antes, el borrador sigue ahí.
+            repos.conflicts.discard(conflictId);
           }
           router.back();
         } catch (error) {
