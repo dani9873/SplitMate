@@ -92,12 +92,19 @@ export function useDatabaseSetup(
   return { state, settledOnce, retry };
 }
 
-/** Muestra la app con la base lista, un indicador mientras abre o el error con reintento. */
+/**
+ * Muestra la app con la base lista, un indicador mientras abre o el error con reintento. Con
+ * `onReset`, el error también ofrece reiniciar los datos de este teléfono (borrarlos y volver a
+ * abrir una base vacía).
+ */
 export function DatabaseGate({
   database,
+  onReset,
   children,
 }: {
   database: DatabaseSetup;
+  /** Borra del teléfono la base de la cuenta. Después, la apertura crea una nueva. */
+  onReset?: () => Promise<void>;
   children: ReactNode;
 }) {
   const { state, retry } = database;
@@ -105,7 +112,7 @@ export function DatabaseGate({
     return <DatabaseContext.Provider value={state.value}>{children}</DatabaseContext.Provider>;
   }
   if (state.status === 'error') {
-    return <DatabaseErrorScreen onRetry={retry} />;
+    return <DatabaseErrorScreen onRetry={retry} onReset={onReset} />;
   }
   return <DatabaseLoading />;
 }
@@ -124,16 +131,77 @@ function DatabaseLoading() {
   );
 }
 
-function DatabaseErrorScreen({ onRetry }: { onRetry: () => void }) {
+type ResetStep = 'idle' | 'ask' | 'sure';
+
+function DatabaseErrorScreen({
+  onRetry,
+  onReset,
+}: {
+  onRetry: () => void;
+  onReset?: () => Promise<void>;
+}) {
   const { t } = useTranslation();
+  const [step, setStep] = useState<ResetStep>('idle');
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const cancel = () => setStep('idle');
+  const reset = async () => {
+    if (!onReset || busy) {
+      return;
+    }
+    setBusy(true);
+    setFailed(false);
+    try {
+      await onReset();
+      setStep('idle');
+      onRetry();
+    } catch (error) {
+      logger.warn('No se pudieron reiniciar los datos de este teléfono', error);
+      setFailed(true);
+      setStep('idle');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Screen edges={['top', 'bottom']}>
-      <EmptyState
-        icon={DatabaseZap}
-        title={t('database.error.title')}
-        description={t('database.error.description')}
-        action={{ label: t('database.error.retry'), onPress: onRetry }}
-      />
+      {step === 'ask' ? (
+        <EmptyState
+          icon={DatabaseZap}
+          title={t('database.error.resetTitle')}
+          description={t('database.error.resetBody')}
+          action={{ label: t('database.error.resetContinue'), onPress: () => setStep('sure') }}
+          secondaryAction={{ label: t('common.cancel'), onPress: cancel }}
+        />
+      ) : step === 'sure' ? (
+        <EmptyState
+          icon={DatabaseZap}
+          title={t('database.error.resetFinalTitle')}
+          description={t('database.error.resetFinalBody')}
+          action={{ label: t('database.error.resetConfirm'), onPress: () => void reset() }}
+          secondaryAction={{ label: t('common.cancel'), onPress: cancel }}
+        />
+      ) : (
+        <EmptyState
+          icon={DatabaseZap}
+          title={t('database.error.title')}
+          description={
+            failed
+              ? `${t('database.error.description')}
+
+${t('database.error.resetFailed')}`
+              : t('database.error.description')
+          }
+          action={{ label: t('database.error.retry'), onPress: onRetry }}
+          secondaryAction={
+            onReset
+              ? { label: t('database.error.reset'), onPress: () => setStep('ask') }
+              : undefined
+          }
+        />
+      )}
     </Screen>
   );
 }

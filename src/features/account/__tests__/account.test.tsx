@@ -134,6 +134,33 @@ describe('cuenta', () => {
     });
   });
 
+  describe('base que no abre', () => {
+    it('reiniciar los datos de este teléfono borra los de la cuenta y abre una base nueva', async () => {
+      const user = userEvent.setup();
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      const { db } = await createTestDatabase();
+      jest
+        .mocked(openAccountDatabase)
+        .mockReset()
+        .mockRejectedValueOnce(new Error('clave perdida'))
+        .mockResolvedValue({ db, close });
+      service = createFakeAuthService({ restore: async () => TEST_SESSION });
+      await renderRouter(routes(), { initialUrl: '/settings' });
+
+      await user.press(
+        await screen.findByRole('button', { name: 'Reiniciar los datos de este teléfono' }),
+      );
+      await user.press(await screen.findByRole('button', { name: 'Continuar' }));
+      await user.press(await screen.findByRole('button', { name: 'Borrar y reiniciar' }));
+
+      await waitFor(() => expect(deleteAccountData).toHaveBeenCalledWith(TEST_SESSION.userId));
+      expect(await screen.findByText('Entraste como ana@example.com')).toBeOnTheScreen();
+      expect(openAccountDatabase).toHaveBeenCalledTimes(2);
+      expect(service.signOut).not.toHaveBeenCalled();
+    });
+  });
+
   describe('borrar la cuenta', () => {
     it('pide el correo exacto y la contraseña, borra la cuenta y los datos y vuelve a la bienvenida', async () => {
       const user = userEvent.setup();

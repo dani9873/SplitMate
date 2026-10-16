@@ -154,7 +154,15 @@
     "error": {
       "title": "Couldn't open your data",
       "description": "Something went wrong while preparing the data stored on this device. You can try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "reset": "Reset the data on this phone",
+      "resetTitle": "Reset the data on this phone?",
+      "resetBody": "The data saved here is deleted and downloaded again from the cloud. Anything that wasn't uploaded first is lost.",
+      "resetContinue": "Continue",
+      "resetFinalTitle": "Are you sure? This can't be undone",
+      "resetFinalBody": "We'll delete this phone's database and start from scratch with what is in the cloud.",
+      "resetConfirm": "Delete and reset",
+      "resetFailed": "The data on this phone couldn't be deleted. Try again."
     }
   },
   "ui": {
