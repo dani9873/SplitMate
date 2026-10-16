@@ -4,8 +4,8 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 11, pantallas: borradores por revisar (lista y resolución; "Revisar" de los avisos
-hoy lleva al detalle del grupo, donde irá el banner).
+**Siguiente paso:** 12, cierre: verificaciones, revisión de seguridad, CLAUDE.md, PR, builds de EAS
+(development con `expo-network` y preview) y prueba en el teléfono (lista en "Notas para retomar").
 
 ## Pasos
 
@@ -303,7 +303,32 @@ hoy lleva al detalle del grupo, donde irá el banner).
     reintentar. Con esto sale de CLAUDE.md el pendiente "Clave de cifrado perdida" **en el paso 12**.
   - **Verificación:** `npx jest` de `src/features/{sync,account,navigation}`, `src/db` e `src/i18n`
     (todo en verde); `npx tsc --noEmit`, eslint y prettier de lo tocado sin errores. Sin suite completa.
-- [ ] 11. Pantallas: borradores por revisar.
+- [x] 11. Pantallas: borradores por revisar (cuatro commits, solo código; sin builds).
+  - `repos.conflicts` (`list`, `get`, `discard`) y `sync_conflicts` como tabla del bus (no entra en
+    `ALL_TABLES`): el rechazo de la sincronización y el descarte avisan, y el banner se actualiza solo.
+  - `valuesFromConflictDraft` y `memberIdsOfConflictDraft` en `entry-form.ts` (zod sobre el borrador;
+    `null` si no es un movimiento o no se lee). Si la moneda del grupo cambió, la tasa queda vacía.
+    `valuesFromExpense` y `valuesFromTransfer` ahora piden solo lo que usan (`ExpenseSource`,
+    `TransferSource`).
+  - El formulario lee `fromConflict` con `useRouteId` (ya valida el UUID; no hizo falta código nuevo en
+    `route-params.ts`). Lo ignora si el borrador es de otro grupo o, al editar, de otro movimiento.
+    Edición si el movimiento sigue activo (guarda sobre la versión actual), alta si no. Un formulario que
+    viene de un conflicto **no usa el borrador local del formulario** y el borrador de conflicto solo se
+    descarta después de guardar.
+  - `conflict-review.ts` (sin React): `readConflictItem`, `applyMine`, `deleteNow`, `reasonKey`. Tres
+    tipos: `movement` (abre el formulario o "Descartar", con confirmación), `deletion` ("Borrar ahora" sobre
+    la versión actual o "Mantener"; si ya no existe, "Entendido") y `fields` (grupo o miembro: tu valor y el
+    actual solo en lo que difiere; **"Usar la mía" se sumó a lo del plan** para nombre, emoji y color del
+    grupo y el nombre del miembro, no si el grupo está archivado ni si difiere la moneda; si no, "Entendido").
+    Categorías: solo "Entendido" (la app aún no las edita).
+  - `ConflictBanner` y `ConflictSheet` en el detalle del grupo; textos `sync.review.*` en `es` y `en`.
+    Un error al aplicar una elección se explica en la tarjeta y el borrador sigue.
+  - **Pruebas:** `conflicts-repository`, `entry-form` (6 nuevas), `EntryFormScreen.conflict`,
+    `conflict-review` (12), `ConflictBanner` (11) y `GroupDetailScreen.conflicts`; con `src/features/{sync,entries,
+    group-detail}`, `src/db/__tests__` y los flujos de grupo y sincronización: 340 + 16 en verde. `tsc` y
+    eslint/prettier de `src/features`, `src/db` y `src/i18n` sin errores. Sin suite completa. Mutaciones
+    detectadas: salir de un alta sin guardar no deja borrador local, el borrador de otro movimiento se
+    ignora, `Usar la mía` descarta, grupo archivado, la hoja no se reabre sola.
 - [ ] 12. Cierre: verificaciones, revisión de seguridad, CLAUDE.md, PR, builds y prueba en el
       teléfono.
 
@@ -337,3 +362,9 @@ hoy lleva al detalle del grupo, donde irá el banner).
 - `supabase test db` corre como prueba todo `.sql` bajo `supabase/tests`: los archivos de apoyo
   van fuera (`supabase/pglite/plataforma.sql`). El primer CI del paso 2 (run 38544389269) falló por
   eso, con las 178 pruebas pgTAP en verde sobre Postgres 17.
+- Prueba en el teléfono (paso 12), en palabras simples: (1) sin internet, abre la app, crea un gasto y mira
+  que diga "por subir"; (2) vuelve el internet y mira que pase a "al día"; (3) con la misma cuenta en otro
+  dispositivo, cambia el mismo gasto en los dos sin conexión y, al volver la red, toca "Revisar" en el
+  aviso, y en el grupo prueba "Revisar y guardar mi versión", "Descartar" y, en un borrado, "Borrar ahora";
+  (4) cierra sesión con algo sin subir y mira que ofrezca "Sincronizar primero"; (5) borra la cuenta de
+  prueba y comprueba que sus grupos ya no están en la nube.
