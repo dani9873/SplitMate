@@ -4,7 +4,7 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 9, motor parte 3 (TDD): cuándo sincronizar y estado (`engine.ts`, `network.ts`).
+**Siguiente paso:** 10, pantallas: indicador, avisos, sesión y reinicio de la base.
 
 ## Pasos
 
@@ -229,7 +229,35 @@
     completa. 8 mutaciones detectadas (cursor fuera de la transacción, sin saltar pendientes, el eco
     sube `version`, sin orden por tabla, fila inválida sin retener, cursor que retrocede, grupo
     retenido que se vuelve a pedir, miembros sin liberar primero).
-- [ ] 9. Motor, parte 3 (TDD): cuándo sincronizar y estado.
+- [x] 9. Motor, parte 3 (TDD): cuándo sincronizar y estado.
+  - `src/features/sync/engine.ts` (`createSyncEngine`), `status.ts` (puras: `deriveStatus`,
+    `nextBackoff`, `sameStatus`), `network.ts` (`expo-network` 57.0.2, instalado con
+    `npx expo install`) e `index.ts`. Reloj, red, `ensureProfile` y `random` se inyectan.
+  - **Decisiones:**
+    - Disparadores inmediatos: `open` (cuando se conoce la red; si leerla falla se supone que hay),
+      `foreground`, `reconnect` y `manual`. `local-change`: 2 s tras la última escritura y como mucho
+      10 s desde la primera; los cambios con `source: 'sync'` no la disparan. Un inmediato cancela la
+      espera.
+    - Un ciclo a la vez: un pedido durante un ciclo deja exactamente uno más. Si el ciclo falló, ese
+      pedido espera al reintento. `syncNow` espera el ciclo en curso y el siguiente; `stop` lo suelta.
+    - Sin red: cero llamadas, estado `offline`. Reintentos 5 s, 15 s, 45 s, 2 min y 5 min (±20 %)
+      solo para `server`, `timeout` y `offline`; `protocol` y `auth` no se reintentan solos (estado
+      `error`). Una escritura local durante la espera del reintento no la salta; un pedido del
+      usuario sí.
+    - Perfil remoto: se asegura una vez por sesión del motor; si no se pudo (o lanza), el ciclo solo
+      descarga (`nextBatch` vacío) y se reintenta con el mismo backoff.
+    - `SyncStatus` suma `held` (grupos retenidos por fila inválida) y `lastError` a lo del plan. Estado:
+      `offline` > `error` (apartados, retenidos, `protocol`, `auth`) > `pending` (por subir o con
+      reintento en camino) > `synced`. Los borradores por revisar no cambian el estado: se cuentan.
+      `getStatus` devuelve el mismo objeto mientras nada cambie (apto para `useSyncExternalStore`) y se
+      refresca con cada cambio del bus, no solo al terminar el ciclo.
+    - `start` llama a `retryFailed` del almacén (apartados vuelven a la cola al abrir);
+      `retryFailed()` del motor lo hace y pide un ciclo, que también reintenta los grupos retenidos.
+    - Sin JSX ni textos: el indicador, la hoja y los textos `es`/`en` son del paso 10.
+  - **Verificación:** `npx jest src/features/sync src/db/sync`: 14 suites y 220 pruebas en verde (59 nuevas:
+    `status`, `network`, `engine`); `npx tsc --noEmit` y eslint de `src/features/sync` sin errores.
+    Sin suite completa. 5 mutaciones detectadas (origen `sync`, ciclo repetido, espera del reintento,
+    lectura de red fallida y envío sin perfil).
 - [ ] 10. Pantallas: indicador, avisos, sesión y reinicio de la base.
 - [ ] 11. Pantallas: borradores por revisar.
 - [ ] 12. Cierre: verificaciones, revisión de seguridad, CLAUDE.md, PR, builds y prueba en el
