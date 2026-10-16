@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { GROUP_COLORS } from '@/lib/group-appearance';
 
 import type { TableName } from '../changes';
-import { MAX_MINOR_AMOUNT } from '../repositories/validation';
+import { currencySchema, MAX_MINOR_AMOUNT } from '../repositories/validation';
 import type { AppDatabase } from '../repositories/types';
 import {
   categories,
@@ -27,7 +27,8 @@ import type { RemoteRow, SyncEntity } from './wire';
 const uuid = z.guid();
 const version = z.int().min(1).max(Number.MAX_SAFE_INTEGER);
 const money = z.int().min(0).max(MAX_MINOR_AMOUNT);
-const currency = z.string().regex(/^[A-Z]{3}$/);
+/** Solo monedas que la app conoce: otro código rompería los saldos (`currencyCode` lanza). */
+const currency = currencySchema;
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const instant = z
   .string()

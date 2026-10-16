@@ -2,7 +2,7 @@
 -- una corrección. Ana trabaja en su grupo viaje; los ids nuevos son tests.u(n), de 300 en adelante
 -- para filas y de 3000 en adelante para envíos.
 begin;
-select plan(11);
+select plan(14);
 
 select tests.crear_mundo();
 
@@ -125,6 +125,41 @@ select is(
   'sync_push sigue escribiendo con su marca'
 );
 reset role;
+
+-- C1. Solo monedas de ISO 4217 que la app conoce -----------------------------------------------------
+
+select tests.autenticar_como(tests.id('ana'));
+insert into res select 'monedas', public.sync_push(jsonb_build_array(
+  -- 0: un grupo con un código inventado
+  jsonb_build_object('id', tests.u(3500), 'entity', 'group', 'base', null,
+    'data', jsonb_build_object('id', tests.u(500), 'name', 'Inventada', 'currency', 'QQQ',
+      'emoji', null, 'color', 'teal', 'archived', false, 'deleted', false)),
+  -- 1: un gasto en una moneda inventada
+  jsonb_build_object('id', tests.u(3510), 'entity', 'expense', 'base', null,
+    'data', (tests.envio_gasto(510, tests.u(511), tests.u(512), tests.u(513)) -> 'data')
+      || jsonb_build_object('currency', 'QQQ', 'exchange_rate', '2', 'rate_date', '2026-10-12')),
+  -- 2: un grupo en dinares kuwaitíes (3 decimales)
+  jsonb_build_object('id', tests.u(3520), 'entity', 'group', 'base', null,
+    'data', jsonb_build_object('id', tests.u(520), 'name', 'Kuwait', 'currency', 'KWD',
+      'emoji', null, 'color', 'teal', 'archived', false, 'deleted', false))
+));
+reset role;
+
+select is(
+  (select array[j -> 0 ->> 'reason', j -> 0 ->> 'field'] from res where k = 'monedas'),
+  array['invalid', 'currency'],
+  'Un grupo con una moneda inventada es invalid en currency'
+);
+select is(
+  (select array[j -> 1 ->> 'reason', j -> 1 ->> 'field'] from res where k = 'monedas'),
+  array['invalid', 'currency'],
+  'Un gasto en una moneda inventada es invalid en currency'
+);
+select is(
+  (select j -> 2 ->> 'status' from res where k = 'monedas'),
+  'applied',
+  'Una moneda de la lista entra'
+);
 
 select * from finish();
 rollback;

@@ -430,6 +430,9 @@ describe('applyRemoteGroup: datos que llegan de la red', () => {
   it.each([
     ['un monto negativo', { amount: -5 }],
     ['una moneda mal formada', { currency: 'usd' }],
+    // Con el formato correcto pero fuera de ISO 4217: los saldos lanzarían UNKNOWN_CURRENCY.
+    ['una moneda que no existe', { currency: 'QQQ' }],
+    ['una moneda del grupo que no existe', { group_currency: 'QQQ' }],
     ['una fecha inexistente en el formato', { occurred_on: '09/10/2026' }],
     ['un id que no es uuid', { id: 'no-es-uuid' }],
     ['un título vacío', { title: '' }],
@@ -443,6 +446,19 @@ describe('applyRemoteGroup: datos que llegan de la red', () => {
 
     expect(outcome.held).toBe(true);
     expect(rows(s, `SELECT COUNT(*) AS n FROM expenses`)).toEqual([{ n: 0 }]);
+  });
+
+  it('un grupo con una moneda que no existe no entra y queda retenido', async () => {
+    const s = await setup();
+    const bad = groupRows(s).map((r) =>
+      r.table === 'groups' ? serverRow('groups', { ...r.row, currency: 'QQQ' }) : r,
+    );
+
+    const outcome = s.store.applyRemoteGroup(page(bad));
+
+    expect(outcome.held).toBe(true);
+    expect(rows(s, `SELECT COUNT(*) AS n FROM groups`)).toEqual([{ n: 0 }]);
+    expect(s.store.cursors()).toEqual({});
   });
 
   it('una restricción de SQLite que falla a la mitad deja el cursor y se reintenta sin duplicar', async () => {
