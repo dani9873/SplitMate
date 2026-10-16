@@ -124,13 +124,16 @@ describe('arranque de la base de datos', () => {
       expect(
         await screen.findByRole('header', { name: '¿Reiniciar los datos de este teléfono?' }),
       ).toBeOnTheScreen();
-      expect(screen.getByText(/Lo que no se haya subido antes se pierde/)).toBeOnTheScreen();
+      expect(
+        screen.getByText(/no se haya subido antes a la nube no se puede recuperar/),
+      ).toBeOnTheScreen();
       expect(onReset).not.toHaveBeenCalled();
 
       await user.press(screen.getByRole('button', { name: 'Continuar' }));
       expect(
         await screen.findByRole('header', { name: '¿Seguro? No se puede deshacer' }),
       ).toBeOnTheScreen();
+      expect(screen.getByText(/Lo que no se había subido no se puede recuperar/)).toBeOnTheScreen();
       expect(onReset).not.toHaveBeenCalled();
 
       await user.press(screen.getByRole('button', { name: 'Borrar y reiniciar' }));

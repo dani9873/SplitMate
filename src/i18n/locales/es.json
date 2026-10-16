@@ -157,10 +157,10 @@
       "retry": "Reintentar",
       "reset": "Reiniciar los datos de este teléfono",
       "resetTitle": "¿Reiniciar los datos de este teléfono?",
-      "resetBody": "Se borran los datos guardados aquí y se vuelven a descargar de la nube. Lo que no se haya subido antes se pierde.",
+      "resetBody": "Se borran los datos guardados aquí y se vuelven a descargar de la nube. Lo que no se haya subido antes a la nube no se puede recuperar.",
       "resetContinue": "Continuar",
       "resetFinalTitle": "¿Seguro? No se puede deshacer",
-      "resetFinalBody": "Borraremos la base de datos de este teléfono y empezaremos de cero con lo que haya en la nube.",
+      "resetFinalBody": "Borraremos la base de datos de este teléfono y empezaremos de cero con lo que haya en la nube. Lo que no se había subido no se puede recuperar.",
       "resetConfirm": "Borrar y reiniciar",
       "resetFailed": "No se pudieron borrar los datos de este teléfono. Inténtalo de nuevo."
     }
