@@ -191,6 +191,50 @@ describe('bases por cuenta', () => {
       expect(registry(phone)[ANA.userId]).toEqual(LEGACY_DATABASE);
     });
 
+    it('no deja filas fantasma por sincronizar: solo quedan pendientes las filas que cambiaron de usuario', async () => {
+      const phone = createPhone();
+      seedLegacyDatabase(phone);
+      // Todo lo de la base vieja ya estaba al día con el servidor.
+      const legacy = phone.files.get(LEGACY_DATABASE.file)?.sqlite as Database;
+      for (const table of [
+        'groups',
+        'group_members',
+        'categories',
+        'expenses',
+        'expense_payers',
+        'expense_splits',
+        'transfers',
+      ]) {
+        legacy.run(`UPDATE ${table} SET synced_version = version, server_version = version`);
+      }
+      const accounts = createAccountDatabases(phone.deps);
+
+      const { db } = await accounts.open(ANA);
+
+      const rows = (sql: string) => legacy.exec(sql)[0]?.values ?? [];
+      // El usuario local viejo se borró de verdad: `users` no se sincroniza y nada le apunta.
+      expect(
+        db
+          .select()
+          .from(users)
+          .all()
+          .map((u) => u.id),
+      ).toEqual([ANA.userId]);
+      for (const table of ['sync_outbox', 'sync_conflicts', 'sync_cursors']) {
+        expect(rows(`SELECT count(*) FROM ${table}`)).toEqual([[0]]);
+      }
+      // El grupo (created_by nuevo) y el miembro "yo" (user_id nuevo) suben; Beto y el gasto, no.
+      expect(rows(`SELECT name FROM groups WHERE synced_version <> version`)).toEqual([['Viaje']]);
+      expect(
+        rows(`SELECT display_name FROM group_members WHERE synced_version <> version`),
+      ).toEqual([['Ana']]);
+      for (const table of ['expenses', 'expense_payers', 'expense_splits']) {
+        expect(rows(`SELECT count(*) FROM ${table} WHERE synced_version <> version`)).toEqual([
+          [0],
+        ]);
+      }
+    });
+
     it('repetirla no duplica nada', async () => {
       const phone = createPhone();
       seedLegacyDatabase(phone);

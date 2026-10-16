@@ -12,7 +12,13 @@ const label = (max: number) => z.string().trim().min(1).max(max);
 
 export const currencySchema = z.string().refine(isKnownCurrency, 'Moneda ISO 4217 desconocida');
 
-export const minorAmountSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+/**
+ * Monto máximo en unidades menores. Es el tope del servidor (`sync_push` rechaza más): la app
+ * no deja guardar lo que no se podría sincronizar.
+ */
+export const MAX_MINOR_AMOUNT = 99_999_999_999_999;
+
+export const minorAmountSchema = z.number().int().positive().max(MAX_MINOR_AMOUNT);
 
 /** Día de calendario `YYYY-MM-DD`, sin hora ni zona, que existe en el calendario. */
 export const isoDateSchema = z
@@ -27,7 +33,7 @@ export const rateSchema = z
 
 const memberAmount = z.object({
   memberId: id,
-  amount: z.number().int().min(Number.MIN_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER),
+  amount: z.number().int().min(-MAX_MINOR_AMOUNT).max(MAX_MINOR_AMOUNT),
 });
 
 export const splitInputSchema = z.discriminatedUnion('method', [

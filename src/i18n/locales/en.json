@@ -416,6 +416,7 @@
       "LAST_MEMBER": "A group needs at least one member.",
       "MEMBER_TAKEN": "That member is already linked to someone else.",
       "CURRENCY_LOCKED": "The currency can't change because the group already has activity.",
+      "CURRENCY_CHANGED": "The group changed currency after this entry was recorded, so it can't be restored. Record it again.",
       "GROUP_ARCHIVED": "The group is archived: restore it to make changes."
     },
     "domain": {

@@ -10,6 +10,7 @@ export type RepositoryErrorCode =
   | 'LAST_MEMBER'
   | 'MEMBER_TAKEN'
   | 'CURRENCY_LOCKED'
+  | 'CURRENCY_CHANGED'
   | 'GROUP_ARCHIVED';
 
 export interface ValidationIssue {
@@ -32,6 +33,8 @@ export interface RepositoryErrorDetails {
  * - `LAST_MEMBER`: un grupo no se queda sin miembros.
  * - `MEMBER_TAKEN`: el miembro ya está vinculado a la cuenta de otra persona.
  * - `CURRENCY_LOCKED`: la moneda del grupo no cambia cuando ya tiene movimientos.
+ * - `CURRENCY_CHANGED`: el grupo cambió de moneda desde que se registró el movimiento borrado,
+ *   así que ya no se puede restaurar: sus montos están en la moneda anterior del grupo.
  * - `GROUP_ARCHIVED`: un grupo archivado es de solo lectura.
  */
 export class RepositoryError extends Error {

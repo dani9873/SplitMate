@@ -416,6 +416,7 @@
       "LAST_MEMBER": "Un grupo necesita al menos un miembro.",
       "MEMBER_TAKEN": "Ese miembro ya está vinculado a otra persona.",
       "CURRENCY_LOCKED": "La moneda no cambia porque el grupo ya tiene movimientos.",
+      "CURRENCY_CHANGED": "El grupo cambió de moneda desde que se registró este movimiento, así que ya no se puede restaurar. Regístralo de nuevo.",
       "GROUP_ARCHIVED": "El grupo está archivado: restáuralo para hacer cambios."
     },
     "domain": {

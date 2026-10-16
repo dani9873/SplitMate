@@ -4,7 +4,7 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 5, base local: columnas y tablas de sincronización (migración 0004).
+**Siguiente paso:** 6, banco de pruebas con PGlite y cliente remoto.
 
 ## Pasos
 
@@ -99,7 +99,32 @@
       con el permiso del usuario, `supabase db push` las aplicó sin errores y `npm run check:data-api`
       contra el remoto dio "Data API en orden" (31 comprobaciones: `anon` sin tablas ni RPC, `change_log`
       de solo lectura, `sync_pull` y `sync_push([])` en 200, y la guardia en `42501`).
-- [ ] 5. Base local: columnas y tablas de sincronización (migración 0004).
+- [x] 5. Base local: columnas y tablas de sincronización (migración 0004):
+  - `0004_sincronizacion.sql`: sale de `drizzle-kit generate --name sincronizacion` (no `--custom`,
+    que dejaría el snapshot sin las columnas nuevas) y se editó a mano. Revisado: solo `CREATE`,
+    `ALTER TABLE ... ADD` e índices; sin `DROP TABLE`, `__new_`, `RENAME` ni `PRAGMA`, así que
+    ninguna tabla se reconstruye (con `foreign_keys = ON` podría borrar en cascada gastos y partes).
+    Una prueba lee el `.sql` y falla si aparece alguno.
+  - `server_version` (nulo = nunca llegó) y `synced_version` (0) en las 7 tablas que se envían;
+    `users` no cambia. **Pendiente = `version <> synced_version`**, sin otra marca; índices parciales
+    `*_pending_idx` en las 7. Las 9 predefinidas quedan con `synced_version = version`.
+  - `group_currency` en `expenses` y `transfers`: columna `NOT NULL DEFAULT 'USD'` (SQLite exige el
+    DEFAULT al agregarla) con el CHECK de formato como restricción de columna solo en el `.sql`, y
+    relleno con una subconsulta correlacionada a `groups` (no `UPDATE ... FROM`, para no depender de
+    la versión de SQLite). En `schema.ts` queda `notNull()` sin default: así `tsc` obliga a los
+    repositorios a mandarla. El snapshot no refleja ese DEFAULT; es la única diferencia con el `.sql`.
+  - Tablas locales `sync_outbox` (un envío por unidad, `in_flight` o `failed`), `sync_cursors` y
+    `sync_conflicts`; sin columnas de sincronización ni claves foráneas.
+  - `MAX_MINOR_AMOUNT = 99_999_999_999_999` (tope del servidor) en `validation.ts`;
+    `CURRENCY_CHANGED` en `errors.ts` con textos `es` y `en`; `restore` de gastos y transferencias
+    lo lanza si el grupo cambió de moneda.
+  - `members.ts` (`setCurrentMember`) y `accounts.ts` (`adoptLocalUser`) ya subían `version`: no se
+    tocaron, quedan cubiertos por prueba. El `DELETE` físico del usuario local viejo no deja filas
+    fantasma porque `users` no se sincroniza y nada del envío apunta a él.
+  - Pruebas: `migration-0004` (`migrationsUpTo(4)` con datos de las Fases 1-3: conteos idénticos antes y
+    después, contenido de las columnas viejas igual, `foreign_key_check` vacío), `sync-columns`
+    (repositorios), y ajustes en `schema`, `migration-guard` y `accounts`. `npx jest src/db`: 17 suites,
+    137 pruebas en verde; `npx tsc --noEmit` sin errores. No se corrió la suite completa.
 - [ ] 6. Banco de pruebas con PGlite y cliente remoto.
 - [ ] 7. Motor, parte 1 (TDD): envío y borradores de conflicto.
 - [ ] 8. Motor, parte 2 (TDD): descarga y conflictos entre dos dispositivos.
