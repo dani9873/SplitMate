@@ -4,9 +4,7 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 12b, cierre:
-- `supabase db push` de las cuatro migraciones del 12a, con permiso del usuario, y luego
-  `npm run check:data-api`;
+**Siguiente paso:** 12b, cierre (el `db push` y `check:data-api` ya están hechos):
 - revisar en el panel si pg_graphql está activo;
 - verificaciones completas, PR y builds de EAS (development con `expo-network` y preview);
 - prueba en el teléfono (lista en "Notas para retomar").
@@ -354,8 +352,11 @@
       `conflicts.int`, `cycle`, `remote.int` y `flujo-sincronizacion` en verde;
     - `npx tsc --noEmit` y eslint/prettier de lo tocado, sin errores. Sin suite completa.
   - `npm audit --omit=dev`: 68 avisos, los mismos seis paquetes de origen.
-- [ ] 12b. Cierre: `db push` y `check:data-api`, verificaciones, PR, builds y prueba en el
-      teléfono.
+- [ ] 12b. Cierre: verificaciones, PR, builds y prueba en el teléfono.
+  - [x] 2026-10-16: `db push --dry-run` listó solo las cuatro migraciones del 12a; con el permiso del
+        usuario, `npx supabase db push` las aplicó sin errores y `npm run check:data-api` contra el
+        remoto dio "Data API en orden" (31 comprobaciones, incluidas `anon` sin `sync_pull` ni
+        `sync_push` y la guardia de `groups`).
 
 ## Notas para retomar
 
