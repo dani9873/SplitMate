@@ -1,13 +1,15 @@
+import { logger } from '@/lib/logger';
+
 import type { ChangeBus } from '../changes';
 import type { AppDatabase } from '../repositories/types';
 import { discardConflict, getConflict, listConflicts, type ConflictDraft } from './conflicts';
 import { applyPushResult, countSync, nextBatch, retryFailed } from './outbox';
-import type { BatchLimits, SyncCounts, SyncDeps, SyncNotice } from './types';
-import type { Mutation, PushResult } from './wire';
+import { applyGroupChanges, readCursors, writeCursor } from './pull';
+import type { ApplyOutcome, BatchLimits, SyncCounts, SyncDeps, SyncNotice } from './types';
+import type { Mutation, PushResult, RemoteGroupChanges } from './wire';
 
 /**
- * Todo lo que el motor de sincronización necesita de SQLite, sin que vea SQL. La descarga
- * (`cursors`, `applyRemoteGroup`) se suma en el paso siguiente de la Fase 4a.
+ * Todo lo que el motor de sincronización necesita de SQLite, sin que vea SQL.
  */
 export interface SyncStore {
   counts(): SyncCounts;
@@ -21,6 +23,14 @@ export interface SyncStore {
    * usuario que quedó como borrador.
    */
   applyPushResults(results: readonly PushResult[]): SyncNotice[];
+  /** Hasta qué `change_seq` del servidor se descargó cada grupo (id de grupo → cursor). */
+  cursors(): Record<string, number>;
+  /**
+   * Aplica la descarga de un grupo en una sola transacción, con su cursor: si nada quedó retenido
+   * (`held`), el cursor avanza junto con las filas; si no, se reintenta en el próximo ciclo. Las
+   * unidades con cambios locales pendientes se conservan.
+   */
+  applyRemoteGroup(changes: RemoteGroupChanges): ApplyOutcome;
   /** Devuelve los envíos apartados a la cola. Cuántos devolvió. */
   retryFailed(): number;
   listConflicts(groupId?: string): ConflictDraft[];
@@ -47,6 +57,31 @@ export function createSyncStore(db: AppDatabase, bus: ChangeBus, deps: SyncDeps)
         }
       });
       return notices;
+    },
+
+    cursors: () => readCursors(db),
+
+    applyRemoteGroup(changes) {
+      let result: ReturnType<typeof applyGroupChanges>;
+      try {
+        result = db.transaction((tx) => {
+          const now = deps.now();
+          const applied = applyGroupChanges(tx, changes, now);
+          // El cursor va en la misma transacción que las filas.
+          if (!applied.held) {
+            writeCursor(tx, changes.id, changes.cursor, now);
+          }
+          return applied;
+        });
+      } catch (error) {
+        // Nada de este grupo quedó a medias: se reintenta en el próximo ciclo.
+        logger.error('No se pudo aplicar la descarga de un grupo', error);
+        return { applied: 0, skipped: 0, held: true };
+      }
+      if (result.applied > 0) {
+        bus.emit({ source: 'sync', tables: result.tables, groupIds: [changes.id] });
+      }
+      return { applied: result.applied, skipped: result.skipped, held: result.held };
     },
 
     retryFailed: () => retryFailed(db),

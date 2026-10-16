@@ -38,8 +38,14 @@ const rate = z
   .transform(String)
   .pipe(z.string().regex(/^[0-9][0-9.]*$/));
 
+/** Fechas del servidor: opcionales, porque solo sirven para fechar una fila que llega nueva. */
+const stamps = { created_at: instant.optional(), updated_at: instant.optional() };
+
 const groupRow = z.object({
+  ...stamps,
   id: uuid,
+  /** Solo hace falta al insertar el grupo; una edición no lo toca. */
+  created_by: uuid.optional(),
   name: z.string().min(1).max(80),
   currency,
   emoji: z.string().nullable(),
@@ -50,6 +56,7 @@ const groupRow = z.object({
 });
 
 const memberRow = z.object({
+  ...stamps,
   id: uuid,
   group_id: uuid,
   user_id: uuid.nullable(),
@@ -60,6 +67,7 @@ const memberRow = z.object({
 });
 
 const categoryRow = z.object({
+  ...stamps,
   id: uuid,
   group_id: uuid.nullable(),
   name: z.string().nullable(),
@@ -69,6 +77,7 @@ const categoryRow = z.object({
 });
 
 const expenseRow = z.object({
+  ...stamps,
   id: uuid,
   group_id: uuid,
   kind: z.enum(['expense', 'income']),
@@ -88,6 +97,7 @@ const expenseRow = z.object({
 });
 
 const payerRow = z.object({
+  ...stamps,
   id: uuid,
   expense_id: uuid,
   member_id: uuid,
@@ -100,6 +110,7 @@ const payerRow = z.object({
 const splitRow = payerRow.extend({ input_value: money.nullable() });
 
 const transferRow = z.object({
+  ...stamps,
   id: uuid,
   group_id: uuid,
   from_member_id: uuid,
@@ -115,13 +126,13 @@ const transferRow = z.object({
   version,
 });
 
-type GroupRow = z.output<typeof groupRow>;
-type MemberRow = z.output<typeof memberRow>;
-type CategoryRow = z.output<typeof categoryRow>;
-type ExpenseRow = z.output<typeof expenseRow>;
-type PayerRow = z.output<typeof payerRow>;
-type SplitRow = z.output<typeof splitRow>;
-type TransferRow = z.output<typeof transferRow>;
+export type GroupRow = z.output<typeof groupRow>;
+export type MemberRow = z.output<typeof memberRow>;
+export type CategoryRow = z.output<typeof categoryRow>;
+export type ExpenseRow = z.output<typeof expenseRow>;
+export type PayerRow = z.output<typeof payerRow>;
+export type SplitRow = z.output<typeof splitRow>;
+export type TransferRow = z.output<typeof transferRow>;
 
 /** Las filas del servidor de una unidad, validadas y agrupadas por tabla. */
 export interface ParsedRows {
@@ -142,52 +153,72 @@ export class RemoteRowError extends Error {
   }
 }
 
-function must<T>(schema: z.ZodType<T>, row: unknown): T {
-  const parsed = schema.safeParse(row);
-  if (!parsed.success) {
-    throw new RemoteRowError();
+type MutableParsed = { -readonly [K in keyof ParsedRows]: ParsedRows[K] };
+
+const emptyParsed = (): MutableParsed => ({
+  groups: [],
+  members: [],
+  categories: [],
+  expenses: [],
+  payers: [],
+  splits: [],
+  transfers: [],
+});
+
+/** Valida una fila con su esquema y la agrega a su lista. Lanza RemoteRowError si no cumple. */
+function addRow(parsed: MutableParsed, { table, row }: RemoteRow): void {
+  const check = <T>(schema: z.ZodType<T>, into: T[]) => {
+    const result = schema.safeParse(row);
+    if (!result.success) {
+      throw new RemoteRowError();
+    }
+    into.push(result.data);
+  };
+  switch (table) {
+    case 'groups':
+      return check(groupRow, parsed.groups);
+    case 'group_members':
+      return check(memberRow, parsed.members);
+    case 'categories':
+      return check(categoryRow, parsed.categories);
+    case 'expenses':
+      return check(expenseRow, parsed.expenses);
+    case 'expense_payers':
+      return check(payerRow, parsed.payers);
+    case 'expense_splits':
+      return check(splitRow, parsed.splits);
+    case 'transfers':
+      return check(transferRow, parsed.transfers);
   }
-  return parsed.data;
 }
 
+/** Valida todas las filas; la primera que no cumple el contrato lanza RemoteRowError. */
 export function parseRemoteRows(rows: readonly RemoteRow[]): ParsedRows {
-  const parsed: {
-    -readonly [K in keyof ParsedRows]: ParsedRows[K];
-  } = {
-    groups: [],
-    members: [],
-    categories: [],
-    expenses: [],
-    payers: [],
-    splits: [],
-    transfers: [],
-  };
-  for (const { table, row } of rows) {
-    switch (table) {
-      case 'groups':
-        parsed.groups.push(must(groupRow, row));
-        break;
-      case 'group_members':
-        parsed.members.push(must(memberRow, row));
-        break;
-      case 'categories':
-        parsed.categories.push(must(categoryRow, row));
-        break;
-      case 'expenses':
-        parsed.expenses.push(must(expenseRow, row));
-        break;
-      case 'expense_payers':
-        parsed.payers.push(must(payerRow, row));
-        break;
-      case 'expense_splits':
-        parsed.splits.push(must(splitRow, row));
-        break;
-      case 'transfers':
-        parsed.transfers.push(must(transferRow, row));
-        break;
-    }
+  const parsed = emptyParsed();
+  for (const row of rows) {
+    addRow(parsed, row);
   }
   return parsed;
+}
+
+/**
+ * Valida fila por fila para la descarga: una fila inválida se descarta (sin tocar SQLite) y se
+ * cuenta, y el resto del lote sigue.
+ */
+export function parseRemoteRowsLenient(rows: readonly RemoteRow[]): {
+  readonly rows: ParsedRows;
+  readonly invalid: number;
+} {
+  const parsed = emptyParsed();
+  let invalid = 0;
+  for (const row of rows) {
+    try {
+      addRow(parsed, row);
+    } catch {
+      invalid += 1;
+    }
+  }
+  return { rows: parsed, invalid };
 }
 
 /** Tablas locales que toca una unidad, para avisar en el bus de cambios. */
@@ -362,6 +393,161 @@ export function replaceUnitFromServer(
           serverVersion: r.version,
         })
         .where(eq(transfers.id, id))
+        .run();
+      return;
+    }
+  }
+}
+
+/**
+ * Inserta una unidad que el servidor tiene y esta base no. Queda al día (`version` 1 = `synced_version`
+ * 1) con la versión del servidor anotada. Lanza si falta la fila principal o algo choca con la base
+ * (por ejemplo, un padre que todavía no llegó); quien llama lo hace dentro de un punto de guardado.
+ */
+export function insertUnitFromServer(
+  tx: AppDatabase,
+  entity: SyncEntity,
+  id: string,
+  rows: ParsedRows,
+  now: number,
+): void {
+  switch (entity) {
+    case 'group': {
+      const r = rows.groups.find((row) => row.id === id);
+      if (!r?.created_by) {
+        throw new RemoteRowError();
+      }
+      tx.insert(groups)
+        .values({
+          id,
+          createdAt: r.created_at ?? now,
+          updatedAt: r.updated_at ?? now,
+          deletedAt: r.deleted_at,
+          version: 1,
+          syncedVersion: 1,
+          serverVersion: r.version,
+          name: r.name,
+          currency: r.currency,
+          createdBy: r.created_by,
+          emoji: r.emoji,
+          color: r.color,
+          archivedAt: r.archived_at,
+        })
+        .run();
+      return;
+    }
+    case 'member': {
+      const r = rows.members.find((row) => row.id === id);
+      if (!r) {
+        throw new RemoteRowError();
+      }
+      tx.insert(groupMembers)
+        .values({
+          id,
+          createdAt: r.created_at ?? now,
+          updatedAt: r.updated_at ?? now,
+          deletedAt: r.deleted_at,
+          version: 1,
+          syncedVersion: 1,
+          serverVersion: r.version,
+          groupId: r.group_id,
+          userId: r.user_id,
+          displayName: r.display_name,
+          role: r.role,
+        })
+        .run();
+      return;
+    }
+    case 'category': {
+      const r = rows.categories.find((row) => row.id === id);
+      if (!r?.group_id) {
+        throw new RemoteRowError();
+      }
+      tx.insert(categories)
+        .values({
+          id,
+          createdAt: r.created_at ?? now,
+          updatedAt: r.updated_at ?? now,
+          deletedAt: r.deleted_at,
+          version: 1,
+          syncedVersion: 1,
+          serverVersion: r.version,
+          groupId: r.group_id,
+          key: null,
+          name: r.name,
+          icon: r.icon,
+        })
+        .run();
+      return;
+    }
+    case 'expense': {
+      const r = rows.expenses.find((row) => row.id === id);
+      if (!r) {
+        throw new RemoteRowError();
+      }
+      tx.insert(expenses)
+        .values({
+          id,
+          createdAt: r.created_at ?? now,
+          updatedAt: r.updated_at ?? now,
+          deletedAt: r.deleted_at,
+          version: 1,
+          syncedVersion: 1,
+          serverVersion: r.version,
+          groupId: r.group_id,
+          groupCurrency: r.group_currency,
+          kind: r.kind,
+          title: r.title,
+          amount: r.amount,
+          currency: r.currency,
+          groupAmount: r.group_amount,
+          exchangeRate: r.exchange_rate,
+          rateDate: r.rate_date,
+          splitMethod: r.split_method,
+          categoryId: r.category_id,
+          occurredOn: r.occurred_on,
+          notes: r.notes,
+        })
+        .run();
+      reconcilePayers(
+        tx,
+        id,
+        rows.payers.filter((p) => p.expense_id === id),
+        now,
+      );
+      reconcileSplits(
+        tx,
+        id,
+        rows.splits.filter((p) => p.expense_id === id),
+        now,
+      );
+      return;
+    }
+    case 'transfer': {
+      const r = rows.transfers.find((row) => row.id === id);
+      if (!r) {
+        throw new RemoteRowError();
+      }
+      tx.insert(transfers)
+        .values({
+          id,
+          createdAt: r.created_at ?? now,
+          updatedAt: r.updated_at ?? now,
+          deletedAt: r.deleted_at,
+          version: 1,
+          syncedVersion: 1,
+          serverVersion: r.version,
+          groupId: r.group_id,
+          groupCurrency: r.group_currency,
+          fromMemberId: r.from_member_id,
+          toMemberId: r.to_member_id,
+          amount: r.amount,
+          currency: r.currency,
+          groupAmount: r.group_amount,
+          exchangeRate: r.exchange_rate,
+          rateDate: r.rate_date,
+          occurredOn: r.occurred_on,
+        })
         .run();
       return;
     }

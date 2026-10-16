@@ -8,7 +8,7 @@ export {
 } from './conflicts';
 export { createSyncRemote, SyncTransportError, type RpcCall, type SyncRemote } from './remote';
 export { createSyncStore, type SyncStore } from './store';
-export type { BatchLimits, SyncCounts, SyncDeps, SyncNotice } from './types';
+export type { ApplyOutcome, BatchLimits, SyncCounts, SyncDeps, SyncNotice } from './types';
 export { listPendingUnits, readUnit, type UnitRef, type UnitState } from './units';
 export type {
   FailReason,

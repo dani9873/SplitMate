@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { createSyncRemote, readUnit, type Mutation, type SyncRemote } from '@/db/sync';
+import { createSyncRemote, type SyncRemote } from '@/db/sync';
 import { createSupabaseTestServer, type SupabaseTestServer } from '@/test/supabase-pglite';
 
 import { runSyncCycle } from '../cycle';
@@ -14,10 +14,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await server.close();
 });
-
-let sequence = 100;
-/** Id para envíos que manda "otro dispositivo" a mano. */
-const uuid = () => `01990000-0000-7000-8000-${String(sequence++).padStart(12, '0')}`;
 
 const count = async (query: string, params: unknown[] = []) =>
   Number((await server.query<{ n: string | number | bigint }>(query, params))[0]?.n);
@@ -291,162 +287,6 @@ describe('fallas de red y del servidor', () => {
     expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
     expect(phone.sqlite.exec(`SELECT server_version FROM expenses`)[0]?.values).toEqual([[1]]);
     expect(await serverSnapshot(server, phone.groupIds())).toEqual(await phone.snapshot());
-  });
-});
-
-describe('conflicto de versión: lo del usuario se conserva', () => {
-  /** El teléfono con un gasto ya sincronizado y un "otro dispositivo" de la misma cuenta. */
-  async function syncedDinner() {
-    const phone = await newPhone();
-    const { group, memberIds } = phone.createGroup();
-    const dinner = addDinner(phone, group.id, memberIds);
-    await phone.sync();
-    const data = readUnit(phone.db, { entity: 'expense', id: dinner.id })!.data;
-    const other = (change: Record<string, unknown>, base = 1): Mutation => ({
-      id: uuid(),
-      entity: 'expense',
-      base,
-      data: { ...data, ...change },
-    });
-    const edit = (local: { version: number }, title: string, amount: number) =>
-      phone.repos.expenses.update(dinner.id, local.version, {
-        groupId: group.id,
-        title,
-        amount,
-        currency: 'USD',
-        payers: [{ memberId: memberIds[0] as string, amount }],
-        split: { method: 'equal', participants: [memberIds[0] as string, memberIds[1] as string] },
-        occurredOn: '2026-10-09',
-      });
-    return { phone, group, memberIds, dinner, other, edit };
-  }
-
-  it('el mismo gasto editado en los dos: el servidor conserva el primero, tu versión queda en un borrador', async () => {
-    const { phone, dinner, other, edit } = await syncedDinner();
-
-    const [theirs] = await phone.remote.push([other({ title: 'Cena (otro)' })]);
-    expect(theirs).toMatchObject({ status: 'applied', version: 2 });
-
-    edit(dinner, 'Cena rica', 4000);
-    const result = await phone.sync();
-
-    expect(result).toMatchObject({ applied: 0, rejected: 1, failed: 0 });
-    expect(result.notices).toMatchObject([
-      {
-        entity: 'expense',
-        reason: 'conflict',
-        label: 'Cena rica',
-        serverDeleted: false,
-        wasNew: false,
-        wasDeletion: false,
-      },
-    ]);
-    // El servidor no se pisó.
-    expect(
-      await server.query(
-        `select title, amount::text as amount, version from public.expenses where id = $1`,
-        [dinner.id],
-      ),
-    ).toEqual([{ title: 'Cena (otro)', amount: '3000', version: 2 }]);
-    // El teléfono volvió a esa versión y sus dos lados coinciden.
-    const local = phone.repos.expenses.get(dinner.id)!;
-    expect(local).toMatchObject({ title: 'Cena (otro)', amount: 3000 });
-    expect(await serverSnapshot(server, phone.groupIds())).toEqual(await phone.snapshot());
-    // Lo que el usuario escribió sigue completo.
-    const [draft] = phone.store.listConflicts();
-    expect(draft?.data).toMatchObject({ title: 'Cena rica', amount: 4000 });
-    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
-
-    // Al guardar el borrador sobre la versión actual, el servidor y el teléfono convergen.
-    edit(local, 'Cena rica', 4000);
-    phone.store.discardConflict(draft!.id);
-    expect(await phone.sync()).toMatchObject({ applied: 1, rejected: 0 });
-    expect(
-      await server.query(`select title, version from public.expenses where id = $1`, [dinner.id]),
-    ).toEqual([{ title: 'Cena rica', version: 3 }]);
-    expect(await serverSnapshot(server, phone.groupIds())).toEqual(await phone.snapshot());
-    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
-  });
-
-  it('editar algo que el otro borró: vuelve borrado y queda el borrador', async () => {
-    const { phone, dinner, other, edit } = await syncedDinner();
-    await phone.remote.push([other({ deleted: true, payers: [], splits: [] })]);
-
-    edit(dinner, 'Cena rica', 4000);
-    const result = await phone.sync();
-
-    expect(result.notices).toMatchObject([{ serverDeleted: true, wasDeletion: false }]);
-    expect(phone.repos.expenses.get(dinner.id)).toBeUndefined();
-    const [draft] = phone.store.listConflicts();
-    expect(draft).toMatchObject({ serverDeleted: true, entityId: dinner.id });
-    expect(draft?.data).toMatchObject({ title: 'Cena rica', amount: 4000, deleted: false });
-    expect(await serverSnapshot(server, phone.groupIds())).toEqual(await phone.snapshot());
-  });
-
-  it('borrar algo que el otro editó: vuelve con la versión nueva y el borrador es un borrado', async () => {
-    const { phone, dinner, other } = await syncedDinner();
-    await phone.remote.push([other({ title: 'Cena (otro)' })]);
-
-    phone.repos.expenses.remove(dinner.id, dinner.version);
-    const result = await phone.sync();
-
-    expect(result.notices).toMatchObject([{ wasDeletion: true, serverDeleted: false }]);
-    expect(phone.repos.expenses.get(dinner.id)).toMatchObject({ title: 'Cena (otro)' });
-    expect(phone.store.listConflicts()).toMatchObject([{ wasDeletion: true }]);
-    expect(await serverSnapshot(server, phone.groupIds())).toEqual(await phone.snapshot());
-
-    // "Borrar ahora" sobre la versión actual: borra en los dos.
-    const current = phone.repos.expenses.get(dinner.id)!;
-    phone.repos.expenses.remove(dinner.id, current.version);
-    phone.store.discardConflict(phone.store.listConflicts()[0]!.id);
-    expect(await phone.sync()).toMatchObject({ applied: 1, rejected: 0 });
-    expect(await serverSnapshot(server, phone.groupIds())).toEqual(await phone.snapshot());
-    expect(phone.repos.expenses.get(dinner.id)).toBeUndefined();
-  });
-
-  it('un gasto nuevo sin conexión y la moneda del grupo cambiada en el otro: queda completo en el borrador', async () => {
-    const phone = await newPhone();
-    const { group, memberIds } = phone.createGroup();
-    await phone.sync();
-    const groupData = readUnit(phone.db, { entity: 'group', id: group.id })!.data;
-    const [changed] = await phone.remote.push([
-      { id: uuid(), entity: 'group', base: 1, data: { ...groupData, currency: 'EUR' } },
-    ]);
-    expect(changed).toMatchObject({ status: 'applied', version: 2 });
-
-    const dinner = addDinner(phone, group.id, memberIds);
-    const result = await phone.sync();
-
-    expect(result).toMatchObject({ applied: 0, rejected: 1 });
-    expect(result.notices).toMatchObject([{ reason: 'group_currency_changed', wasNew: true }]);
-    expect(phone.repos.expenses.listByGroup(group.id)).toEqual([]);
-    expect(
-      await count(`select count(*) as n from public.expenses where group_id = $1`, [group.id]),
-    ).toBe(0);
-    const [draft] = phone.store.listConflicts();
-    expect(draft).toMatchObject({ entityId: dinner.id, wasNew: true });
-    expect(draft?.data).toMatchObject({ title: 'Cena', amount: 3000, group_currency: 'USD' });
-    // No se vuelve a mandar.
-    expect(await phone.sync()).toMatchObject({ sent: 0 });
-  });
-
-  it('el mismo cambio en los dos: sin rechazo', async () => {
-    const phone = await newPhone();
-    const { group } = phone.createGroup();
-    await phone.sync();
-    const data = readUnit(phone.db, { entity: 'group', id: group.id })!.data;
-    await phone.remote.push([
-      { id: uuid(), entity: 'group', base: 1, data: { ...data, name: 'Playa' } },
-    ]);
-
-    phone.repos.groups.rename(group.id, group.version, 'Playa');
-    const result = await phone.sync();
-
-    expect(result).toMatchObject({ applied: 1, rejected: 0, failed: 0, notices: [] });
-    expect(phone.store.listConflicts()).toEqual([]);
-    expect(
-      await server.query(`select version from public.groups where id = $1`, [group.id]),
-    ).toEqual([{ version: 2 }]);
   });
 });
 

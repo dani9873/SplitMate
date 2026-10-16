@@ -34,3 +34,16 @@ export interface SyncCounts {
   /** Borradores por revisar. */
   readonly conflicts: number;
 }
+
+/** Qué pasó al aplicar la descarga de un grupo. Cuenta unidades (grupo, miembro, gasto...). */
+export interface ApplyOutcome {
+  /** Unidades que cambiaron en la base local. */
+  readonly applied: number;
+  /** Unidades con cambios locales pendientes: se conservaron y se saltaron. */
+  readonly skipped: number;
+  /**
+   * Algo no se pudo aplicar (fila inválida, padre que falta, restricción): el cursor del grupo no
+   * avanzó y se reintenta en el próximo ciclo.
+   */
+  readonly held: boolean;
+}

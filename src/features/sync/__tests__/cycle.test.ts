@@ -1,4 +1,13 @@
-import type { Mutation, PushResult, SyncNotice, SyncStore, SyncRemote } from '@/db/sync';
+import type {
+  ApplyOutcome,
+  Mutation,
+  PullResponse,
+  PushResult,
+  RemoteGroupChanges,
+  SyncNotice,
+  SyncRemote,
+  SyncStore,
+} from '@/db/sync';
 
 import { runSyncCycle } from '../cycle';
 
@@ -20,16 +29,23 @@ const notice = (draftId: string): SyncNotice => ({
   wasDeletion: false,
 });
 
+type CycleStore = Pick<
+  SyncStore,
+  'nextBatch' | 'applyPushResults' | 'cursors' | 'applyRemoteGroup'
+>;
+
 /** Un almacén falso con una cola fija de lotes. */
 function fakeStore(batches: Mutation[][], notices: SyncNotice[][] = []) {
   const queue = [...batches];
   const applied: PushResult[][] = [];
-  const store: Pick<SyncStore, 'nextBatch' | 'applyPushResults'> = {
+  const store: CycleStore = {
     nextBatch: jest.fn(() => queue.shift() ?? []),
     applyPushResults: jest.fn((results: readonly PushResult[]) => {
       applied.push([...results]);
       return notices.shift() ?? [];
     }),
+    cursors: jest.fn(() => ({})),
+    applyRemoteGroup: jest.fn(() => ({ applied: 0, skipped: 0, held: false })),
   };
   return { store, applied };
 }
@@ -43,12 +59,13 @@ const appliedResult = (m: Mutation): PushResult => ({
 
 function fakeRemote(resultFor: (m: Mutation) => PushResult = appliedResult) {
   const push = jest.fn(async (mutations: readonly Mutation[]) => mutations.map(resultFor));
-  const remote: SyncRemote = { push, pull: jest.fn() };
-  return { remote, push };
+  const pull = jest.fn(async (): Promise<PullResponse> => ({ groups: [], hasMore: false }));
+  const remote: SyncRemote = { push, pull };
+  return { remote, push, pull };
 }
 
-describe('runSyncCycle (solo envío)', () => {
-  it('sin cambios pendientes no llama al servidor', async () => {
+describe('runSyncCycle (envío)', () => {
+  it('sin cambios pendientes no envía nada', async () => {
     const { store } = fakeStore([]);
     const { remote, push } = fakeRemote();
     const result = await runSyncCycle({ store, remote });
@@ -59,6 +76,10 @@ describe('runSyncCycle (solo envío)', () => {
       applied: 0,
       rejected: 0,
       failed: 0,
+      pages: 1,
+      pulled: 0,
+      skipped: 0,
+      held: 0,
       notices: [],
     });
   });
@@ -134,7 +155,8 @@ describe('runSyncCycle (solo envío)', () => {
   });
 
   it('un almacén que nunca se vacía no deja el ciclo dando vueltas', async () => {
-    const store: Pick<SyncStore, 'nextBatch' | 'applyPushResults'> = {
+    const store: CycleStore = {
+      ...fakeStore([]).store,
       nextBatch: jest.fn(() => [mutation(1)]),
       applyPushResults: jest.fn(() => []),
     };
@@ -142,5 +164,122 @@ describe('runSyncCycle (solo envío)', () => {
     const result = await runSyncCycle({ store, remote, maxBatches: 5 });
     expect(push).toHaveBeenCalledTimes(5);
     expect(result.batches).toBe(5);
+  });
+});
+
+const group = (id: string, cursor: number): RemoteGroupChanges => ({ id, cursor, rows: [] });
+const outcome = (over: Partial<ApplyOutcome> = {}): ApplyOutcome => ({
+  applied: 1,
+  skipped: 0,
+  held: false,
+  ...over,
+});
+
+describe('runSyncCycle (descarga)', () => {
+  /** Un servidor falso con páginas fijas. */
+  function pagedRemote(pages: PullResponse[]) {
+    const queue = [...pages];
+    const { remote, push, pull } = fakeRemote();
+    pull.mockImplementation(async () => queue.shift() ?? { groups: [], hasMore: false });
+    return { remote, push, pull };
+  }
+
+  it('descarga después de enviar, con los cursores del almacén y 2000 filas por página', async () => {
+    const calls: string[] = [];
+    const { store } = fakeStore([]);
+    let batches = 0;
+    store.nextBatch = jest.fn(() => {
+      calls.push('nextBatch');
+      batches += 1;
+      return batches === 1 ? [mutation(1)] : [];
+    });
+    store.cursors = jest.fn(() => ({ g1: 4 }));
+    const { remote, push, pull } = fakeRemote();
+    push.mockImplementation(async (m) => {
+      calls.push('push');
+      return m.map(appliedResult);
+    });
+    pull.mockImplementation(async () => {
+      calls.push('pull');
+      return { groups: [], hasMore: false };
+    });
+
+    await runSyncCycle({ store, remote });
+
+    expect(calls).toEqual(['nextBatch', 'push', 'nextBatch', 'pull']);
+    expect(pull).toHaveBeenCalledWith({ g1: 4 }, 2000);
+  });
+
+  it('usa pullMaxRows y encadena las páginas hasta hasMore: false, aplicando cada grupo', async () => {
+    const { store } = fakeStore([]);
+    store.applyRemoteGroup = jest.fn(() => outcome({ applied: 2 }));
+    const { remote, pull } = pagedRemote([
+      { groups: [group('a', 3), group('b', 5)], hasMore: true },
+      { groups: [group('c', 1)], hasMore: false },
+    ]);
+
+    const result = await runSyncCycle({ store, remote, pullMaxRows: 100 });
+
+    expect(pull).toHaveBeenCalledTimes(2);
+    expect(pull).toHaveBeenNthCalledWith(1, {}, 100);
+    expect(store.applyRemoteGroup).toHaveBeenCalledTimes(3);
+    expect((store.applyRemoteGroup as jest.Mock).mock.calls.map(([g]) => g.id)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+    expect(result).toMatchObject({ pages: 2, pulled: 6, skipped: 0, held: 0 });
+  });
+
+  it('cuenta lo saltado y lo retenido', async () => {
+    const { store } = fakeStore([]);
+    store.applyRemoteGroup = jest
+      .fn()
+      .mockReturnValueOnce(outcome({ applied: 1, skipped: 2 }))
+      .mockReturnValueOnce(outcome({ applied: 0, held: true }));
+    const { remote } = pagedRemote([{ groups: [group('a', 3), group('b', 5)], hasMore: false }]);
+
+    const result = await runSyncCycle({ store, remote });
+
+    expect(result).toMatchObject({ pulled: 1, skipped: 2, held: 1 });
+  });
+
+  it('un grupo retenido no se vuelve a pedir en el mismo ciclo, para no atascar a los demás', async () => {
+    const { store } = fakeStore([]);
+    store.applyRemoteGroup = jest.fn((g: RemoteGroupChanges) =>
+      outcome({ applied: 0, held: g.id === 'a' }),
+    );
+    const { remote, pull } = pagedRemote([
+      { groups: [group('a', 3)], hasMore: true },
+      { groups: [group('b', 2)], hasMore: false },
+    ]);
+
+    await runSyncCycle({ store, remote });
+
+    // El segundo pedido ya lleva el cursor de a, aunque el almacén no lo avanzó.
+    expect(pull).toHaveBeenNthCalledWith(2, { a: 3 }, 2000);
+    // El almacén sigue con el cursor de antes: el próximo ciclo lo reintenta.
+    expect(store.cursors()).toEqual({});
+  });
+
+  it('un servidor que siempre dice hasMore no deja el ciclo dando vueltas', async () => {
+    const { store } = fakeStore([]);
+    const { remote, pull } = fakeRemote();
+    pull.mockImplementation(async () => ({ groups: [group('a', 1)], hasMore: true }));
+
+    const result = await runSyncCycle({ store, remote, maxPages: 4 });
+
+    expect(pull).toHaveBeenCalledTimes(4);
+    expect(result.pages).toBe(4);
+  });
+
+  it('si la descarga falla, el error sale tal cual y lo enviado ya quedó aplicado', async () => {
+    const { store, applied } = fakeStore([[mutation(1)]]);
+    const { remote, pull } = fakeRemote();
+    const boom = new Error('sin red');
+    pull.mockRejectedValue(boom);
+
+    await expect(runSyncCycle({ store, remote })).rejects.toBe(boom);
+    expect(applied).toHaveLength(1);
   });
 });

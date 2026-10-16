@@ -4,7 +4,7 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 8, motor parte 2 (TDD): descarga y conflictos entre dos dispositivos.
+**Siguiente paso:** 9, motor parte 3 (TDD): cuándo sincronizar y estado (`engine.ts`, `network.ts`).
 
 ## Pasos
 
@@ -191,7 +191,44 @@
     verde; `npx tsc --noEmit` y `eslint` de las carpetas tocadas sin errores. Sin suite completa.
     4 mutaciones detectadas (sin marcar al día, sin borrador, ids nuevos en vuelo, base siempre
     nula).
-- [ ] 8. Motor, parte 2 (TDD): descarga y conflictos entre dos dispositivos.
+- [x] 8. Motor, parte 2 (TDD): descarga y conflictos entre dos dispositivos.
+  - `src/db/sync/pull.ts` (nuevo): `applyGroupChanges` (una unidad por punto de guardado),
+    `readCursors` y `writeCursor` (nunca retrocede). `apply.ts`: `insertUnitFromServer`,
+    `parseRemoteRowsLenient` (valida fila por fila con zod; una inválida se descarta y se cuenta) y
+    fechas y `created_by` opcionales en los esquemas. `SyncStore`: `cursors()` y
+    `applyRemoteGroup(changes): ApplyOutcome`. `runSyncCycle` envía y después descarga páginas
+    (`pullMaxRows` 2000, `maxPages` 50); el resultado suma `pages`, `pulled`, `skipped` y `held`.
+  - **Decisiones:**
+    - `applied` y `skipped` cuentan **unidades** (grupo, miembro, categoría, gasto con sus pagadores y
+      partes, transferencia), no filas.
+    - Las FK **no se difieren** (`defer_foreign_keys` del diseño): con la base en `foreign_keys = ON` y
+      el orden por tabla, una fila sin padre falla en el momento, deshace solo su unidad y deja el
+      grupo `held`. Diferirlas habría hecho fallar todo el grupo al confirmar. Depende de que
+      `foreign_keys` siga activo (lo ponen `client.ts` y las pruebas).
+    - `held` (fila inválida, de otro grupo, hija de un gasto que no llegó, padre que falta o
+      restricción): las unidades buenas se aplican y el cursor no avanza; al reintentar son iguales y
+      no duplican. Una fila inválida que el servidor nunca corrige deja el grupo retenido para
+      siempre: el paso 9 lo mostrará como estado «error».
+    - Unidad con cambios locales: se salta y el cursor **sí** avanza; el envío sale con la base vieja
+      y el servidor lo rechaza con `current` y borrador.
+    - Eco o lote repetido: si la versión del servidor no supera `server_version`, no se hace nada; si
+      la supera con el mismo contenido (borrado y archivado cuentan como sí o no, no como instante),
+      solo se anota `server_version`, sin subir `version`.
+    - Dentro de un ciclo, un grupo retenido se pide desde el cursor que llegó (en memoria) para no
+      atascar a los demás; el cursor guardado no cambia y el próximo ciclo lo reintenta.
+    - Un gasto o transferencia nuevo rechazado queda en el dispositivo como borrado lógico que el
+      servidor nunca tuvo (decisión del paso 7); la prueba lo tiene en cuenta.
+    - Las categorías predefinidas (sin grupo) no se descargan.
+  - **Pruebas:** `pull.test.ts` (sql.js), `cycle.test.ts` (descarga) y `conflicts.int.test.ts` (12,
+    dos dispositivos completos con PGlite: descarga, incremental, páginas, otra cuenta, y los
+    conflictos de edición doble, editar lo borrado, borrar lo editado, renombrar grupo, moneda
+    cambiada, «soy yo», mismo cambio y grupo archivado). Los cinco conflictos del paso 7 salen de
+    `push.int.test.ts`: ahora el «otro dispositivo» es un `Device` con envío y descarga.
+  - **Verificación:** `npx jest src/db/sync src/test src/features/sync`: 12 suites y 172 pruebas en
+    verde; `npx tsc --noEmit`, eslint y prettier de las carpetas tocadas sin errores. Sin suite
+    completa. 8 mutaciones detectadas (cursor fuera de la transacción, sin saltar pendientes, el eco
+    sube `version`, sin orden por tabla, fila inválida sin retener, cursor que retrocede, grupo
+    retenido que se vuelve a pedir, miembros sin liberar primero).
 - [ ] 9. Motor, parte 3 (TDD): cuándo sincronizar y estado.
 - [ ] 10. Pantallas: indicador, avisos, sesión y reinicio de la base.
 - [ ] 11. Pantallas: borradores por revisar.
