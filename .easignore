@@ -34,6 +34,10 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+*.keystore
+# `eas credentials` los crea al descargar el keystore o los certificados; los builds usan los de EAS.
+credentials.json
+credentials/
 *.pem
 *.tgz
 
