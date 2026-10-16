@@ -4,7 +4,7 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 6, banco de pruebas con PGlite y cliente remoto.
+**Siguiente paso:** 7, motor parte 1 (TDD): envío y borradores de conflicto.
 
 ## Pasos
 
@@ -125,7 +125,31 @@
     después, contenido de las columnas viejas igual, `foreign_key_check` vacío), `sync-columns`
     (repositorios), y ajustes en `schema`, `migration-guard` y `accounts`. `npx jest src/db`: 17 suites,
     137 pruebas en verde; `npx tsc --noEmit` sin errores. No se corrió la suite completa.
-- [ ] 6. Banco de pruebas con PGlite y cliente remoto.
+- [x] 6. Banco de pruebas con PGlite y cliente remoto:
+  - `src/test/supabase-pglite.ts`: `createSupabaseTestServer()` con `createUser`, `rpcFor`, `query` y
+    `close`. **PGlite corre en un proceso hijo** (`src/test/pglite-worker.cjs`, IPC con serialización
+    avanzada): carga su WASM con `import()` dinámico y Jest lo bloquea (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_
+    MISSING_FLAG`) sin `--experimental-vm-modules`. Es el respaldo que preveía el plan, elegido por el
+    usuario frente al flag, que habría cambiado cómo corre toda la suite. Aplica `plataforma.sql` y las
+    migraciones del repo. Cada `rpcFor` corre una transacción como `authenticated` con su `sub`, y un
+    error de Postgres se traduce como lo haría PostgREST (`22023` y `54000` → `protocol`, `42501` →
+    `auth`, el resto → `server`). Fallas a propósito con `faults.failNext(modo, veces)`: `offline` y
+    `server-error` no llegan a la base; `lost-response` aplica, confirma y luego lanza el error de red.
+  - `src/db/sync/wire.ts`: tipos del contrato y esquemas zod de lo que devuelve el servidor
+    (`sync_push`: lista de resultados; `sync_pull`: `has_more` pasa a `hasMore`). Las filas conservan sus
+    columnas en snake_case y solo se exige `table` conocida e `id`; su forma por tabla se valida al
+    aplicarlas (paso 8). `src/db/sync/remote.ts`: `createSyncRemote`, `SyncTransportError`, `RpcCall`.
+    Una respuesta que no cumple el esquema, o que no trae exactamente un resultado por envío, es
+    `protocol`; un error inesperado es `server`; `push([])` no llama al servidor. Los mensajes de error
+    son fijos: nunca llevan lo enviado ni lo que contestó el servidor.
+  - `src/lib/supabase/rpc.ts`: `createSupabaseRpc(client, { timeoutMs })` (30 s por omisión) con
+    `AbortSignal`: sin red (estado 0) → `offline`, tiempo agotado → `timeout`, 401 y 403 → `auth`,
+    408, 429 y 5xx → `server`, 400, 413 y el resto de 4xx → `protocol`.
+  - Pruebas: `supabase-pglite` (11), `wire` (32), `remote` (14), `remote.int` contra las migraciones
+    reales (6) y `rpc` (17); con las demás de `src/lib/supabase`, `npx jest src/test src/db/sync
+    src/lib/supabase`: 8 suites y 110 pruebas en verde; `npx tsc --noEmit` sin errores. Sin suite
+    completa. El servidor de prueba tarda unos 5 s en arrancar por archivo; por eso las pruebas que lo
+    usan comparten uno en `beforeAll`.
 - [ ] 7. Motor, parte 1 (TDD): envío y borradores de conflicto.
 - [ ] 8. Motor, parte 2 (TDD): descarga y conflictos entre dos dispositivos.
 - [ ] 9. Motor, parte 3 (TDD): cuándo sincronizar y estado.
