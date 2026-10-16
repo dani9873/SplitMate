@@ -2,7 +2,7 @@
 -- una corrección. Ana trabaja en su grupo viaje; los ids nuevos son tests.u(n), de 300 en adelante
 -- para filas y de 3000 en adelante para envíos.
 begin;
-select plan(8);
+select plan(11);
 
 select tests.crear_mundo();
 
@@ -93,6 +93,38 @@ select is(
   0,
   'No quedan líneas sueltas de los envíos rechazados'
 );
+
+-- S2. La marca de sync_push no sobrevive a la llamada -----------------------------------------------
+
+-- Como una petición GraphQL con dos mutaciones en una transacción: primero sync_push y después
+-- un insert directo. La transacción empieza sin la marca, como en la API.
+select tests.autenticar_como(tests.id('ana'));
+select tests.sin_marca_sync();
+select public.sync_push('[]'::jsonb);
+select is(
+  coalesce(current_setting('splitmate.sync_push', true), ''),
+  '',
+  'Después de sync_push, la transacción sigue sin la marca'
+);
+select throws_ok(
+  $$
+    insert into public.groups (id, name, currency, created_by)
+    values (tests.u(400), 'Directo', 'USD', tests.id('ana'))
+  $$,
+  '42501',
+  'Las escrituras pasan por sync_push',
+  'Un insert directo después de sync_push en la misma transacción choca con la guardia'
+);
+select is(
+  (select j -> 0 ->> 'status' from (select public.sync_push(jsonb_build_array(
+    jsonb_build_object('id', tests.u(3400), 'entity', 'group', 'base', null,
+      'data', jsonb_build_object('id', tests.u(401), 'name', 'Por sync_push', 'currency', 'USD',
+        'emoji', null, 'color', 'teal', 'archived', false, 'deleted', false))
+  )) as j) x),
+  'applied',
+  'sync_push sigue escribiendo con su marca'
+);
+reset role;
 
 select * from finish();
 rollback;
