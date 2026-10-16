@@ -4,9 +4,7 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** punto de control. Pedir permiso para `supabase db push` de las cuatro
-migraciones de la fase (`db push --dry-run` primero) y después correr `npm run check:data-api`
-contra el remoto.
+**Siguiente paso:** 5, base local: columnas y tablas de sincronización (migración 0004).
 
 ## Pasos
 
@@ -97,7 +95,10 @@ contra el remoto.
   límite de página, primer grupo forzado, 1001 cursores, `p_max_rows` 99, cursor negativo, tope
   2^53, orden por tabla, EXECUTE de `anon` (por 001 y 006), acceso del creador y otras cuentas al
   borrar).
-- [ ] Punto de control: permiso para `supabase db push` y `check:data-api` contra el remoto.
+- [x] Punto de control (2026-10-16): `db push --dry-run` listó solo las cuatro migraciones de la fase;
+      con el permiso del usuario, `supabase db push` las aplicó sin errores y `npm run check:data-api`
+      contra el remoto dio "Data API en orden" (31 comprobaciones: `anon` sin tablas ni RPC, `change_log`
+      de solo lectura, `sync_pull` y `sync_push([])` en 200, y la guardia en `42501`).
 - [ ] 5. Base local: columnas y tablas de sincronización (migración 0004).
 - [ ] 6. Banco de pruebas con PGlite y cliente remoto.
 - [ ] 7. Motor, parte 1 (TDD): envío y borradores de conflicto.
