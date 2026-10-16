@@ -159,6 +159,20 @@ function groupRows(s: Setup, o: Overrides = {}): RemoteRow[] {
   ];
 }
 
+const CATEGORY = id(30);
+
+/** Las mismas filas con una categoría propia del grupo, después de los miembros. */
+function withCategory(rowsOf: RemoteRow[]): RemoteRow[] {
+  const category = serverRow('categories', {
+    id: CATEGORY,
+    group_id: GROUP,
+    name: 'Snacks',
+    icon: 'cookie',
+  });
+  const firstExpense = rowsOf.findIndex((r) => r.table === 'expenses');
+  return [...rowsOf.slice(0, firstExpense), category, ...rowsOf.slice(firstExpense)];
+}
+
 const page = (rowsOf: RemoteRow[], cursor = 7): RemoteGroupChanges => ({
   id: GROUP,
   cursor,
@@ -433,6 +447,13 @@ describe('applyRemoteGroup: datos que llegan de la red', () => {
     // Con el formato correcto pero fuera de ISO 4217: los saldos lanzarían UNKNOWN_CURRENCY.
     ['una moneda que no existe', { currency: 'QQQ' }],
     ['una moneda del grupo que no existe', { group_currency: 'QQQ' }],
+    // Los mismos topes que sync_push en el servidor.
+    ['un día que no está en el calendario', { occurred_on: '2026-02-30' }],
+    ['una fecha de tasa que no está en el calendario', { rate_date: '2026-13-01' }],
+    ['una tasa con dos puntos', { exchange_rate: '1..' }],
+    ['una tasa de cero', { exchange_rate: '0.00' }],
+    ['una tasa de 33 caracteres', { exchange_rate: `1.${'5'.repeat(31)}` }],
+    ['notas de 1001 caracteres', { notes: 'a'.repeat(1001) }],
     ['una fecha inexistente en el formato', { occurred_on: '09/10/2026' }],
     ['un id que no es uuid', { id: 'no-es-uuid' }],
     ['un título vacío', { title: '' }],
@@ -446,6 +467,38 @@ describe('applyRemoteGroup: datos que llegan de la red', () => {
 
     expect(outcome.held).toBe(true);
     expect(rows(s, `SELECT COUNT(*) AS n FROM expenses`)).toEqual([{ n: 0 }]);
+  });
+
+  it.each([
+    ['un emoji de 17 caracteres', 'groups', { emoji: 'a'.repeat(17) }],
+    ['un nombre de categoría de 41 caracteres', 'categories', { name: 'a'.repeat(41) }],
+    ['un ícono de categoría de 41 caracteres', 'categories', { icon: 'a'.repeat(41) }],
+  ] as const)('rechaza %s', async (_name, table, patch) => {
+    const s = await setup();
+    const bad = withCategory(groupRows(s)).map((r) =>
+      r.table === table ? serverRow(table, { ...r.row, ...patch }) : r,
+    );
+
+    const outcome = s.store.applyRemoteGroup(page(bad));
+
+    expect(outcome.held).toBe(true);
+    expect(
+      rows(s, `SELECT COUNT(*) AS n FROM ${table} WHERE id IN ('${GROUP}', '${CATEGORY}')`),
+    ).toEqual([{ n: 0 }]);
+  });
+
+  it('cuenta los caracteres como el servidor, no las unidades UTF-16', async () => {
+    const s = await setup();
+    // 80 emojis son 80 caracteres para Postgres y SQLite, pero 160 unidades UTF-16.
+    const name = '😀'.repeat(80);
+    const longNames = groupRows(s).map((r) =>
+      r.table === 'groups' ? serverRow('groups', { ...r.row, name, emoji: '👩‍👩‍👧‍👦' }) : r,
+    );
+
+    const outcome = s.store.applyRemoteGroup(page(longNames));
+
+    expect(outcome.held).toBe(false);
+    expect(rows(s, `SELECT name FROM groups`)).toEqual([{ name }]);
   });
 
   it('un grupo con una moneda que no existe no entra y queda retenido', async () => {

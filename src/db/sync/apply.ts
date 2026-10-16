@@ -1,10 +1,15 @@
 import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { GROUP_COLORS } from '@/lib/group-appearance';
+import { GROUP_COLORS, MAX_EMOJI_LENGTH } from '@/lib/group-appearance';
 
 import type { TableName } from '../changes';
-import { currencySchema, MAX_MINOR_AMOUNT } from '../repositories/validation';
+import {
+  currencySchema,
+  isoDateSchema,
+  MAX_MINOR_AMOUNT,
+  rateSchema,
+} from '../repositories/validation';
 import type { AppDatabase } from '../repositories/types';
 import {
   categories,
@@ -29,7 +34,7 @@ const version = z.int().min(1).max(Number.MAX_SAFE_INTEGER);
 const money = z.int().min(0).max(MAX_MINOR_AMOUNT);
 /** Solo monedas que la app conoce: otro código rompería los saldos (`currencyCode` lanza). */
 const currency = currencySchema;
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const day = isoDateSchema;
 const instant = z
   .string()
   .refine((value) => parseServerInstant(value) !== null)
@@ -37,7 +42,13 @@ const instant = z
 const rate = z
   .union([z.string(), z.number()])
   .transform(String)
-  .pipe(z.string().regex(/^[0-9][0-9.]*$/));
+  .pipe(rateSchema.refine((value) => /[1-9]/.test(value), 'Tasa mayor que cero'));
+
+/**
+ * Textos con los topes de sync_push. zod cuenta caracteres, como `char_length` en Postgres y
+ * `length` en SQLite: una fila que el servidor aceptó no se rechaza aquí por su largo.
+ */
+const text = (max: number) => z.string().min(1).max(max);
 
 /** Fechas del servidor: opcionales, porque solo sirven para fechar una fila que llega nueva. */
 const stamps = { created_at: instant.optional(), updated_at: instant.optional() };
@@ -47,9 +58,9 @@ const groupRow = z.object({
   id: uuid,
   /** Solo hace falta al insertar el grupo; una edición no lo toca. */
   created_by: uuid.optional(),
-  name: z.string().min(1).max(80),
+  name: text(80),
   currency,
-  emoji: z.string().nullable(),
+  emoji: text(MAX_EMOJI_LENGTH).nullable(),
   color: z.enum(GROUP_COLORS),
   archived_at: instant.nullable(),
   deleted_at: instant.nullable(),
@@ -61,7 +72,7 @@ const memberRow = z.object({
   id: uuid,
   group_id: uuid,
   user_id: uuid.nullable(),
-  display_name: z.string().min(1).max(80),
+  display_name: text(80),
   role: z.enum(['owner', 'member']),
   deleted_at: instant.nullable(),
   version,
@@ -71,8 +82,8 @@ const categoryRow = z.object({
   ...stamps,
   id: uuid,
   group_id: uuid.nullable(),
-  name: z.string().nullable(),
-  icon: z.string(),
+  name: text(40).nullable(),
+  icon: text(40),
   deleted_at: instant.nullable(),
   version,
 });
@@ -82,7 +93,7 @@ const expenseRow = z.object({
   id: uuid,
   group_id: uuid,
   kind: z.enum(['expense', 'income']),
-  title: z.string().min(1).max(120),
+  title: text(120),
   amount: money,
   currency,
   group_currency: currency,
@@ -92,7 +103,7 @@ const expenseRow = z.object({
   split_method: z.enum(['equal', 'exact', 'percentage', 'shares']),
   category_id: uuid.nullable(),
   occurred_on: day,
-  notes: z.string().nullable(),
+  notes: text(1000).nullable(),
   deleted_at: instant.nullable(),
   version,
 });
