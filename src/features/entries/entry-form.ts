@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type {
   AddExpenseInput,
   AddTransferInput,
+  ConflictDraft,
   ExpenseWithParts,
   TransferRow,
 } from '@/db/repositories';
@@ -474,13 +475,35 @@ export function defaultEntryValues({
 
 const decimal = (amount: number, currency: string) => toDecimalString(money(amount, currency));
 
+/** Lo que el formulario necesita de un gasto: lo cumplen el guardado y el de un borrador. */
+export type ExpenseSource = Pick<
+  ExpenseWithParts,
+  | 'kind'
+  | 'title'
+  | 'amount'
+  | 'currency'
+  | 'exchangeRate'
+  | 'categoryId'
+  | 'occurredOn'
+  | 'splitMethod'
+> & {
+  readonly payers: readonly Pick<ExpenseWithParts['payers'][number], 'memberId' | 'amount'>[];
+  readonly splits: readonly Pick<
+    ExpenseWithParts['splits'][number],
+    'memberId' | 'amount' | 'inputValue'
+  >[];
+};
+
+/** Lo que el formulario necesita de una transferencia. */
+export type TransferSource = Pick<
+  TransferRow,
+  'amount' | 'currency' | 'exchangeRate' | 'occurredOn' | 'fromMemberId' | 'toMemberId'
+>;
+
 /** Valores para editar un gasto o ingreso guardado, con la intención original de la división. */
-export function valuesFromExpense(
-  expense: ExpenseWithParts,
-  base: EntryFormValues,
-): EntryFormValues {
+export function valuesFromExpense(expense: ExpenseSource, base: EntryFormValues): EntryFormValues {
   const { currency } = expense;
-  const byMember = <T>(make: (split: ExpenseWithParts['splits'][number]) => T) =>
+  const byMember = <T>(make: (split: ExpenseSource['splits'][number]) => T) =>
     Object.fromEntries(expense.splits.map((split) => [split.memberId, make(split)]));
   const method = expense.splitMethod;
   const onlyPayer = expense.payers.length === 1 ? expense.payers[0] : undefined;
@@ -523,7 +546,10 @@ export function valuesFromExpense(
 }
 
 /** Valores para editar una transferencia guardada. */
-export function valuesFromTransfer(transfer: TransferRow, base: EntryFormValues): EntryFormValues {
+export function valuesFromTransfer(
+  transfer: TransferSource,
+  base: EntryFormValues,
+): EntryFormValues {
   return {
     ...base,
     type: 'transfer',
@@ -534,4 +560,111 @@ export function valuesFromTransfer(transfer: TransferRow, base: EntryFormValues)
     fromId: transfer.fromMemberId,
     toId: transfer.toMemberId,
   };
+}
+
+const memberId = z.string().min(1);
+const minorAmount = z.number().int().nonnegative();
+
+/** Lo que `units.ts` guarda de un gasto en un borrador (formato de `sync_push`). */
+const draftExpense = z.object({
+  kind: z.enum(['expense', 'income']),
+  title: z.string(),
+  amount: minorAmount,
+  currency: z.string().min(1),
+  group_currency: z.string().min(1),
+  exchange_rate: z.string().min(1),
+  split_method: z.enum(['equal', 'exact', 'percentage', 'shares']),
+  category_id: z.string().nullable(),
+  occurred_on: z.string(),
+  payers: z.array(z.object({ member_id: memberId, amount: minorAmount })),
+  splits: z.array(
+    z.object({
+      member_id: memberId,
+      amount: minorAmount,
+      input_value: z.number().int().nullable(),
+    }),
+  ),
+});
+
+const draftTransfer = z.object({
+  from_member_id: memberId,
+  to_member_id: memberId,
+  amount: minorAmount,
+  currency: z.string().min(1),
+  group_currency: z.string().min(1),
+  exchange_rate: z.string().min(1),
+  occurred_on: z.string(),
+});
+
+/** Los miembros que menciona el borrador de un movimiento: el formulario debe poder mostrarlos. */
+export function memberIdsOfConflictDraft(draft: ConflictDraft): string[] {
+  if (draft.entity === 'expense') {
+    const parsed = draftExpense.safeParse(draft.data);
+    return parsed.success
+      ? [...parsed.data.payers, ...parsed.data.splits].map((part) => part.member_id)
+      : [];
+  }
+  if (draft.entity === 'transfer') {
+    const parsed = draftTransfer.safeParse(draft.data);
+    return parsed.success ? [parsed.data.from_member_id, parsed.data.to_member_id] : [];
+  }
+  return [];
+}
+
+/**
+ * Valores del formulario con la versión del usuario que el servidor rechazó. `base` trae la moneda
+ * actual del grupo: si el grupo cambió de moneda desde que se hizo el movimiento, la tasa vieja ya
+ * no vale y se deja vacía. `null` si el borrador no es un movimiento o no se puede leer.
+ */
+export function valuesFromConflictDraft(
+  draft: ConflictDraft,
+  base: EntryFormValues,
+): EntryFormValues | null {
+  if (draft.entity === 'expense') {
+    const parsed = draftExpense.safeParse(draft.data);
+    if (!parsed.success) {
+      return null;
+    }
+    const d = parsed.data;
+    const values = valuesFromExpense(
+      {
+        kind: d.kind,
+        title: d.title,
+        amount: d.amount,
+        currency: d.currency,
+        exchangeRate: d.exchange_rate,
+        categoryId: d.category_id,
+        occurredOn: d.occurred_on,
+        splitMethod: d.split_method,
+        payers: d.payers.map((p) => ({ memberId: p.member_id, amount: p.amount })),
+        splits: d.splits.map((p) => ({
+          memberId: p.member_id,
+          amount: p.amount,
+          inputValue: p.input_value,
+        })),
+      },
+      base,
+    );
+    return d.group_currency === base.currency ? values : { ...values, rate: '' };
+  }
+  if (draft.entity === 'transfer') {
+    const parsed = draftTransfer.safeParse(draft.data);
+    if (!parsed.success) {
+      return null;
+    }
+    const d = parsed.data;
+    const values = valuesFromTransfer(
+      {
+        amount: d.amount,
+        currency: d.currency,
+        exchangeRate: d.exchange_rate,
+        occurredOn: d.occurred_on,
+        fromMemberId: d.from_member_id,
+        toMemberId: d.to_member_id,
+      },
+      base,
+    );
+    return d.group_currency === base.currency ? values : { ...values, rate: '' };
+  }
+  return null;
 }
