@@ -4,8 +4,9 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 4, servidor: `sync_pull` incremental, borrar la cuenta borra sus grupos no
-compartidos y `check:data-api` ampliado (pruebas primero en `010-sync-pull` y `011-borrar-cuenta`).
+**Siguiente paso:** punto de control. Pedir permiso para `supabase db push` de las cuatro
+migraciones de la fase (`db push --dry-run` primero) y después correr `npm run check:data-api`
+contra el remoto.
 
 ## Pasos
 
@@ -74,8 +75,28 @@ compartidos y `check:data-api` ampliado (pruebas primero en `010-sync-pull` y `0
   base, cambio idéntico, 50 envíos, 512 KiB, borrado en cascada, sumas de pagadores en las dos
   monedas, privilegios de `anon`, envío recordado y "soy yo"). No se corrió la suite completa:
   el CI es la fuente de verdad para `002`-`005` y `007`.
-- [ ] 4. Servidor: `sync_pull` incremental, borrar la cuenta borra sus grupos no compartidos y
-      `check:data-api` ampliado.
+- [x] 4. Servidor: `sync_pull` incremental, borrar la cuenta borra sus grupos no compartidos y
+      `check:data-api` ampliado (sin `db push` todavía):
+  - `20261016100000_sync_pull.sql`: `public.sync_pull(p_cursors, p_max_rows)`, en plpgsql
+    `STABLE` y `SECURITY INVOKER`. Valida el sobre (`22023`), cuenta las filas con
+    `change_seq > cursor` por grupo visible y arma páginas por id, sin partir un grupo (el primero
+    entra siempre). Las filas van por tabla (padres antes que hijos) y luego por `change_seq`. Un
+    cursor de un grupo que no se ve se ignora; un grupo sin cambios no aparece.
+  - `20261016100100_borrar_cuenta_grupos.sql`: trigger `BEFORE DELETE` en `profiles` con
+    `private.delete_unshared_groups()` (`SECURITY DEFINER`). Borra los grupos de la cuenta (creados
+    por ella o con su miembro activo) que nadie más puede abrir: sin otro miembro vinculado activo
+    y sin otro creador, como en `can_access_group`. Sus filas, su historial y su contador caen en
+    cascada.
+  - `check:data-api`: `change_log` en las tablas revisadas; `anon` no ejecuta `sync_pull` ni
+    `sync_push`; `authenticated` las ejecuta (sin grupos y con `[]`), no escribe en `change_log`, y
+    un `POST` directo a `groups` con nombre vacío da `42501` de la guardia. Solo se comprobó con
+    `node --check` y eslint: corre contra el remoto después del `db push`.
+
+  Pruebas nuevas `010-sync-pull` (39) y `011-borrar-cuenta` (20); `006` suma `sync_pull`.
+  `npm run test:db:local` completo: 383 en verde. 11 mutaciones detectadas (filtro incremental,
+  límite de página, primer grupo forzado, 1001 cursores, `p_max_rows` 99, cursor negativo, tope
+  2^53, orden por tabla, EXECUTE de `anon` (por 001 y 006), acceso del creador y otras cuentas al
+  borrar).
 - [ ] Punto de control: permiso para `supabase db push` y `check:data-api` contra el remoto.
 - [ ] 5. Base local: columnas y tablas de sincronización (migración 0004).
 - [ ] 6. Banco de pruebas con PGlite y cliente remoto.

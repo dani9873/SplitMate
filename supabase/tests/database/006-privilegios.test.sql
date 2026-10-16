@@ -83,6 +83,7 @@ select set_eq(
     'private.shares_group_with(uuid)',
     -- sync_push es SECURITY INVOKER: authenticated ejecuta también todo lo que ella llama.
     'sync_push(jsonb)',
+    'sync_pull(jsonb,integer)',
     'private.sync_find_mutation(uuid)',
     'private.sync_remember_mutation(uuid,text,uuid,integer)',
     'private.lock_group_changes(uuid)',
@@ -106,7 +107,7 @@ select set_eq(
     'private.sync_apply_expense(jsonb,integer,uuid)',
     'private.sync_apply_transfer(jsonb,integer,uuid)'
   ],
-  'authenticated: EXECUTE solo en las funciones de las políticas, del trigger de columnas y de sync_push'
+  'authenticated: EXECUTE solo en las funciones de las políticas, del trigger de columnas, de sync_push y de sync_pull'
 );
 
 select is_empty(
