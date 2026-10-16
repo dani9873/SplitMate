@@ -2,7 +2,7 @@
 -- una corrección. Ana trabaja en su grupo viaje; los ids nuevos son tests.u(n), de 300 en adelante
 -- para filas y de 3000 en adelante para envíos.
 begin;
-select plan(14);
+select plan(15);
 
 select tests.crear_mundo();
 
@@ -159,6 +159,22 @@ select is(
   (select j -> 2 ->> 'status' from res where k = 'monedas'),
   'applied',
   'Una moneda de la lista entra'
+);
+
+-- S4. El campo de un envío inválido tiene tope -------------------------------------------------------
+
+select tests.autenticar_como(tests.id('ana'));
+insert into res select 'campo', public.sync_push(jsonb_build_array(
+  jsonb_build_object('id', tests.u(3600), 'entity', 'group', 'base', null,
+    'data', jsonb_build_object('id', tests.u(600), 'name', 'Larga', 'currency', 'USD',
+      'emoji', null, 'color', 'teal', 'archived', false, 'deleted', false, repeat('x', 300), 1))
+));
+reset role;
+
+select is(
+  (select array[j -> 0 ->> 'reason', char_length(j -> 0 ->> 'field')::text] from res where k = 'campo'),
+  array['invalid', '64'],
+  'Una clave desconocida de 300 caracteres vuelve recortada a 64'
 );
 
 select * from finish();
