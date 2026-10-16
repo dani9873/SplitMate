@@ -35,6 +35,7 @@ import { ActivityFeed, type FeedMember } from '../activity';
 import { BalancesView, BalanceText } from '../balances';
 import { describeError } from '../errors/describe-error';
 import { ScreenHeader, useRouteId } from '../navigation';
+import { ConflictBanner } from '../sync';
 import { useUndo } from '../undo';
 
 type Section = 'activity' | 'balances';
@@ -193,6 +194,8 @@ function GroupContent({ data }: { data: DetailData }) {
           }
         />
       ) : null}
+
+      <ConflictBanner groupId={group.id} />
 
       <SegmentedControl
         label={t('groupDetail.sections')}
