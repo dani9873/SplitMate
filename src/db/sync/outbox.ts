@@ -388,7 +388,7 @@ function applyRejected(
   tx.delete(syncOutbox).where(eq(syncOutbox.id, row.id)).run();
 
   return {
-    tables: tablesOf(row.entity),
+    tables: [...tablesOf(row.entity), 'sync_conflicts'],
     groupId: row.groupId,
     notice: {
       draftId: draft.id,

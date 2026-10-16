@@ -9,9 +9,13 @@ export type TableName =
   | 'expenses'
   | 'expense_payers'
   | 'expense_splits'
-  | 'transfers';
+  | 'transfers'
+  | 'sync_conflicts';
 
-/** Todas las tablas sincronizables: para lecturas que dependen de cualquier dato de un grupo. */
+/**
+ * Todas las tablas sincronizables: para lecturas que dependen de cualquier dato de un grupo. Los
+ * borradores por revisar (`sync_conflicts`) no entran: solo los lee quien los muestra.
+ */
 export const ALL_TABLES: readonly TableName[] = [
   'users',
   'groups',

@@ -1,6 +1,7 @@
 import { createChangeBus, type ChangeBus, type ChangeSource } from '../changes';
 import { createActivityRepository } from './activity';
 import { createCategoriesRepository } from './categories';
+import { createConflictsRepository } from './conflicts';
 import { createDraftsRepository } from './drafts';
 import { createExpensesRepository } from './expenses';
 import { createGroupsRepository, createUsersRepository } from './groups';
@@ -45,6 +46,7 @@ export function createRepositories(
     transfers: createTransfersRepository(ctx),
     activity: createActivityRepository(ctx),
     drafts: createDraftsRepository(ctx),
+    conflicts: createConflictsRepository(ctx),
     balances: {
       /** Saldos del grupo en su moneda y la liquidación sugerida. */
       forGroup(groupId: string): GroupBalances {
@@ -72,6 +74,7 @@ export type {
   ActivityTransfer,
 } from './activity';
 export { OTHER_CATEGORY_ID, type Category } from './categories';
+export type { ConflictDraft } from './conflicts';
 export type { Expense, ExpensePayer, ExpenseSplit, ExpenseWithParts } from './expenses';
 export type { GroupSummary } from './groups';
 export type { GroupBalances } from './ledger';
