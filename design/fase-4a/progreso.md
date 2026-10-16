@@ -4,8 +4,8 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** paso 3, servidor: `sync_push` con concurrencia estricta, límites e historial
-(pruebas primero en `008-sync-push` y `009-historial`).
+**Siguiente paso:** 4, servidor: `sync_pull` incremental, borrar la cuenta borra sus grupos no
+compartidos y `check:data-api` ampliado (pruebas primero en `010-sync-pull` y `011-borrar-cuenta`).
 
 ## Pasos
 
@@ -47,7 +47,33 @@
   CI verde en el run 38544898812: "Base de datos y RLS" con `Files=8, Tests=178, Result: PASS`
   sobre Postgres 17, y 676 pruebas de Jest.
 
-- [ ] 3. Servidor: `sync_push` con concurrencia estricta, límites e historial.
+- [x] 3. Servidor: `sync_push` con concurrencia estricta, límites e historial
+      (migración `20261016090000_sync_push.sql`, sin `db push` todavía):
+  - `private.sync_mutations` (envíos aplicados, con `sync_find_mutation` y
+    `sync_remember_mutation`), `public.change_log` de solo agregar (RLS con `can_access_group`,
+    solo `SELECT` para `authenticated`, trigger que rechaza `UPDATE`, `DELETE` y `TRUNCATE` salvo el
+    `DELETE` en cascada) y `private.record_change`;
+  - validadores que lanzan `SMINV` con el campo (`sync_keys`, `sync_text`, `sync_int`, `sync_uuid`,
+    `sync_bool`, `sync_date`, `sync_enum`, `sync_currency`, `sync_rate`, `sync_lines`); el prefijo
+    `payers.` o `splits.` de los campos anidados viaja en `splitmate.sync_path`, sin bloques
+    `EXCEPTION` (cada uno gasta una subtransacción y el diseño cuenta una por envío);
+  - `sync_apply_group`, `_member`, `_category`, `_expense` y `_transfer`: comparan el estado pedido con
+    el del servidor (igual: `applied` sin escribir), después la base (`SMCFL`), y escriben; el gasto
+    sube su versión con cualquier cambio de pagadores o partes y las partes que ya existen solo
+    cambian `deleted_at`;
+  - `public.sync_push(jsonb)`: sobre validado entero antes de escribir (22023 y 54000), candado
+    por envío, un punto de guardado por envío y cada error mapeado a `rejected` o `failed`
+    (`23505` de "soy yo" = conflicto; `23505` de una clave primaria = `forbidden`);
+  - decisiones: `base` e `id` del sobre y todas las claves de `data` son obligatorias; un cambio de
+    `role` o `group_id` en una fila existente es `invalid`; solo se recuerdan los envíos que
+    escribieron algo.
+
+  Pruebas nuevas `008-sync-push` (102) y `009-historial` (44), en verde con
+  `npm run test:db:local -- 008` y `-- 009`; `001` y `006` se ajustaron a `change_log` y a las
+  funciones nuevas (20 y 6 en verde). 10 mutaciones de la migración detectadas (idempotencia,
+  base, cambio idéntico, 50 envíos, 512 KiB, borrado en cascada, sumas de pagadores en las dos
+  monedas, privilegios de `anon`, envío recordado y "soy yo"). No se corrió la suite completa:
+  el CI es la fuente de verdad para `002`-`005` y `007`.
 - [ ] 4. Servidor: `sync_pull` incremental, borrar la cuenta borra sus grupos no compartidos y
       `check:data-api` ampliado.
 - [ ] Punto de control: permiso para `supabase db push` y `check:data-api` contra el remoto.

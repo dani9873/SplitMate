@@ -27,8 +27,10 @@ select set_eq(
       'expenses', 'expense_payers', 'expense_splits', 'transfers'
     ]) as t (tabla)
     cross join unnest(array['SELECT', 'INSERT']) as p (privilegio)
+    union all
+    select 'change_log', 'SELECT'
   $$,
-  'authenticated: SELECT e INSERT en cada tabla de public, y ningún otro privilegio de tabla'
+  'authenticated: SELECT e INSERT en cada tabla de public (change_log solo SELECT), y ningún otro privilegio de tabla'
 );
 
 select set_eq(
@@ -78,9 +80,33 @@ select set_eq(
     'private.is_group_creator(uuid)',
     'private.is_group_member(uuid)',
     'private.next_change_seq(uuid)',
-    'private.shares_group_with(uuid)'
+    'private.shares_group_with(uuid)',
+    -- sync_push es SECURITY INVOKER: authenticated ejecuta también todo lo que ella llama.
+    'sync_push(jsonb)',
+    'private.sync_find_mutation(uuid)',
+    'private.sync_remember_mutation(uuid,text,uuid,integer)',
+    'private.lock_group_changes(uuid)',
+    'private.record_change(uuid,text,uuid,text,integer,text[],jsonb,uuid)',
+    'private.sync_fail(text)',
+    'private.sync_keys(jsonb,text[])',
+    'private.sync_text(jsonb,text,integer,integer,boolean,text)',
+    'private.sync_int(jsonb,text,bigint,bigint,boolean)',
+    'private.sync_uuid(jsonb,text,boolean)',
+    'private.sync_bool(jsonb,text)',
+    'private.sync_date(jsonb,text,boolean)',
+    'private.sync_enum(jsonb,text,text[])',
+    'private.sync_currency(jsonb,text)',
+    'private.sync_rate(jsonb,text)',
+    'private.sync_lines(jsonb,text,boolean,boolean)',
+    'private.sync_entity_rows(text,uuid)',
+    'private.sync_finish(uuid,text,uuid,jsonb,jsonb,integer,uuid)',
+    'private.sync_apply_group(jsonb,integer,uuid)',
+    'private.sync_apply_member(jsonb,integer,uuid)',
+    'private.sync_apply_category(jsonb,integer,uuid)',
+    'private.sync_apply_expense(jsonb,integer,uuid)',
+    'private.sync_apply_transfer(jsonb,integer,uuid)'
   ],
-  'authenticated: EXECUTE solo en las funciones de las políticas y del trigger de columnas'
+  'authenticated: EXECUTE solo en las funciones de las políticas, del trigger de columnas y de sync_push'
 );
 
 select is_empty(

@@ -10,7 +10,7 @@ select tables_are(
   'public',
   array[
     'profiles', 'groups', 'group_members', 'categories',
-    'expenses', 'expense_payers', 'expense_splits', 'transfers'
+    'expenses', 'expense_payers', 'expense_splits', 'transfers', 'change_log'
   ],
   'public tiene solo las tablas revisadas por estas pruebas'
 );
@@ -87,6 +87,8 @@ select is_empty(
     from pg_class c
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
+      -- change_log es de solo lectura: 009-historial revisa sus privilegios.
+      and c.relname <> 'change_log'
       and not (
         has_table_privilege('authenticated', c.oid, 'SELECT')
         and has_table_privilege('authenticated', c.oid, 'INSERT')
@@ -127,6 +129,7 @@ select is_empty(
     from pg_class c
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
+      and c.relname <> 'change_log'
       -- Con CASE: el orden del WHERE no está fijo y la función falla en tablas sin deleted_at.
       and case when c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')
         then not has_column_privilege('authenticated', c.oid, 'deleted_at', 'UPDATE')
