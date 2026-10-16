@@ -4,9 +4,8 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 11, pantallas: borradores por revisar. Antes, decidir dónde entran los
-pendientes del paso 10 (cerrar sesión y borrar cuenta con "Sincronizar primero", avisos con `Toast` y
-"Reiniciar los datos de este teléfono"; ver el paso 10).
+**Siguiente paso:** 11, pantallas: borradores por revisar (lista y resolución; "Revisar" de los avisos
+hoy lleva al detalle del grupo, donde irá el banner).
 
 ## Pasos
 
@@ -280,11 +279,30 @@ pendientes del paso 10 (cerrar sesión y borrar cuenta con "Sincronizar primero"
     `npx jest` de `src/features/{sync/__tests__/Sync*,account,auth,navigation,__tests__}`, `src/i18n`
     y las de `DatabaseProvider`: en verde; `npx tsc --noEmit` y eslint/prettier de lo tocado sin
     errores. Sin suite completa.
-  - **Pendiente del paso 10 del plan (no entró, a decidir):** cerrar sesión y borrar cuenta con
-    "Sincronizar primero" (hoy el texto viejo "todavía no se guardan en la nube" sigue en
-    `account.signOutSheet.confirmBody`), avisos de conflicto con `Toast` y "Revisar" (`onNotice`), la
-    pantalla de error de la base con "Reiniciar los datos de este teléfono", y la prueba
-    `flujo-sincronizacion.test.tsx` con PGlite.
+- [x] 10b. Lo que quedó del paso 10 (cuatro commits):
+  - **Prueba de flujo** (`flujo-sincronizacion.test.tsx`, PGlite + motor REAL por
+    `SyncProvider.createEngine`): sin red → "sin conexión" y "por subir" → vuelve la red → "al día" y el
+    servidor igual al teléfono; y un conflicto con otra tableta que deja un borrador (hoja: "1 cambio por
+    revisar") y el Toast. Pasó de entrada porque el motor ya existía: se comprobó con mutaciones (sin
+    disparo `reconnect` —con esperas largas en la prueba para que solo ese disparo pueda explicarlo— y sin
+    aplicar las respuestas del envío); ambas la ponen en rojo. El rojo real fue el Toast (`SyncNotices`).
+  - **Sincronizar primero:** `unsyncedCount` (por subir + apartados + borradores; `held` y `lastError` no
+    cuentan) y `UnsyncedWarning` (cuentas, consecuencia, error traducido y "Sincronizar primero"; se
+    redibuja con el estado del motor y desaparece solo si todo sube). `SignOutSheet`: la confirmación de
+    borrar los datos del teléfono, con algo sin subir, ofrece sincronizar, "Borrar de todos modos" y
+    cancelar; sin nada, `confirmBody` nuevo ("están en la nube"). `DeleteAccountScreen`: el mismo aviso
+    sobre el botón de borrar. **Cerrar sesión conservando los datos no cambia** (quedan cifrados y suben al
+    volver a entrar).
+  - **Avisos:** `SyncNotices` (montado en `app/(app)/_layout.tsx`, por encima del aviso de "Deshacer"):
+    un texto por razón (cambió, se borró, tu borrado no se aplicó, moneda del grupo cambiada, moneda
+    bloqueada); varios juntos se resumen en uno. Se queda hasta cerrarlo o tocar "Revisar", que lleva al
+    detalle del grupo (`/groups/<id>`) sin pantalla nueva. `fake-engine` suma `emitNotice`.
+  - **Reiniciar los datos de este teléfono:** `DatabaseGate` recibe `onReset` (el layout pasa
+    `deleteAccountData(userId)`); la pantalla de error pide dos confirmaciones, borra y vuelve a abrir una
+    base vacía, que el motor repone con la descarga completa. Si el borrado falla, lo dice y deja
+    reintentar. Con esto sale de CLAUDE.md el pendiente "Clave de cifrado perdida" **en el paso 12**.
+  - **Verificación:** `npx jest` de `src/features/{sync,account,navigation}`, `src/db` e `src/i18n`
+    (todo en verde); `npx tsc --noEmit`, eslint y prettier de lo tocado sin errores. Sin suite completa.
 - [ ] 11. Pantallas: borradores por revisar.
 - [ ] 12. Cierre: verificaciones, revisión de seguridad, CLAUDE.md, PR, builds y prueba en el
       teléfono.
