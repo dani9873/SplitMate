@@ -6,6 +6,7 @@ import { changeLanguage } from '@/i18n';
 import { createSupabaseTestServer, type SupabaseTestServer } from '@/test/supabase-pglite';
 
 import { createSyncEngine, type NetworkMonitor } from '../engine';
+import { SyncNotices } from '../SyncNotices';
 import { SyncProvider } from '../SyncProvider';
 import { SyncStatusButton } from '../SyncStatusButton';
 import { createDevice, serverSnapshot, type Device } from '../test-utils';
@@ -79,6 +80,7 @@ async function renderPhone(device: Device, network: NetworkMonitor) {
         }
       >
         <SyncStatusButton />
+        <SyncNotices />
       </SyncProvider>
     </DatabaseProvider>,
   );
@@ -190,6 +192,10 @@ describe('flujo de sincronización con el motor real', () => {
       reason: 'conflict',
     });
     expect(drafts[0]?.data).toMatchObject({ title: 'Cena del teléfono' });
+
+    // El motor real avisa del conflicto con su Toast, con el nombre del movimiento.
+    expect(await screen.findByText(/cambió en otro dispositivo/)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Revisar' })).toBeOnTheScreen();
 
     await user.press(screen.getByTestId('sync-status-button'));
     expect(await screen.findByText('1 cambio por revisar')).toBeOnTheScreen();

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { openAccountDatabase } from '@/db/client';
 import { DatabaseGate, useDatabaseSetup } from '@/db/DatabaseProvider';
 import { useAuth, type AuthSession } from '@/features/auth';
-import { SyncProvider } from '@/features/sync';
+import { SyncNotices, SyncProvider } from '@/features/sync';
 import { UndoProvider } from '@/features/undo';
 
 /**
@@ -55,6 +55,7 @@ function AccountArea({ session }: { session: AuthSession }) {
             />
             <Stack.Screen name="account/delete" options={{ presentation: 'modal' }} />
           </Stack>
+          <SyncNotices />
         </UndoProvider>
       </SyncProvider>
     </DatabaseGate>

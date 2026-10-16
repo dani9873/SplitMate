@@ -10,6 +10,7 @@ export {
 export { createNetworkMonitor, isOnline } from './network';
 export { deriveStatus, nextBackoff, type SyncState, type SyncStatus } from './status';
 export { SyncEngineProvider, SyncProvider, useSyncEngine, useSyncStatus } from './SyncProvider';
+export { SyncNotices } from './SyncNotices';
 export { SyncStatusButton } from './SyncStatusButton';
 export { SyncStatusSheet } from './SyncStatusSheet';
 export { unsyncedCount } from './unsynced';

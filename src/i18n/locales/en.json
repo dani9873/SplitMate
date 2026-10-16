@@ -593,6 +593,16 @@
     "unsynced": {
       "intro": "This isn't in the cloud yet:",
       "syncFirst": "Sync first"
+    },
+    "notice": {
+      "conflict": "“{{label}}” was changed on another device. Your version was saved as a draft.",
+      "serverDeleted": "“{{label}}” was deleted on another device. Your version was saved as a draft.",
+      "deletionRejected": "“{{label}}” wasn't deleted: it was changed on another device. Your deletion was saved as a draft.",
+      "groupCurrencyChanged": "“{{label}}” wasn't saved: the group's currency changed. It was saved as a draft.",
+      "currencyLocked": "The currency of “{{label}}” wasn't changed: it already has entries. It was saved as a draft.",
+      "many_one": "{{count}} of your changes wasn't applied. It was saved as a draft.",
+      "many_other": "{{count}} of your changes weren't applied. They were saved as drafts.",
+      "review": "Review"
     }
   },
   "account": {

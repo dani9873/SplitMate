@@ -593,6 +593,16 @@
     "unsynced": {
       "intro": "Esto todavía no está en la nube:",
       "syncFirst": "Sincronizar primero"
+    },
+    "notice": {
+      "conflict": "«{{label}}» cambió en otro dispositivo. Tu versión quedó como borrador.",
+      "serverDeleted": "«{{label}}» se borró en otro dispositivo. Tu versión quedó como borrador.",
+      "deletionRejected": "No se borró «{{label}}»: se cambió en otro dispositivo. Tu borrado quedó como borrador.",
+      "groupCurrencyChanged": "«{{label}}» no se guardó: cambió la moneda del grupo. Quedó como borrador.",
+      "currencyLocked": "No se cambió la moneda de «{{label}}»: ya tiene movimientos. Quedó como borrador.",
+      "many_one": "{{count}} cambio tuyo no se aplicó. Quedó como borrador.",
+      "many_other": "{{count}} cambios tuyos no se aplicaron. Quedaron como borradores.",
+      "review": "Revisar"
     }
   },
   "account": {
