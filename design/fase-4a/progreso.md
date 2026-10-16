@@ -4,8 +4,12 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 12, cierre: verificaciones, revisión de seguridad, CLAUDE.md, PR, builds de EAS
-(development con `expo-network` y preview) y prueba en el teléfono (lista en "Notas para retomar").
+**Siguiente paso:** 12b, cierre:
+- `supabase db push` de las cuatro migraciones del 12a, con permiso del usuario, y luego
+  `npm run check:data-api`;
+- revisar en el panel si pg_graphql está activo;
+- verificaciones completas, PR y builds de EAS (development con `expo-network` y preview);
+- prueba en el teléfono (lista en "Notas para retomar").
 
 ## Pasos
 
@@ -329,7 +333,28 @@
     eslint/prettier de `src/features`, `src/db` y `src/i18n` sin errores. Sin suite completa. Mutaciones
     detectadas: salir de un alta sin guardar no deja borrador local, el borrador de otro movimiento se
     ignora, `Usar la mía` descarta, grupo archivado, la hoja no se reabre sola.
-- [ ] 12. Cierre: verificaciones, revisión de seguridad, CLAUDE.md, PR, builds y prueba en el
+- [x] 12a. Revisión de seguridad (informe en `revision-seguridad.md`). Sin hallazgos altos. Se
+      corrigieron S1, S2, C1, K1, C2 y S4, y C3 se descartó tras verificarlo; cada uno tiene su
+      commit.
+  - **Migraciones nuevas, sin `db push`:**
+    - `20261016120000_gasto_lineas_ajenas.sql`: un gasto nuevo no toma líneas de otro gasto;
+    - `20261016120100_sync_push_marca.sql`: `sync_push` no deja su marca;
+    - `20261016120200_monedas_conocidas.sql`: 155 monedas de ISO 4217;
+    - `20261016120300_sync_fail_tope.sql`: `field` de hasta 64 caracteres.
+  - **Cliente:** `apply.ts` valida monedas con `currencySchema` y usa los mismos topes que
+    `sync_push` (fechas del calendario, tasa positiva de hasta 32 caracteres, emoji, categoría y
+    notas).
+  - **Configuración:** credenciales de EAS y keystores en `.gitignore` y `.easignore`.
+  - **CLAUDE.md:** sale "Clave de cifrado perdida"; se detalla el acceso del creador hasta la 4b y
+    se suman los pendientes (S3, C4-C6, K2, K3 y pg_graphql).
+  - **Pruebas:**
+    - pgTAP `012-revision-seguridad` (15), en rojo antes de cada corrección;
+      `npm run test:db:local` completo: 398 en verde;
+    - Jest: `pull.test.ts` y `server-currencies.test.ts`, más `src/db/sync`, `push.int`,
+      `conflicts.int`, `cycle`, `remote.int` y `flujo-sincronizacion` en verde;
+    - `npx tsc --noEmit` y eslint/prettier de lo tocado, sin errores. Sin suite completa.
+  - `npm audit --omit=dev`: 68 avisos, los mismos seis paquetes de origen.
+- [ ] 12b. Cierre: `db push` y `check:data-api`, verificaciones, PR, builds y prueba en el
       teléfono.
 
 ## Notas para retomar
