@@ -147,6 +147,18 @@ src/
   él en RLS (`private.can_access_group`), aunque no tenga un miembro vinculado: así se suben los
   grupos sin "yo". Cuando existan invitaciones y expulsiones, el acceso debe pasar a depender de la
   membresía, o un creador expulsado seguiría viendo el grupo (`design/fase-4a/diseno.md`).
+  Hasta entonces, el creador lee, edita y borra todo el grupo, agrega `owner` y puede borrar a
+  cualquier miembro, y cualquier miembro activo puede borrar a otro (lo deja sin acceso). Además, un
+  miembro que no es el creador no puede desvincular su "soy yo" ni borrarse: da `forbidden`.
+  Detalle en `design/fase-4a/revision-seguridad.md`.
+- **Pendientes de la revisión de seguridad de la Fase 4a** (`design/fase-4a/revision-seguridad.md`):
+  - `sync_pull` sin tope de filas por grupo ni cupos de grupos o filas (S3), y la página sin tope en
+    el cliente (C5);
+  - el cliente aplica por `id` sin comparar grupo ni gasto (C4);
+  - borradores de conflicto de grupos que ya no están (C6);
+  - valorar bloquear `ACCESS_WIFI_STATE` de expo-network (K2, con build);
+  - fijar las acciones del CI por SHA (K3);
+  - revisar en el panel si pg_graphql está activo y apagarlo si no se usa.
 - **Rutas tipadas de Expo Router desactivadas.** En Windows, el generador incremental de
   `.expo/types/router.d.ts` compara rutas con `'../'` y registra archivos de `src/` como
   rutas, lo que rompe `tsc` mientras Metro corre. Reevaluar en una fase futura o al
@@ -168,9 +180,6 @@ src/
 - **Build nativo local desde OneDrive.** Gradle y CMake fallan porque las rutas superan el
   límite de Windows (`LongPathsEnabled` está en 0). Los development builds se hacen con
   EAS Build (`eas build --profile development --platform android`).
-- **Clave de cifrado perdida.** Si se pierde la clave de expo-secure-store, la base cifrada
-  no se puede abrir y la app muestra su pantalla de error. La fase de sincronización debe
-  agregar la opción de reiniciar la base local y volver a descargar los datos.
 - **Exclusión del respaldo: falta compilarla en iOS.** La base y su WAL quedan fuera del
   respaldo. En Android, `allowBackup` en `false` más las reglas de
   `plugins/with-backup-rules.js`. En iOS, el módulo local `modules/splitmate-backup` marca la
