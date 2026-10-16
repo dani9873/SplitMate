@@ -12,3 +12,5 @@ export { deriveStatus, nextBackoff, type SyncState, type SyncStatus } from './st
 export { SyncEngineProvider, SyncProvider, useSyncEngine, useSyncStatus } from './SyncProvider';
 export { SyncStatusButton } from './SyncStatusButton';
 export { SyncStatusSheet } from './SyncStatusSheet';
+export { unsyncedCount } from './unsynced';
+export { UnsyncedWarning, type UnsyncedWarningProps } from './UnsyncedWarning';

@@ -4,19 +4,22 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { useAuth } from '@/features/auth';
+import { UnsyncedWarning, unsyncedCount, useSyncStatus } from '@/features/sync';
 import { Button, Sheet, Text } from '@/ui';
 
 import { wipeAccountData } from './account-actions';
 
 /**
  * Cerrar sesión: solo la sesión (los datos quedan cifrados en el teléfono) o también los datos de
- * este teléfono, con una confirmación que advierte que todavía no se sincronizan.
+ * este teléfono. Para borrarlos, la confirmación dice que están en la nube o, si hay cambios sin
+ * subir, los cuenta y ofrece sincronizar primero.
  */
 export function SignOutSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const { state, signOut } = useAuth();
   const [confirmingWipe, setConfirmingWipe] = useState(false);
   const userId = state.status === 'signedIn' ? state.session.userId : null;
+  const unsynced = unsyncedCount(useSyncStatus()) > 0;
 
   const close = () => {
     setConfirmingWipe(false);
@@ -47,7 +50,25 @@ export function SignOutSheet({ visible, onClose }: { visible: boolean; onClose: 
       }
       testID="sign-out-sheet"
     >
-      {confirmingWipe ? (
+      {confirmingWipe && unsynced ? (
+        <View className="gap-4 px-5 pb-2">
+          <UnsyncedWarning consequence={t('account.signOutSheet.unsyncedBody')} />
+          <Button
+            testID="sign-out-wipe-anyway"
+            label={t('account.signOutSheet.wipeAnyway')}
+            variant="danger"
+            icon={Trash2}
+            onPress={wipeData}
+            fullWidth
+          />
+          <Button
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => setConfirmingWipe(false)}
+            fullWidth
+          />
+        </View>
+      ) : confirmingWipe ? (
         <View className="gap-4 px-5 pb-2">
           <Text tone="muted">{t('account.signOutSheet.confirmBody')}</Text>
           <Button

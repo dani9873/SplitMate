@@ -589,7 +589,11 @@
     },
     "syncNow": "Sync now",
     "syncingNow": "Syncing…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "unsynced": {
+      "intro": "This isn't in the cloud yet:",
+      "syncFirst": "Sync first"
+    }
   },
   "account": {
     "defaultName": "User",
@@ -604,8 +608,10 @@
       "wipe": "Sign out and delete the data on this phone",
       "wipeHint": "To leave the phone without your data, for example if it is not yours.",
       "confirmTitle": "Delete the data on this phone?",
-      "confirmBody": "Your groups and entries are not saved in the cloud yet: if you delete them, they cannot be recovered.",
-      "confirm": "Delete and sign out"
+      "confirmBody": "Your groups and entries are in the cloud: you get them back when you sign in again. They are only deleted from this phone.",
+      "confirm": "Delete and sign out",
+      "unsyncedBody": "If you delete them from this phone now, they are lost for good.",
+      "wipeAnyway": "Delete anyway"
     },
     "deleteScreen": {
       "title": "Delete your account",
@@ -616,7 +622,8 @@
       "email": "Enter your email to confirm",
       "emailMismatch": "It does not match the email of this account.",
       "password": "Your password",
-      "submit": "Delete my account"
+      "submit": "Delete my account",
+      "unsyncedBody": "If you delete your account now, they are lost. If you upload them first, your changes in shared groups are kept for everyone else."
     },
     "notices": {
       "accountDeleted": "Your account was deleted.",

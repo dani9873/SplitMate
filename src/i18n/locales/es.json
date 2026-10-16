@@ -589,7 +589,11 @@
     },
     "syncNow": "Sincronizar ahora",
     "syncingNow": "Sincronizando…",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "unsynced": {
+      "intro": "Esto todavía no está en la nube:",
+      "syncFirst": "Sincronizar primero"
+    }
   },
   "account": {
     "defaultName": "Usuario",
@@ -604,8 +608,10 @@
       "wipe": "Cerrar sesión y borrar los datos de este teléfono",
       "wipeHint": "Para dejar el teléfono sin tus datos, por ejemplo si no es tuyo.",
       "confirmTitle": "¿Borrar los datos de este teléfono?",
-      "confirmBody": "Tus grupos y movimientos todavía no se guardan en la nube: si los borras, no se pueden recuperar.",
-      "confirm": "Borrar y cerrar sesión"
+      "confirmBody": "Tus grupos y movimientos están en la nube: los recuperas al volver a entrar. Solo se borran de este teléfono.",
+      "confirm": "Borrar y cerrar sesión",
+      "unsyncedBody": "Si los borras de este teléfono ahora, se pierden para siempre.",
+      "wipeAnyway": "Borrar de todos modos"
     },
     "deleteScreen": {
       "title": "Borrar tu cuenta",
@@ -616,7 +622,8 @@
       "email": "Escribe tu correo para confirmar",
       "emailMismatch": "No coincide con el correo de esta cuenta.",
       "password": "Tu contraseña",
-      "submit": "Borrar mi cuenta"
+      "submit": "Borrar mi cuenta",
+      "unsyncedBody": "Si borras la cuenta ahora, se pierden. Si los subes antes, tus cambios en grupos compartidos se conservan para los demás."
     },
     "notices": {
       "accountDeleted": "Tu cuenta se borró.",

@@ -105,9 +105,8 @@ describe('cuenta', () => {
 
       await press(user, 'account-sign-out');
       await press(user, 'sign-out-wipe');
-      expect(
-        await screen.findByText(/todavía no se guardan en la nube: si los borras/),
-      ).toBeOnTheScreen();
+      expect(await screen.findByText(/están en la nube/)).toBeOnTheScreen();
+      expect(screen.queryByText(/todavía no se guardan en la nube/)).toBeNull();
       await press(user, 'sign-out-wipe-confirm');
 
       expect(await screen.findByTestId('welcome-screen')).toBeOnTheScreen();
