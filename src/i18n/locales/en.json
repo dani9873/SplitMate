@@ -611,6 +611,51 @@
       "many_one": "{{count}} of your changes wasn't applied. It was saved as a draft.",
       "many_other": "{{count}} of your changes weren't applied. They were saved as drafts.",
       "review": "Review"
+    },
+    "review": {
+      "open": "Review",
+      "title": "Changes to review",
+      "intro": "Someone else changed the same thing before you. What you see in the app is the current version; yours is saved here and isn't lost until you decide.",
+      "mine": "Your version",
+      "current": "Current",
+      "yes": "Yes",
+      "no": "No",
+      "noLabel": "No name",
+      "entity": {
+        "expense": "Expense or income",
+        "transfer": "Transfer",
+        "group": "Group",
+        "member": "Member",
+        "category": "Category"
+      },
+      "reason": {
+        "conflict": "It was changed on another device.",
+        "serverDeleted": "It was deleted on another device.",
+        "deletionRejected": "Your deletion wasn't applied: it was changed on another device.",
+        "groupCurrencyChanged": "It wasn't saved: the group's currency changed.",
+        "currencyLocked": "The currency wasn't changed: the group already has entries."
+      },
+      "field": {
+        "name": "Name",
+        "emoji": "Emoji",
+        "color": "Color",
+        "currency": "Currency",
+        "archived": "Archived"
+      },
+      "noDiff": "Your change wasn't applied and there is nothing different left to show.",
+      "deletionHint": "You wanted to delete it, but someone changed it. You can delete it now or keep it as it is.",
+      "deletionGone": "It no longer exists, so there is nothing to delete.",
+      "action": {
+        "openForm": "Review and save my version",
+        "discard": "Discard",
+        "discardConfirm": "Discard your version? What you see now doesn't change.",
+        "discardYes": "Yes, discard",
+        "deleteNow": "Delete now",
+        "keep": "Keep",
+        "useMine": "Use mine",
+        "keepCurrent": "Keep the current one",
+        "understood": "Got it"
+      }
     }
   },
   "account": {

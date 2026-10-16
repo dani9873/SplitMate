@@ -611,6 +611,51 @@
       "many_one": "{{count}} cambio tuyo no se aplicó. Quedó como borrador.",
       "many_other": "{{count}} cambios tuyos no se aplicaron. Quedaron como borradores.",
       "review": "Revisar"
+    },
+    "review": {
+      "open": "Revisar",
+      "title": "Cambios por revisar",
+      "intro": "Alguien más cambió lo mismo antes que tú. Lo que ves en la app es la versión actual; la tuya está guardada aquí y no se pierde hasta que decidas.",
+      "mine": "Tu versión",
+      "current": "Actual",
+      "yes": "Sí",
+      "no": "No",
+      "noLabel": "Sin nombre",
+      "entity": {
+        "expense": "Gasto o ingreso",
+        "transfer": "Transferencia",
+        "group": "Grupo",
+        "member": "Miembro",
+        "category": "Categoría"
+      },
+      "reason": {
+        "conflict": "Se cambió en otro dispositivo.",
+        "serverDeleted": "Se borró en otro dispositivo.",
+        "deletionRejected": "Tu borrado no se aplicó: se cambió en otro dispositivo.",
+        "groupCurrencyChanged": "No se guardó: cambió la moneda del grupo.",
+        "currencyLocked": "No se cambió la moneda: el grupo ya tiene movimientos."
+      },
+      "field": {
+        "name": "Nombre",
+        "emoji": "Emoji",
+        "color": "Color",
+        "currency": "Moneda",
+        "archived": "Archivado"
+      },
+      "noDiff": "Tu cambio no se aplicó y ya no hay nada distinto que mostrar.",
+      "deletionHint": "Querías borrarlo, pero alguien lo cambió. Puedes borrarlo ahora o mantenerlo como está.",
+      "deletionGone": "Ya no existe, así que no hay nada que borrar.",
+      "action": {
+        "openForm": "Revisar y guardar mi versión",
+        "discard": "Descartar",
+        "discardConfirm": "¿Descartar tu versión? Lo que ves ahora no cambia.",
+        "discardYes": "Sí, descartar",
+        "deleteNow": "Borrar ahora",
+        "keep": "Mantener",
+        "useMine": "Usar la mía",
+        "keepCurrent": "Mantener la actual",
+        "understood": "Entendido"
+      }
     }
   },
   "account": {

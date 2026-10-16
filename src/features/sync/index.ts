@@ -7,6 +7,7 @@ export {
   type SyncEngineDeps,
   type SyncTrigger,
 } from './engine';
+export { ConflictBanner } from './ConflictBanner';
 export { createNetworkMonitor, isOnline } from './network';
 export { deriveStatus, nextBackoff, type SyncState, type SyncStatus } from './status';
 export { SyncEngineProvider, SyncProvider, useSyncEngine, useSyncStatus } from './SyncProvider';
