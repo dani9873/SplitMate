@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -15,11 +14,12 @@ import { describeError } from '../errors/describe-error';
 import { ScreenHeader } from '../navigation';
 import { AppearancePicker } from './AppearancePicker';
 import { createGroupFormSchema, otherMemberNames, type CreateGroupForm } from './group-form';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 /** Nuevo grupo: nombre, moneda, ícono, color, tu nombre y las demás personas. */
 export function CreateGroupScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { repos } = useDatabase();
   const [pickingCurrency, setPickingCurrency] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

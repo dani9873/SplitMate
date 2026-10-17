@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { CloudUpload, Eye } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +8,7 @@ import { Button, Card, Text } from '@/ui';
 
 import { useSyncEngine, useSyncStatus } from './SyncProvider';
 import { onlyDrafts, unsyncedCount } from './unsynced';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 export interface UnsyncedWarningProps {
   /** Qué pasa con esos cambios si la persona sigue, ya traducido. */
@@ -28,7 +28,7 @@ export function UnsyncedWarning({ consequence, onReview }: UnsyncedWarningProps)
   const engine = useSyncEngine();
   const status = useSyncStatus();
   const { repos } = useDatabase();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const [busy, setBusy] = useState(false);
 
   if (unsyncedCount(status) === 0) {

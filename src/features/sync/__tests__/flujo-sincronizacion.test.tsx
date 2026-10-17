@@ -3,6 +3,7 @@ import { act, render, screen, userEvent } from '@testing-library/react-native';
 
 import { DatabaseProvider } from '@/db/DatabaseProvider';
 import { changeLanguage } from '@/i18n';
+import { waitForPressCooldown } from '@/test/press-cooldown';
 import { createSupabaseTestServer, type SupabaseTestServer } from '@/test/supabase-pglite';
 
 import { createSyncEngine, type NetworkMonitor } from '../engine';
@@ -237,6 +238,7 @@ describe('flujo de sincronización con el motor real', () => {
     // También cuando la tablet vuelve a cambiar lo mismo y el teléfono la descarga.
     editDinner(tablet, expense.id, group.id, memberIds, 'Cena de la tablet, otra vez');
     await tablet.sync();
+    await waitForPressCooldown();
     await user.press(screen.getByRole('button', { name: 'Sincronizar ahora' }));
     expect(await screen.findByRole('button', { name: 'Sincronizar ahora' })).toBeOnTheScreen();
     expect(phone.repos.expenses.get(expense.id)?.title).toBe('Cena de la tablet, otra vez');

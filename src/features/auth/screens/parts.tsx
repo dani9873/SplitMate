@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { useState, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +7,7 @@ import { IconButton, Input, Screen, Text, type InputProps } from '@/ui';
 
 import { AuthError } from '../auth-errors';
 import type { AuthValidationError } from '../auth-form';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 /**
  * Pantalla de auth: desplazable, con volver y un título. En iOS el contenido sube con el teclado;
@@ -27,7 +27,7 @@ export function AuthScreen({
   children: ReactNode;
 }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-background"

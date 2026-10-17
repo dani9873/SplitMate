@@ -11,6 +11,7 @@ import {
 } from '@/features/auth/test-utils';
 import { RootNavigator } from '@/features/navigation';
 import { changeLanguage } from '@/i18n';
+import { waitForPressCooldown } from '@/test/press-cooldown';
 
 import { useAccountNotice } from '../account-notice';
 
@@ -152,6 +153,7 @@ describe('cuenta', () => {
         await screen.findByRole('button', { name: 'Reiniciar los datos de este teléfono' }),
       );
       await user.press(await screen.findByRole('button', { name: 'Continuar' }));
+      await waitForPressCooldown();
       await user.press(await screen.findByRole('button', { name: 'Borrar y reiniciar' }));
 
       await waitFor(() => expect(deleteAccountData).toHaveBeenCalledWith(TEST_SESSION.userId));
@@ -177,6 +179,7 @@ describe('cuenta', () => {
       ).toBeOnTheScreen();
       expect(service.deleteAccount).not.toHaveBeenCalled();
 
+      await waitForPressCooldown();
       await user.clear(screen.getByTestId('delete-account-email'));
       await user.type(screen.getByTestId('delete-account-email'), ' ANA@example.com ');
       await user.type(screen.getByTestId('delete-account-password'), PASSWORD);

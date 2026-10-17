@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
 import {
   Archive,
   ArchiveRestore,
@@ -45,6 +44,7 @@ import { describeError } from '../errors/describe-error';
 import { ScreenHeader, useRouteId } from '../navigation';
 import { AppearancePicker } from './AppearancePicker';
 import { appearanceSchema, isDuplicateName, type AppearanceForm } from './group-form';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 interface SettingsData {
   readonly group: Group;
@@ -72,7 +72,7 @@ function readSettings(repos: Repositories, groupId: string): SettingsData | null
 /** Ajustes del grupo: datos, miembros, quién eres y archivar. */
 export function GroupSettingsScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const groupId = useRouteId('groupId');
   const query = useLiveQuery(
     (repos) => (groupId ? readSettings(repos, groupId) : null),

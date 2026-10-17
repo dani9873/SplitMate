@@ -402,7 +402,8 @@ hechos y falta que el usuario los compruebe en el S24 y el Poco). Después, 12b,
       settings, account y auth: todo en verde. `tsc`, eslint y prettier sin errores. Sin suite completa.
     - Límite: no se pudo probar en un Android real; el número usa `Intl` del teléfono, así que el
       agrupador de miles de cuatro cifras podría variar entre fabricantes (a comprobar en el S24 y el Poco).
-  - [ ] C. Toques repetidos (segunda sesión: wrapper de navegación, guard en `src/ui`, escrituras).
+  - [x] C. Toques repetidos (código y pruebas listos; falta comprobar en el S24 y el Poco). Plan y
+    decisiones en `plan-c.md`; dos commits (protección central y auditoría del resto).
 
 ## Notas para retomar
 

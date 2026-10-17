@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { FileQuestion, Pencil, Trash2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -25,6 +24,7 @@ import { CategoryIcon, useCategoryLabel } from '../categories';
 import { describeError } from '../errors/describe-error';
 import { ScreenHeader, useRouteId } from '../navigation';
 import { useUndo } from '../undo';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 interface DetailData {
   readonly item: ActivityItem;
@@ -48,7 +48,7 @@ function readDetail(repos: Repositories, groupId: string, entryId: string): Deta
 /** Detalle de un movimiento: quién pagó, cómo se dividió y la tasa si hubo conversión. */
 export function EntryDetailScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const groupId = useRouteId('groupId');
   const entryId = useRouteId('entryId');
   const query = useLiveQuery(
@@ -88,7 +88,7 @@ export function EntryDetailScreen() {
 
 function DetailContent({ data }: { data: DetailData }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { repos } = useDatabase();
   const { offerUndo } = useUndo();
   const { money, day, decimalSeparator } = useFormatters();

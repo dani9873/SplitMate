@@ -2,6 +2,7 @@ import { act, render, screen, userEvent } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import { changeLanguage } from '@/i18n';
+import { waitForPressCooldown } from '@/test/press-cooldown';
 
 import type { OpenedDatabase } from '../accounts';
 import { DatabaseGate, useDatabase, useDatabaseSetup } from '../DatabaseProvider';
@@ -136,6 +137,7 @@ describe('arranque de la base de datos', () => {
       expect(screen.getByText(/Lo que no se había subido no se puede recuperar/)).toBeOnTheScreen();
       expect(onReset).not.toHaveBeenCalled();
 
+      await waitForPressCooldown();
       await user.press(screen.getByRole('button', { name: 'Borrar y reiniciar' }));
       expect(await screen.findByText('Grupos: 0')).toBeOnTheScreen();
       expect(onReset).toHaveBeenCalledTimes(1);
@@ -156,6 +158,7 @@ describe('arranque de la base de datos', () => {
       if (steps === 1) {
         await user.press(await screen.findByRole('button', { name: 'Continuar' }));
       }
+      await waitForPressCooldown();
       await user.press(await screen.findByRole('button', { name: 'Cancelar' }));
 
       expect(
@@ -174,6 +177,7 @@ describe('arranque de la base de datos', () => {
         screen.getByRole('button', { name: 'Reiniciar los datos de este teléfono' }),
       );
       await user.press(await screen.findByRole('button', { name: 'Continuar' }));
+      await waitForPressCooldown();
       await user.press(await screen.findByRole('button', { name: 'Borrar y reiniciar' }));
 
       expect(
@@ -182,6 +186,7 @@ describe('arranque de la base de datos', () => {
         ),
       ).toBeOnTheScreen();
       expect(open).toHaveBeenCalledTimes(1);
+      await waitForPressCooldown();
       await user.press(screen.getByRole('button', { name: 'Reintentar' }));
       expect(await screen.findByText('Grupos: 0')).toBeOnTheScreen();
     });

@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
 import { FileClock } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
@@ -58,6 +57,7 @@ import {
 } from './form-sections';
 import { applyKey } from './keypad-input';
 import { problemMessage } from './problem-message';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 const ENTRY_TYPES: readonly EntryType[] = ['expense', 'income', 'transfer'];
 
@@ -167,7 +167,7 @@ function loadForm(repos: Repositories, options: LoadOptions): FormData | null {
 /** Pantalla de nuevo movimiento o de edición, según la ruta. */
 export function EntryFormScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const insets = useSafeAreaInsets();
   const groupId = useRouteId('groupId');
   const entryId = useRouteId('entryId');
@@ -229,7 +229,7 @@ export function EntryFormScreen() {
 
 function EntryForm({ data, today }: { data: FormData; today: CalendarDate }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const insets = useSafeAreaInsets();
   const { repos } = useDatabase();
   const formatters = useFormatters();

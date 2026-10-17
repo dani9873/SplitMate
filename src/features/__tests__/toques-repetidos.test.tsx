@@ -143,4 +143,19 @@ describe('toques repetidos', () => {
     expect(screen.queryByTestId('entry-form-screen')).toBeNull();
     expect(screen.getByTestId('group-detail-screen')).toBeOnTheScreen();
   });
+
+  it('un doble toque en "Cargar datos de ejemplo" los carga una sola vez', async () => {
+    await renderRouter(routes(), { initialUrl: '/settings' });
+    const button = await screen.findByRole('button', {
+      name: /Load sample data|Cargar datos de ejemplo/,
+    });
+
+    await act(async () => {
+      fireEvent.press(button);
+      fireEvent.press(button);
+    });
+
+    // La carga crea tres grupos de ejemplo; dos cargas darían seis.
+    expect(ctx.repos.groups.list()).toHaveLength(3);
+  });
 });

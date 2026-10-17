@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { CircleCheck } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -6,6 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { useAccountNotice } from '@/features/account/account-notice';
 import { Banner, Button, Screen, Text, useAppTheme } from '@/ui';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 /** Aviso después de cerrar sesión borrando datos o de borrar la cuenta. */
 function AccountNoticeBanner() {
@@ -32,7 +32,7 @@ function AccountNoticeBanner() {
 /** Bienvenida, la primera pantalla sin sesión: crear cuenta o entrar. */
 export function WelcomeScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { colors } = useAppTheme();
   return (
     <Screen edges={['top', 'bottom']} testID="welcome-screen">

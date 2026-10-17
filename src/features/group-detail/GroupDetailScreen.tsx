@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import {
   Archive,
   ArchiveRestore,
@@ -37,6 +36,7 @@ import { describeError } from '../errors/describe-error';
 import { ScreenHeader, useRouteId } from '../navigation';
 import { ConflictBanner } from '../sync';
 import { useUndo } from '../undo';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 type Section = 'activity' | 'balances';
 
@@ -73,7 +73,7 @@ function readGroup(repos: Repositories, groupId: string): DetailData | null {
 /** Un grupo: tu saldo, el historial con filtros o los saldos de todos, y añadir movimientos. */
 export function GroupDetailScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const insets = useSafeAreaInsets();
   const groupId = useRouteId('groupId');
   const query = useLiveQuery(
@@ -117,7 +117,7 @@ export function GroupDetailScreen() {
 
 function GroupContent({ data }: { data: DetailData }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const insets = useSafeAreaInsets();
   const { repos } = useDatabase();
   const { offerUndo } = useUndo();

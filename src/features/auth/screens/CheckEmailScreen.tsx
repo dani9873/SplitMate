@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import type { EmailFlow } from '../auth-service';
 import { useAuth } from '../AuthProvider';
 import { useResendCooldown } from '../use-resend-cooldown';
 import { AuthScreen, FormError, useAuthErrorText, useValidationText } from './parts';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 type Form = z.input<typeof codeFormSchema>;
 type Values = z.output<typeof codeFormSchema>;
@@ -37,7 +38,7 @@ const BODY_KEYS = {
 
 function CheckEmail({ flow, email }: { flow: EmailFlow; email: string }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { service, signIn } = useAuth();
   const withCode = service.emailHasCode();
   const validation = useValidationText();

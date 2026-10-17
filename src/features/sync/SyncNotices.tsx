@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -8,6 +7,7 @@ import type { SyncNotice } from '@/db/sync';
 import { Toast } from '@/ui';
 
 import { useSyncEngine } from './SyncProvider';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 /** Por encima del aviso de "Deshacer" (que va a `insets.bottom + 72`), para no taparse. */
 const BOTTOM_OFFSET = 140;
@@ -35,7 +35,7 @@ function noticeKey(notice: SyncNotice) {
 export function SyncNotices() {
   const { t } = useTranslation();
   const engine = useSyncEngine();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const insets = useSafeAreaInsets();
   const [notices, setNotices] = useState<readonly SyncNotice[]>([]);
 

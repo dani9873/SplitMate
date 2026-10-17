@@ -1,5 +1,4 @@
 import { FlashList } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronUp, Plus, Users } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +12,7 @@ import { EmptyState, ErrorState, IconButton, LoadingState, Screen, Text, useAppT
 import { SyncStatusButton } from '@/features/sync';
 
 import { GroupCard } from './GroupCard';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 type Row =
   | { readonly type: 'group'; readonly summary: GroupSummary }
@@ -21,7 +21,7 @@ type Row =
 /** Lista de grupos con tu saldo en cada uno. Los archivados quedan plegados al final. */
 export function GroupsScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const [showArchived, setShowArchived] = useState(false);
   const query = useLiveQuery((repos) => repos.groups.listSummaries(), { tables: ALL_TABLES });
 

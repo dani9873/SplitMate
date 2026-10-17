@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, View } from 'react-native';
@@ -17,6 +16,7 @@ import {
   type ConflictItem,
   type FieldDiff,
 } from './conflict-review';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 export interface ConflictSheetProps {
   visible: boolean;
@@ -31,7 +31,7 @@ export interface ConflictSheetProps {
  */
 export function ConflictSheet({ visible, onClose, groupId }: ConflictSheetProps) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { repos } = useDatabase();
   const query = useLiveQuery(
     (r) => r.conflicts.list(groupId).map((draft) => readConflictItem(r, draft)),

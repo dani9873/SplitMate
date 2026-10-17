@@ -39,3 +39,20 @@ Se elige **(b)** y las pantallas solo conservan su estado visual:
 - Pantallas: doble toque en "Guardar" de gasto, transferencia, grupo y miembro => un registro.
 
 Solo se ejecutan los archivos afectados, más `tsc` y eslint de lo tocado.
+
+## Resultado (2026-10-17)
+
+- **Commit 1:** `usePressGuard`, `Button` e `IconButton` protegidos, `useGuardedRouter` y las cuatro
+  escrituras prioritarias con pruebas de pantalla (`toques-repetidos.test.tsx`), vistas en rojo sin
+  la protección (5 de 5) y en verde con ella.
+- **Commit 2 (auditoría del resto):** todas las pantallas usan `useGuardedRouter` (filas que
+  navegan, "Nuevo gasto", ajustes, avisos); `SampleDataButton` (un `Pressable` directo) usa
+  `usePressGuard`. Borrar, confirmaciones, "Sincronizar ahora" y las hojas ya pasan por `Button`.
+  Quedan sin protección, a propósito: selecciones que solo cambian un estado (chips, casillas,
+  segmentos, teclado, calendario, colores), porque repetirlas no escribe ni navega.
+- **Decisión:** `IconButton` con `repeatable` para sumar/restar (Stepper) y cambiar de mes
+  (Calendar): ahí tocar seguido es lo normal.
+- **Efecto que hay que conocer:** un segundo toque al **mismo** botón dentro de 500 ms se ignora,
+  también en confirmaciones de dos pasos cuyo botón cambia de texto ("Continuar" y luego "Borrar y
+  reiniciar"). Es lo buscado (un doble toque no atraviesa la confirmación). Las pruebas que lo hacen
+  a propósito esperan con `waitForPressCooldown` (`src/test/press-cooldown.ts`).
