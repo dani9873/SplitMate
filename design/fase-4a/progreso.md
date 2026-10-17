@@ -4,7 +4,9 @@
 > "Siguiente paso". Tareas en `plan.md`; decisiones en `diseno.md`. El usuario pide detenerse cada
 > 2 pasos.
 
-**Siguiente paso:** 12b, cierre (el `db push` y `check:data-api` ya están hechos):
+**Siguiente paso:** primero el punto C del paso 13 (toques repetidos, segunda sesión; A y B ya están
+hechos y falta que el usuario los compruebe en el S24 y el Poco). Después, 12b, cierre (el `db push` y
+`check:data-api` ya están hechos):
 - revisar en el panel si pg_graphql está activo;
 - verificaciones completas, PR y builds de EAS (development con `expo-network` y preview);
 - prueba en el teléfono (lista en "Notas para retomar").
