@@ -200,4 +200,52 @@ describe('flujo de sincronización con el motor real', () => {
     await user.press(screen.getByTestId('sync-status-button'));
     expect(await screen.findByText('1 cambio por revisar')).toBeOnTheScreen();
   });
+
+  it('con un borrador por revisar, "Sincronizar ahora" no inventa cambios por subir ni dice que todo está en la nube', async () => {
+    const user = userEvent.setup();
+    const userId = await server.createUser('Carla');
+    const phone = await createDevice(server, userId);
+    const tablet = await createDevice(server, userId);
+    const { group, memberIds } = phone.createGroup();
+    const expense = addDinner(phone, group.id, memberIds);
+    await phone.sync();
+    await tablet.sync();
+    editDinner(tablet, expense.id, group.id, memberIds, 'Cena de la tablet');
+    await tablet.sync();
+
+    const network = controllableNetwork(false);
+    await renderPhone(phone, network.monitor);
+    await act(async () => {
+      editDinner(phone, expense.id, group.id, memberIds, 'Cena del teléfono');
+    });
+    await act(async () => {
+      network.set(true);
+    });
+    expect(await indicator('Sincronización: todo al día')).toBeOnTheScreen();
+    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
+
+    await user.press(screen.getByTestId('sync-status-button'));
+    expect(await screen.findByText('1 cambio por revisar')).toBeOnTheScreen();
+
+    // Dos toques a "Sincronizar ahora": el borrador no cuenta como un cambio por subir.
+    await user.press(screen.getByRole('button', { name: 'Sincronizar ahora' }));
+    await user.press(screen.getByRole('button', { name: 'Sincronizar ahora' }));
+    expect(await screen.findByRole('button', { name: 'Sincronizar ahora' })).toBeOnTheScreen();
+    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
+    expect(screen.queryByText(/por subir/)).toBeNull();
+
+    // También cuando la tablet vuelve a cambiar lo mismo y el teléfono la descarga.
+    editDinner(tablet, expense.id, group.id, memberIds, 'Cena de la tablet, otra vez');
+    await tablet.sync();
+    await user.press(screen.getByRole('button', { name: 'Sincronizar ahora' }));
+    expect(await screen.findByRole('button', { name: 'Sincronizar ahora' })).toBeOnTheScreen();
+    expect(phone.repos.expenses.get(expense.id)?.title).toBe('Cena de la tablet, otra vez');
+    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
+    expect(screen.queryByText(/por subir/)).toBeNull();
+
+    // La cabecera no afirma que todo está en la nube mientras haya un borrador solo en el teléfono.
+    expect(screen.queryByText('Todo al día')).toBeNull();
+    expect(screen.queryByText('Tus cambios están guardados en la nube.')).toBeNull();
+    expect(screen.getByText('Al día, con borradores por revisar')).toBeOnTheScreen();
+  });
 });

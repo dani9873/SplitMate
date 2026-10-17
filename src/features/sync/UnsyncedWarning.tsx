@@ -1,27 +1,34 @@
-import { CloudUpload } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { CloudUpload, Eye } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { useDatabase } from '@/db/DatabaseProvider';
 import { Button, Card, Text } from '@/ui';
 
 import { useSyncEngine, useSyncStatus } from './SyncProvider';
-import { unsyncedCount } from './unsynced';
+import { onlyDrafts, unsyncedCount } from './unsynced';
 
 export interface UnsyncedWarningProps {
   /** Qué pasa con esos cambios si la persona sigue, ya traducido. */
   consequence: string;
+  /** Se llama justo antes de ir a revisar un borrador (para cerrar la hoja que lo muestra). */
+  onReview?: () => void;
 }
 
 /**
- * Aviso de lo que todavía no está en la nube, con "Sincronizar primero". Se redibuja con el estado
- * del motor: si lo pendiente sube, desaparece solo; si queda algo, muestra los números nuevos y el
- * motivo. No renderiza nada cuando no hay nada sin subir.
+ * Aviso de lo que todavía no está en la nube. Con algo por subir ofrece "Sincronizar primero"; si
+ * solo quedan borradores, sincronizar no los resuelve y ofrece "Revisar", que lleva al grupo del
+ * primero. Se redibuja con el estado del motor: si lo pendiente sube, desaparece solo; si queda
+ * algo, muestra los números nuevos y el motivo. No renderiza nada cuando no hay nada sin subir.
  */
-export function UnsyncedWarning({ consequence }: UnsyncedWarningProps) {
+export function UnsyncedWarning({ consequence, onReview }: UnsyncedWarningProps) {
   const { t } = useTranslation();
   const engine = useSyncEngine();
   const status = useSyncStatus();
+  const { repos } = useDatabase();
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   if (unsyncedCount(status) === 0) {
@@ -31,6 +38,15 @@ export function UnsyncedWarning({ consequence }: UnsyncedWarningProps) {
   const syncFirst = () => {
     setBusy(true);
     void engine.syncNow().finally(() => setBusy(false));
+  };
+
+  const review = () => {
+    const draft = repos.conflicts.list()[0];
+    if (!draft) {
+      return;
+    }
+    onReview?.();
+    router.push(`/groups/${draft.groupId}`);
   };
 
   return (
@@ -45,14 +61,24 @@ export function UnsyncedWarning({ consequence }: UnsyncedWarningProps) {
       </View>
       <Text tone="muted">{consequence}</Text>
       {status.lastError ? <Text tone="warning">{t(`sync.error.${status.lastError}`)}</Text> : null}
-      <Button
-        label={t('sync.unsynced.syncFirst')}
-        icon={CloudUpload}
-        variant="secondary"
-        loading={busy || status.syncing}
-        onPress={syncFirst}
-        fullWidth
-      />
+      {onlyDrafts(status) ? (
+        <Button
+          label={t('sync.review.open')}
+          icon={Eye}
+          variant="secondary"
+          onPress={review}
+          fullWidth
+        />
+      ) : (
+        <Button
+          label={t('sync.unsynced.syncFirst')}
+          icon={CloudUpload}
+          variant="secondary"
+          loading={busy || status.syncing}
+          onPress={syncFirst}
+          fullWidth
+        />
+      )}
     </Card>
   );
 }

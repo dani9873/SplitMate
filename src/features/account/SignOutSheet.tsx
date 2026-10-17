@@ -52,7 +52,7 @@ export function SignOutSheet({ visible, onClose }: { visible: boolean; onClose: 
     >
       {confirmingWipe && unsynced ? (
         <View className="gap-4 px-5 pb-2">
-          <UnsyncedWarning consequence={t('account.signOutSheet.unsyncedBody')} />
+          <UnsyncedWarning consequence={t('account.signOutSheet.unsyncedBody')} onReview={close} />
           <Button
             testID="sign-out-wipe-anyway"
             label={t('account.signOutSheet.wipeAnyway')}

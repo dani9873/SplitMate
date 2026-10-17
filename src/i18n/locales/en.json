@@ -558,6 +558,10 @@
         "title": "All up to date",
         "body": "Your changes are saved in the cloud."
       },
+      "syncedDrafts": {
+        "title": "Up to date, with drafts to review",
+        "body": "Everything else is saved in the cloud. Your drafts are only on this phone until you decide."
+      },
       "pending": {
         "title": "Changes to upload",
         "body": "They upload on their own as soon as they can. You don't need to do anything."

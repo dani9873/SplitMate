@@ -13,8 +13,8 @@ export function createConflictsRepository(ctx: RepositoryContext) {
   const { db } = ctx;
 
   return {
-    /** Los de un grupo, del más antiguo al más nuevo. */
-    list(groupId: string): ConflictDraft[] {
+    /** Los de un grupo, o los de todos si no se da, del más antiguo al más nuevo. */
+    list(groupId?: string): ConflictDraft[] {
       return listConflicts(db, groupId);
     },
 

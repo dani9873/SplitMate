@@ -10,3 +10,11 @@ export function unsyncedCount(
 ): number {
   return status.pending + status.failed + status.conflicts;
 }
+
+/**
+ * Todo lo que subía ya subió y solo quedan borradores por revisar. Sincronizar no los resuelve:
+ * hay que revisarlos o descartarlos.
+ */
+export function onlyDrafts(status: Pick<SyncStatus, 'pending' | 'failed' | 'conflicts'>): boolean {
+  return status.conflicts > 0 && status.pending === 0 && status.failed === 0;
+}

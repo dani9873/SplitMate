@@ -1,4 +1,19 @@
-import { unsyncedCount } from '../unsynced';
+import { onlyDrafts, unsyncedCount } from '../unsynced';
+
+describe('onlyDrafts', () => {
+  it('es verdadero cuando lo único sin subir son borradores por revisar', () => {
+    expect(onlyDrafts({ pending: 0, failed: 0, conflicts: 2 })).toBe(true);
+  });
+
+  it('es falso si además hay algo por subir o apartado: ahí sincronizar sí sirve', () => {
+    expect(onlyDrafts({ pending: 1, failed: 0, conflicts: 2 })).toBe(false);
+    expect(onlyDrafts({ pending: 0, failed: 1, conflicts: 2 })).toBe(false);
+  });
+
+  it('es falso sin borradores', () => {
+    expect(onlyDrafts({ pending: 0, failed: 0, conflicts: 0 })).toBe(false);
+  });
+});
 
 describe('unsyncedCount', () => {
   it('suma lo que solo existe en este teléfono: por subir, apartados y borradores', () => {

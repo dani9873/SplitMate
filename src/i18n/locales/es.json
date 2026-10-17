@@ -558,6 +558,10 @@
         "title": "Todo al día",
         "body": "Tus cambios están guardados en la nube."
       },
+      "syncedDrafts": {
+        "title": "Al día, con borradores por revisar",
+        "body": "Lo demás está guardado en la nube. Tus borradores solo están en este teléfono hasta que decidas."
+      },
       "pending": {
         "title": "Cambios por subir",
         "body": "Se suben solos en cuanto se puede. No tienes que hacer nada."

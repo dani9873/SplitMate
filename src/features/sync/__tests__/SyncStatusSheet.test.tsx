@@ -34,6 +34,30 @@ describe('SyncStatusSheet', () => {
     expect(screen.getByText(/Última sincronización: .*2026/)).toBeOnTheScreen();
   });
 
+  it('al día pero con borradores: no dice que todo está en la nube y explica dónde están', async () => {
+    await renderSheet(createFakeSyncEngine({ conflicts: 2 }));
+    expect(screen.queryByText('Todo al día')).toBeNull();
+    expect(screen.queryByText('Tus cambios están guardados en la nube.')).toBeNull();
+    expect(screen.getByText('Al día, con borradores por revisar')).toBeOnTheScreen();
+    expect(screen.getByText(/solo están en este teléfono/)).toBeOnTheScreen();
+    expect(screen.getByText('2 cambios por revisar')).toBeOnTheScreen();
+    expect(screen.queryByText(/por subir/)).toBeNull();
+  });
+
+  it('con cambios por subir y borradores, manda el estado de los cambios por subir', async () => {
+    await renderSheet(createFakeSyncEngine({ state: 'pending', pending: 1, conflicts: 1 }));
+    expect(screen.getByText('Cambios por subir')).toBeOnTheScreen();
+    expect(screen.queryByText('Al día, con borradores por revisar')).toBeNull();
+  });
+
+  it('en inglés, al día con borradores tampoco promete que todo está en la nube', async () => {
+    await act(() => changeLanguage('en'));
+    await renderSheet(createFakeSyncEngine({ conflicts: 1 }));
+    expect(screen.getByText('Up to date, with drafts to review')).toBeOnTheScreen();
+    expect(screen.queryByText('Your changes are saved in the cloud.')).toBeNull();
+    expect(screen.getByText(/only on this phone/)).toBeOnTheScreen();
+  });
+
   it('nunca sincronizado: lo dice sin inventar una fecha', async () => {
     await renderSheet(createFakeSyncEngine());
     expect(screen.getByText('Todavía no se ha sincronizado')).toBeOnTheScreen();

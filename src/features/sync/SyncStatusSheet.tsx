@@ -21,7 +21,9 @@ export function SyncStatusSheet({ visible, onClose }: SyncStatusSheetProps) {
   const { instant } = useFormatters();
   const engine = useSyncEngine();
   const status = useSyncStatus();
-  const state = visualState(status);
+  const visual = visualState(status);
+  // Al día no es "todo en la nube" si queda un borrador: ese solo existe en este teléfono.
+  const state = visual === 'synced' && status.conflicts > 0 ? 'syncedDrafts' : visual;
 
   const needsRetry = status.failed > 0 || status.held > 0 || status.lastError !== null;
 

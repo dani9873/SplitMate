@@ -14,5 +14,5 @@ export { SyncEngineProvider, SyncProvider, useSyncEngine, useSyncStatus } from '
 export { SyncNotices } from './SyncNotices';
 export { SyncStatusButton } from './SyncStatusButton';
 export { SyncStatusSheet } from './SyncStatusSheet';
-export { unsyncedCount } from './unsynced';
+export { onlyDrafts, unsyncedCount } from './unsynced';
 export { UnsyncedWarning, type UnsyncedWarningProps } from './UnsyncedWarning';

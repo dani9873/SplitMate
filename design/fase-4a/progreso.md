@@ -357,6 +357,26 @@
         usuario, `npx supabase db push` las aplicó sin errores y `npm run check:data-api` contra el
         remoto dio "Data API en orden" (31 comprobaciones, incluidas `anon` sin `sync_pull` ni
         `sync_push` y la guardia de `groups`).
+- [ ] 13. Correcciones tras la prueba en el teléfono (S24 Ultra y Poco X3 NFC), plan en tres puntos:
+  - [x] A. Mensajes de sincronización.
+    - **Diagnóstico: era texto, no conteo.** Con el motor real y PGlite (conflicto con otro
+      dispositivo, hoja abierta, "Sincronizar ahora" dos veces, y la tableta cambiando otra vez lo
+      mismo) los conteos se quedaron en `{pending: 0, failed: 0, conflicts: 1}` y la hoja nunca mostró
+      "por subir". No se pudo reproducir la fila "Un cambio por subir" con una base real; lo que sí
+      fallaba era la cabecera: decía "Todo al día / Tus cambios están guardados en la nube" con un
+      borrador que solo vive en el teléfono.
+    - Cabecera nueva `sync.state.syncedDrafts` (es/en) cuando el estado es "al día" y hay borradores
+      ("Al día, con borradores por revisar"). Con cambios por subir manda el estado de los cambios.
+    - `UnsyncedWarning`: con solo borradores (`onlyDrafts`: nada por subir ni apartado) no ofrece
+      "Sincronizar primero" sino "Revisar", que lleva a `/groups/<id>` del primer borrador (como el
+      aviso del Toast) y cierra la hoja de cerrar sesión. "Borrar de todos modos" sigue igual.
+      `repos.conflicts.list()` acepta no dar grupo.
+    - Pruebas: `flujo-sincronizacion` (hoja con borrador), `SyncStatusSheet`, `unsynced`
+      (`onlyDrafts`) y `unsynced-guard` (hoja de cerrar sesión y borrar cuenta); vistas en rojo antes de
+      implementar. Con `src/features/account`, `conflicts-repository` e `i18n`: 10 suites, 72 pruebas en
+      verde. `tsc`, eslint y prettier de lo tocado sin errores. Sin suite completa.
+  - [ ] B. Formato de moneda por teléfono.
+  - [ ] C. Toques repetidos (segunda sesión: wrapper de navegación, guard en `src/ui`, escrituras).
 
 ## Notas para retomar
 
