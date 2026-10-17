@@ -159,6 +159,19 @@ src/
   - valorar bloquear `ACCESS_WIFI_STATE` de expo-network (K2, con build);
   - fijar las acciones del CI por SHA (K3);
   - revisar en el panel si pg_graphql está activo y apagarlo si no se usa.
+- **Sincronización: S3, `sync_pull` sin tope por grupo.** Un grupo con muchísimas filas se baja
+  entero en una página (el primero entra siempre), y no hay cupos de grupos ni de filas por cuenta.
+  Poner topes y cupos en el servidor y en el cliente antes de abrir la app a más personas (detalle
+  en `design/fase-4a/revision-seguridad.md`, S3 y C5).
+- **Cambiar la contraseña de `prueba1@splitmate.test`.** Es la cuenta de `npm run check:data-api`;
+  la contraseña se usó en las pruebas de la Fase 4a. Cambiarla (la da el usuario; no va en el repo).
+- **Fila «Un cambio por subir» sin reproducir.** En la prueba del teléfono apareció esa fila en la
+  hoja de sincronización con un borrador por revisar; con el motor real y PGlite no se reprodujo
+  (los conteos salieron correctos; lo que sí fallaba era el texto de la cabecera, ya corregido). Si vuelve a
+  verse en el S24 o el Poco, anotar los pasos exactos y mirar `counts()` en ese momento.
+- **Decimal con punto de `es-419`.** El español usa `es-419` para números y fechas (punto decimal,
+  coma de miles, `FORMAT_LOCALES` en `src/i18n/locale.ts`). Si se suman otros países
+  hispanohablantes (Colombia, España, México…), revisar esa tabla: algunos usan coma decimal.
 - **Rutas tipadas de Expo Router desactivadas.** En Windows, el generador incremental de
   `.expo/types/router.d.ts` compara rutas con `'../'` y registra archivos de `src/` como
   rutas, lo que rompe `tsc` mientras Metro corre. Reevaluar en una fase futura o al
@@ -227,6 +240,7 @@ src/
 - [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (PR #2 integrado en `main`)
 - [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (PR #3 integrado en `main`)
 - [x] Fase 3 — Cuentas y nube con Supabase: login obligatorio, esquema en Postgres con RLS, sin sincronizar todavía (PR #4 integrado en `main`; antes de probar la Fase 4 con otra persona, las dos pruebas manuales de "Pendientes técnicos")
+- [ ] Fase 4a — Sincronización offline-first (rama `fase-4a-sincronizacion`, PR en borrador): código completo (servidor, motor, pantallas, correcciones tras la prueba en el teléfono y toques repetidos). **Pendiente de verificación en el teléfono (S24 Ultra y Poco X3) y de merge**; faltan además los builds de EAS y revisar pg_graphql en el panel
 
 ## Exploración de código
 
