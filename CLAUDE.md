@@ -219,6 +219,8 @@ src/
   Hoy no afecta (`delete-account` solo usa `auth.admin`). En la fase de sincronización, quitárselos
   también en una migración (privilegio mínimo, repo igual al remoto) o devolvérselos si un proceso
   del servidor los necesita.
+- **Idea futura: ayuda en la app.** Botón «?» de ayuda en los formularios (p. ej. «Dividir entre»)
+  y un manual de uso.
 - **MFA.** Supabase Auth admite un segundo factor (TOTP). Ofrecerlo en Ajustes, al menos
   como opción, antes de la publicación.
 - **CAPTCHA en el registro si hay abuso.** Supabase admite hCaptcha y Cloudflare Turnstile en
