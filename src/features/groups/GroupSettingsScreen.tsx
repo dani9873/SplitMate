@@ -36,6 +36,7 @@ import {
   Sheet,
   Text,
   useAppTheme,
+  usePressGuard,
 } from '@/ui';
 
 import { absolute, balanceDirection } from '../balances';
@@ -320,6 +321,9 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
     }
   };
 
+  // "Intro" en el teclado y el botón comparten la protección: pulsar los dos seguidos agrega una vez.
+  const guardedAdd = usePressGuard(add);
+
   const remove = (member: Member) => {
     const balance = data.balances.get(member.id);
     const title = t('groups.settings.cannotRemoveTitle', { name: member.displayName });
@@ -405,7 +409,7 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
               setNewName(text);
               setAddError(null);
             }}
-            onSubmitEditing={add}
+            onSubmitEditing={guardedAdd}
             returnKeyType="done"
             error={addError ?? undefined}
             maxLength={80}
@@ -416,7 +420,7 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
             label={t('groups.settings.addMember')}
             icon={UserPlus}
             variant="secondary"
-            onPress={add}
+            onPress={guardedAdd}
             disabled={!newName.trim()}
             className={addError ? 'mb-6' : undefined}
           />

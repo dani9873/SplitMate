@@ -38,4 +38,29 @@ describe('Button', () => {
     expect(button).toBeDisabled();
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  it('ignora el segundo toque seguido: un doble toque llama una sola vez', async () => {
+    const user = userEvent.setup();
+    const onPress = jest.fn();
+    await render(<Button label="Guardar" onPress={onPress} />);
+
+    const button = screen.getByRole('button', { name: 'Guardar' });
+    await user.press(button);
+    await user.press(button);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('un toque que sigue en curso (promesa) no deja entrar otro', async () => {
+    const user = userEvent.setup();
+    const onPress = jest.fn(() => new Promise<void>(() => undefined));
+    await render(<Button label="Guardar" onPress={onPress} />);
+
+    const button = screen.getByRole('button', { name: 'Guardar' });
+    await user.press(button);
+    await user.press(button);
+    await user.press(button);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
 });

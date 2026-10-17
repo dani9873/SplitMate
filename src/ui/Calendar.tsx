@@ -69,6 +69,7 @@ export function Calendar({ value, onChange, today, locale, weekStartsOn }: Calen
       <View className="flex-row items-center">
         <IconButton
           icon={ChevronLeft}
+          repeatable
           label={t('ui.calendar.previousMonth')}
           onPress={() => shiftMonth(-1)}
         />
@@ -82,6 +83,7 @@ export function Calendar({ value, onChange, today, locale, weekStartsOn }: Calen
         </Text>
         <IconButton
           icon={ChevronRight}
+          repeatable
           label={t('ui.calendar.nextMonth')}
           onPress={() => shiftMonth(1)}
         />
