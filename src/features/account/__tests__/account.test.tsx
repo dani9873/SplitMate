@@ -11,6 +11,7 @@ import {
 } from '@/features/auth/test-utils';
 import { RootNavigator } from '@/features/navigation';
 import { changeLanguage } from '@/i18n';
+import { waitForPressCooldown } from '@/test/press-cooldown';
 
 import { useAccountNotice } from '../account-notice';
 
@@ -105,9 +106,8 @@ describe('cuenta', () => {
 
       await press(user, 'account-sign-out');
       await press(user, 'sign-out-wipe');
-      expect(
-        await screen.findByText(/todavía no se guardan en la nube: si los borras/),
-      ).toBeOnTheScreen();
+      expect(await screen.findByText(/están en la nube/)).toBeOnTheScreen();
+      expect(screen.queryByText(/todavía no se guardan en la nube/)).toBeNull();
       await press(user, 'sign-out-wipe-confirm');
 
       expect(await screen.findByTestId('welcome-screen')).toBeOnTheScreen();
@@ -135,6 +135,34 @@ describe('cuenta', () => {
     });
   });
 
+  describe('base que no abre', () => {
+    it('reiniciar los datos de este teléfono borra los de la cuenta y abre una base nueva', async () => {
+      const user = userEvent.setup();
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      const { db } = await createTestDatabase();
+      jest
+        .mocked(openAccountDatabase)
+        .mockReset()
+        .mockRejectedValueOnce(new Error('clave perdida'))
+        .mockResolvedValue({ db, close });
+      service = createFakeAuthService({ restore: async () => TEST_SESSION });
+      await renderRouter(routes(), { initialUrl: '/settings' });
+
+      await user.press(
+        await screen.findByRole('button', { name: 'Reiniciar los datos de este teléfono' }),
+      );
+      await user.press(await screen.findByRole('button', { name: 'Continuar' }));
+      await waitForPressCooldown();
+      await user.press(await screen.findByRole('button', { name: 'Borrar y reiniciar' }));
+
+      await waitFor(() => expect(deleteAccountData).toHaveBeenCalledWith(TEST_SESSION.userId));
+      expect(await screen.findByText('Entraste como ana@example.com')).toBeOnTheScreen();
+      expect(openAccountDatabase).toHaveBeenCalledTimes(2);
+      expect(service.signOut).not.toHaveBeenCalled();
+    });
+  });
+
   describe('borrar la cuenta', () => {
     it('pide el correo exacto y la contraseña, borra la cuenta y los datos y vuelve a la bienvenida', async () => {
       const user = userEvent.setup();
@@ -151,6 +179,7 @@ describe('cuenta', () => {
       ).toBeOnTheScreen();
       expect(service.deleteAccount).not.toHaveBeenCalled();
 
+      await waitForPressCooldown();
       await user.clear(screen.getByTestId('delete-account-email'));
       await user.type(screen.getByTestId('delete-account-email'), ' ANA@example.com ');
       await user.type(screen.getByTestId('delete-account-password'), PASSWORD);

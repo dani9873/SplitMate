@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, type PressableProps } from 'react-native';
 
 import { cn } from './cn';
+import { usePressGuard } from './press-guard';
 import { Text, type TextTone } from './Text';
 import { useAppTheme, type ColorToken } from './theme';
 
@@ -46,6 +47,10 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
   className?: string;
 }
 
+/**
+ * Un toque repetido se ignora mientras `onPress` sigue en curso (si devuelve una promesa) y un
+ * instante después (`usePressGuard`).
+ */
 export function Button({
   label,
   variant = 'primary',
@@ -55,9 +60,11 @@ export function Button({
   disabled = false,
   fullWidth = false,
   className,
+  onPress,
   ...props
 }: ButtonProps) {
   const { colors } = useAppTheme();
+  const guardedPress = usePressGuard(onPress);
   const isDisabled = Boolean(disabled) || loading;
   const color = colors[contentColor[variant]];
   const iconSize = size === 'sm' ? 16 : 20;
@@ -68,6 +75,7 @@ export function Button({
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
+      onPress={guardedPress}
       hitSlop={size === 'sm' ? 6 : undefined}
       className={cn(
         'flex-row items-center justify-center gap-2',

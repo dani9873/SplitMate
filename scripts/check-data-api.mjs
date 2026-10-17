@@ -1,8 +1,9 @@
 // Comprueba por REST, contra el proyecto de Supabase, los privilegios de la Data API: anon sin
-// acceso a ninguna tabla, y authenticated con los suyos (lee las tablas, crea y lee su perfil, no
-// ve ni crea perfiles ajenos y no borra filas). Detecta lo que pgTAP no ve: cambios hechos en el
-// remoto fuera de las migraciones (design/fase-3/data-api-privilegios.md). Correr después de cada
-// `supabase db push`.
+// acceso a ninguna tabla ni RPC, y authenticated con los suyos (lee las tablas, crea y lee su
+// perfil, no ve ni crea perfiles ajenos, no borra filas, ejecuta sync_pull y sync_push, no escribe
+// en change_log y no escribe en los grupos fuera de sync_push). Detecta lo que pgTAP no ve: cambios
+// hechos en el remoto fuera de las migraciones (design/fase-3/data-api-privilegios.md). Correr
+// después de cada `supabase db push`.
 //
 // Uso: npm run check:data-api
 // - URL y clave publicable: EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY (.env).
@@ -21,6 +22,7 @@ const TABLES = [
   'expense_payers',
   'expense_splits',
   'transfers',
+  'change_log',
 ];
 
 if (existsSync('.env')) process.loadEnvFile('.env');
@@ -107,6 +109,10 @@ const anonInsert = await request('POST', '/rest/v1/profiles', {
   body: { id: randomUUID(), display_name: 'Anon' },
 });
 check('no inserta en profiles', denied(anonInsert), describe(anonInsert));
+const anonPull = await request('POST', '/rest/v1/rpc/sync_pull', { body: { p_cursors: {} } });
+check('no ejecuta sync_pull', denied(anonPull), describe(anonPull));
+const anonPush = await request('POST', '/rest/v1/rpc/sync_push', { body: { p_mutations: [] } });
+check('no ejecuta sync_push', denied(anonPush), describe(anonPush));
 
 console.log(`authenticated (${email})`);
 const login = await request('POST', '/auth/v1/token?grant_type=password', {
@@ -151,6 +157,42 @@ try {
   check('no cambia el id de su perfil', denied(changeId), describe(changeId));
   const remove = await request('DELETE', `/rest/v1/profiles?id=eq.${me}`, { token });
   check('no borra filas', denied(remove), describe(remove));
+
+  const pull = await request('POST', '/rest/v1/rpc/sync_pull', { token, body: { p_cursors: {} } });
+  check(
+    'ejecuta sync_pull (sin grupos)',
+    pull.status === 200 && Array.isArray(pull.json?.groups) && pull.json.groups.length === 0,
+    describe(pull),
+  );
+  const push = await request('POST', '/rest/v1/rpc/sync_push', {
+    token,
+    body: { p_mutations: [] },
+  });
+  check(
+    'ejecuta sync_push con una lista vacía',
+    push.status === 200 && Array.isArray(push.json) && push.json.length === 0,
+    describe(push),
+  );
+  const logInsert = await request('POST', '/rest/v1/change_log', {
+    token,
+    body: {
+      group_id: randomUUID(),
+      entity: 'group',
+      entity_id: randomUUID(),
+      action: 'update',
+      fields: [],
+      snapshot: [],
+      version: 1,
+      actor: me,
+    },
+  });
+  check('no escribe en change_log', denied(logInsert), describe(logInsert));
+  // Sin la guardia de sync_push respondería 23514 (CHECK del nombre); tampoco escribiría nada.
+  const direct = await request('POST', '/rest/v1/groups', {
+    token,
+    body: { id: randomUUID(), name: '', currency: 'USD', created_by: me },
+  });
+  check('no escribe en groups fuera de sync_push (guardia)', denied(direct), describe(direct));
 } finally {
   await request('POST', '/auth/v1/logout?scope=local', { token });
 }

@@ -3,7 +3,7 @@ import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { convert, money } from '@/domain';
 
 import { transfers } from '../schema';
-import { conflict, invalid, notFound, parse } from './errors';
+import { conflict, invalid, notFound, parse, ruleViolation } from './errors';
 import { listMembers, requireWritableGroup, type Group } from './queries';
 import type { AppDatabase, RepositoryContext } from './types';
 import { addTransferSchema, type AddTransferInput } from './validation';
@@ -49,6 +49,7 @@ function prepareTransfer(
   }
   return {
     groupId: group.id,
+    groupCurrency: group.currency,
     fromMemberId: data.fromMemberId,
     toMemberId: data.toMemberId,
     amount: amount.amount,
@@ -152,7 +153,13 @@ export function createTransfersRepository(ctx: RepositoryContext) {
       if (!removed) {
         throw notFound('La transferencia borrada');
       }
-      requireWritableGroup(db, removed.groupId);
+      const group = requireWritableGroup(db, removed.groupId);
+      if (group.currency !== removed.groupCurrency) {
+        throw ruleViolation(
+          'CURRENCY_CHANGED',
+          'El grupo cambió de moneda desde que se registró este movimiento',
+        );
+      }
       updateVersioned(removed, expectedVersion, { deletedAt: null });
     },
   };

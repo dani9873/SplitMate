@@ -1,5 +1,6 @@
--- Suplantación: nadie crea datos a nombre de otra cuenta, se vincula a un miembro ni se mete en
--- un grupo ajeno. El creador de un grupo vacío sí se agrega como su primer miembro.
+-- Suplantación: nadie crea datos a nombre de otra cuenta, vincula a otra persona ni se mete en un
+-- grupo ajeno. Solo el creador de un grupo agrega un dueño, y se agrega a su grupo vacío como su
+-- primer miembro.
 begin;
 select plan(19);
 
@@ -31,15 +32,8 @@ select throws_ok(
   '42501', null, 'Un miembro no agrega a otra cuenta a su grupo'
 );
 select throws_ok(
-  $$
-    insert into public.group_members (id, group_id, user_id, display_name, role)
-    values (tests.id('nuevo_1'), tests.id('viaje'), null, 'Jefa', 'owner')
-  $$,
-  '42501', null, 'Un miembro no agrega otro dueño'
-);
-select throws_ok(
-  $$ update public.group_members set user_id = tests.id('ana') where id = tests.id('viaje_xime') $$,
-  '42501', null, 'Nadie se vincula a un miembro editando user_id'
+  $$ update public.group_members set user_id = tests.id('caro') where id = tests.id('viaje_xime') $$,
+  '42501', null, 'Nadie vincula un miembro a otra cuenta editando user_id'
 );
 select throws_ok(
   $$ update public.group_members set role = 'owner' where id = tests.id('viaje_beto') $$,
@@ -63,6 +57,19 @@ select throws_ok(
 select is_empty(
   $$ update public.categories set icon = 'pizza' where id = tests.id('cat_comida') returning id $$,
   'Nadie edita categorías predefinidas'
+);
+
+-- Beto es miembro de viaje, pero no lo creó ------------------------------------------------------
+
+reset role;
+select tests.autenticar_como(tests.id('beto'));
+
+select throws_ok(
+  $$
+    insert into public.group_members (id, group_id, user_id, display_name, role)
+    values (tests.id('nuevo_1'), tests.id('viaje'), null, 'Jefa', 'owner')
+  $$,
+  '42501', null, 'Un miembro que no creó el grupo no agrega otro dueño'
 );
 
 -- Caro intenta entrar al grupo viaje -----------------------------------------------------------
@@ -129,7 +136,7 @@ select throws_ok(
     insert into public.group_members (id, group_id, user_id, display_name, role)
     values (tests.id('nuevo_4'), tests.id('nuevo_2'), tests.id('caro'), 'Caro otra vez', 'member')
   $$,
-  '42501', null, 'Con miembros, el creador ya no se agrega con su cuenta: un solo "yo"'
+  '23505', null, 'Un solo "yo" por grupo: el creador no se agrega dos veces con su cuenta'
 );
 select lives_ok(
   $$

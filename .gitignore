@@ -38,6 +38,13 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+*.keystore
+# `eas credentials` los crea al descargar el keystore o los certificados.
+credentials.json
+credentials/
+# Configuración de Firebase: si alguna vez hace falta en un build, va como variable de archivo de EAS.
+google-services.json
+GoogleService-Info.plist
 
 # ----------------------------------------
 # TYPESCRIPT
@@ -128,3 +135,7 @@ desktop.ini
 /*.zip
 /*.rar
 /*.7z
+
+# ----------------------------------------
+# ÍNDICE DE codebase-memory-mcp (se regenera)
+.codebase-memory/

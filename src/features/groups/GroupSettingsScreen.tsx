@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
 import {
   Archive,
   ArchiveRestore,
@@ -36,6 +35,7 @@ import {
   Sheet,
   Text,
   useAppTheme,
+  usePressGuard,
 } from '@/ui';
 
 import { absolute, balanceDirection } from '../balances';
@@ -44,6 +44,7 @@ import { describeError } from '../errors/describe-error';
 import { ScreenHeader, useRouteId } from '../navigation';
 import { AppearancePicker } from './AppearancePicker';
 import { appearanceSchema, isDuplicateName, type AppearanceForm } from './group-form';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 interface SettingsData {
   readonly group: Group;
@@ -71,7 +72,7 @@ function readSettings(repos: Repositories, groupId: string): SettingsData | null
 /** Ajustes del grupo: datos, miembros, quién eres y archivar. */
 export function GroupSettingsScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const groupId = useRouteId('groupId');
   const query = useLiveQuery(
     (repos) => (groupId ? readSettings(repos, groupId) : null),
@@ -320,6 +321,9 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
     }
   };
 
+  // "Intro" en el teclado y el botón comparten la protección: pulsar los dos seguidos agrega una vez.
+  const guardedAdd = usePressGuard(add);
+
   const remove = (member: Member) => {
     const balance = data.balances.get(member.id);
     const title = t('groups.settings.cannotRemoveTitle', { name: member.displayName });
@@ -405,7 +409,7 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
               setNewName(text);
               setAddError(null);
             }}
-            onSubmitEditing={add}
+            onSubmitEditing={guardedAdd}
             returnKeyType="done"
             error={addError ?? undefined}
             maxLength={80}
@@ -416,7 +420,7 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
             label={t('groups.settings.addMember')}
             icon={UserPlus}
             variant="secondary"
-            onPress={add}
+            onPress={guardedAdd}
             disabled={!newName.trim()}
             className={addError ? 'mb-6' : undefined}
           />

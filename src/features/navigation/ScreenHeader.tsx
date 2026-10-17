@@ -1,10 +1,10 @@
-import { useRouter } from 'expo-router';
 import { ArrowLeft, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { IconButton, Text } from '@/ui';
+import { useGuardedRouter } from './use-guarded-router';
 
 export interface ScreenHeaderProps {
   title: string;
@@ -18,7 +18,7 @@ export interface ScreenHeaderProps {
 /** Barra superior de las pantallas fuera de las pestañas, con volver o cerrar y acciones. */
 export function ScreenHeader({ title, variant = 'push', onBack, actions }: ScreenHeaderProps) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const back = onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/')));
   return (
     <View className="min-h-[56px] flex-row items-center gap-1 py-1">

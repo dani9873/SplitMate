@@ -154,7 +154,15 @@
     "error": {
       "title": "Couldn't open your data",
       "description": "Something went wrong while preparing the data stored on this device. You can try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "reset": "Reset the data on this phone",
+      "resetTitle": "Reset the data on this phone?",
+      "resetBody": "The data saved here is deleted and downloaded again from the cloud. Anything that wasn't uploaded to the cloud first can't be recovered.",
+      "resetContinue": "Continue",
+      "resetFinalTitle": "Are you sure? This can't be undone",
+      "resetFinalBody": "We'll delete this phone's database and start from scratch with what is in the cloud. Anything that wasn't uploaded can't be recovered.",
+      "resetConfirm": "Delete and reset",
+      "resetFailed": "The data on this phone couldn't be deleted. Try again."
     }
   },
   "ui": {
@@ -416,6 +424,7 @@
       "LAST_MEMBER": "A group needs at least one member.",
       "MEMBER_TAKEN": "That member is already linked to someone else.",
       "CURRENCY_LOCKED": "The currency can't change because the group already has activity.",
+      "CURRENCY_CHANGED": "The group changed currency after this entry was recorded, so it can't be restored. Record it again.",
       "GROUP_ARCHIVED": "The group is archived: restore it to make changes."
     },
     "domain": {
@@ -532,6 +541,127 @@
       "description": "This build is missing the settings to connect to the server. Check the .env file and open the app again."
     }
   },
+  "sync": {
+    "button": {
+      "hint": "Opens the sync status",
+      "synced": "Sync: up to date",
+      "pending": "Sync: changes to upload",
+      "offline": "Sync: offline",
+      "error": "Sync: needs your attention",
+      "syncing": "Syncing"
+    },
+    "sheet": {
+      "title": "Sync"
+    },
+    "state": {
+      "synced": {
+        "title": "All up to date",
+        "body": "Your changes are saved in the cloud."
+      },
+      "syncedDrafts": {
+        "title": "Up to date, with drafts to review",
+        "body": "Everything else is saved in the cloud. Your drafts are only on this phone until you decide."
+      },
+      "pending": {
+        "title": "Changes to upload",
+        "body": "They upload on their own as soon as they can. You don't need to do anything."
+      },
+      "offline": {
+        "title": "Offline",
+        "body": "You can keep using the app. Changes upload when the internet is back."
+      },
+      "error": {
+        "title": "Something needs your attention",
+        "body": "Some data could not be synced. The details are below."
+      },
+      "syncing": {
+        "title": "Syncing…",
+        "body": "We are uploading and downloading changes."
+      }
+    },
+    "pending_one": "{{count}} change to upload",
+    "pending_other": "{{count}} changes to upload",
+    "failed_one": "{{count}} change the server did not accept",
+    "failed_other": "{{count}} changes the server did not accept",
+    "failedHint": "Your data is still on this phone; nothing was lost. Tap Retry to send it again.",
+    "conflicts_one": "{{count}} change to review",
+    "conflicts_other": "{{count}} changes to review",
+    "conflictsHint": "Two people changed the same thing. Your version was saved as a draft so you can decide.",
+    "held_one": "{{count}} group with data that could not be saved",
+    "held_other": "{{count}} groups with data that could not be saved",
+    "heldHint": "Data arrived from the cloud that could not be saved here. The rest of the app keeps working. Retry tries again.",
+    "lastSynced": "Last synced: {{when}}",
+    "neverSynced": "Not synced yet",
+    "error": {
+      "offline": "There is no connection to the server.",
+      "timeout": "The server took too long to answer.",
+      "server": "The server had a problem.",
+      "auth": "Your session is no longer valid. Sign out and sign in again.",
+      "protocol": "The server did not understand the last upload."
+    },
+    "syncNow": "Sync now",
+    "syncingNow": "Syncing…",
+    "retry": "Retry",
+    "unsynced": {
+      "intro": "This isn't in the cloud yet:",
+      "syncFirst": "Sync first"
+    },
+    "notice": {
+      "conflict": "“{{label}}” was changed on another device. Your version was saved as a draft.",
+      "serverDeleted": "“{{label}}” was deleted on another device. Your version was saved as a draft.",
+      "deletionRejected": "“{{label}}” wasn't deleted: it was changed on another device. Your deletion was saved as a draft.",
+      "groupCurrencyChanged": "“{{label}}” wasn't saved: the group's currency changed. It was saved as a draft.",
+      "currencyLocked": "The currency of “{{label}}” wasn't changed: it already has entries. It was saved as a draft.",
+      "many_one": "{{count}} of your changes wasn't applied. It was saved as a draft.",
+      "many_other": "{{count}} of your changes weren't applied. They were saved as drafts.",
+      "review": "Review"
+    },
+    "review": {
+      "open": "Review",
+      "title": "Changes to review",
+      "intro": "Someone else changed the same thing before you. What you see in the app is the current version; yours is saved here and isn't lost until you decide.",
+      "mine": "Your version",
+      "current": "Current",
+      "yes": "Yes",
+      "no": "No",
+      "noLabel": "No name",
+      "entity": {
+        "expense": "Expense or income",
+        "transfer": "Transfer",
+        "group": "Group",
+        "member": "Member",
+        "category": "Category"
+      },
+      "reason": {
+        "conflict": "It was changed on another device.",
+        "serverDeleted": "It was deleted on another device.",
+        "deletionRejected": "Your deletion wasn't applied: it was changed on another device.",
+        "groupCurrencyChanged": "It wasn't saved: the group's currency changed.",
+        "currencyLocked": "The currency wasn't changed: the group already has entries."
+      },
+      "field": {
+        "name": "Name",
+        "emoji": "Emoji",
+        "color": "Color",
+        "currency": "Currency",
+        "archived": "Archived"
+      },
+      "noDiff": "Your change wasn't applied and there is nothing different left to show.",
+      "deletionHint": "You wanted to delete it, but someone changed it. You can delete it now or keep it as it is.",
+      "deletionGone": "It no longer exists, so there is nothing to delete.",
+      "action": {
+        "openForm": "Review and save my version",
+        "discard": "Discard",
+        "discardConfirm": "Discard your version? What you see now doesn't change.",
+        "discardYes": "Yes, discard",
+        "deleteNow": "Delete now",
+        "keep": "Keep",
+        "useMine": "Use mine",
+        "keepCurrent": "Keep the current one",
+        "understood": "Got it"
+      }
+    }
+  },
   "account": {
     "defaultName": "User",
     "title": "Account",
@@ -545,8 +675,10 @@
       "wipe": "Sign out and delete the data on this phone",
       "wipeHint": "To leave the phone without your data, for example if it is not yours.",
       "confirmTitle": "Delete the data on this phone?",
-      "confirmBody": "Your groups and entries are not saved in the cloud yet: if you delete them, they cannot be recovered.",
-      "confirm": "Delete and sign out"
+      "confirmBody": "Your groups and entries are in the cloud: you get them back when you sign in again. They are only deleted from this phone.",
+      "confirm": "Delete and sign out",
+      "unsyncedBody": "If you delete them from this phone now, they are lost for good.",
+      "wipeAnyway": "Delete anyway"
     },
     "deleteScreen": {
       "title": "Delete your account",
@@ -557,7 +689,8 @@
       "email": "Enter your email to confirm",
       "emailMismatch": "It does not match the email of this account.",
       "password": "Your password",
-      "submit": "Delete my account"
+      "submit": "Delete my account",
+      "unsyncedBody": "If you delete your account now, they are lost. If you upload them first, your changes in shared groups are kept for everyone else."
     },
     "notices": {
       "accountDeleted": "Your account was deleted.",

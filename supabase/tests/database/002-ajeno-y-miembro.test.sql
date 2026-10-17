@@ -1,6 +1,7 @@
 -- Ajeno contra miembro, tabla por tabla. Caro es ajena al grupo viaje: no lee, no inserta, no
--- edita ni borra (borrado lógico). Beto es miembro: hace todo eso. Nadie borra filas de verdad,
--- un ex miembro pierde el acceso y anon no llega a nada.
+-- edita ni borra (borrado lógico). Beto es miembro: hace todo eso. Los pagadores y las partes no
+-- los edita nadie: una edición del gasto crea filas nuevas. Nadie borra filas de verdad, un ex
+-- miembro pierde el acceso y anon no llega a nada.
 begin;
 select plan(69);
 
@@ -74,9 +75,11 @@ select is_empty(
 select throws_ok(
   $$
     insert into public.expenses
-      (id, group_id, kind, title, amount, currency, group_amount, split_method, occurred_on)
+      (id, group_id, kind, title, amount, currency, group_currency, group_amount, split_method,
+        occurred_on)
     values
-      (tests.id('nuevo_1'), tests.id('viaje'), 'expense', 'Intruso', 100, 'USD', 100, 'equal', '2026-10-11')
+      (tests.id('nuevo_1'), tests.id('viaje'), 'expense', 'Intruso', 100, 'USD', 'USD', 100, 'equal',
+        '2026-10-11')
   $$,
   '42501',
   null,
@@ -104,9 +107,9 @@ select throws_ok(
   null,
   'expense_payers: una ajena no agrega pagadores'
 );
-select is_empty(
-  $$ update public.expense_payers set amount = 1 where id = tests.id('pago_viaje') returning id $$,
-  'expense_payers: una ajena no edita pagadores'
+select throws_ok(
+  $$ update public.expense_payers set amount = 1 where id = tests.id('pago_viaje') $$,
+  '42501', null, 'expense_payers: una ajena no edita pagadores (nadie edita sus montos)'
 );
 select is_empty(
   $$ update public.expense_payers set deleted_at = now() where id = tests.id('pago_viaje') returning id $$,
@@ -126,9 +129,9 @@ select throws_ok(
   null,
   'expense_splits: una ajena no agrega partes'
 );
-select is_empty(
-  $$ update public.expense_splits set amount = 1 where id = tests.id('parte_viaje_ana') returning id $$,
-  'expense_splits: una ajena no edita partes'
+select throws_ok(
+  $$ update public.expense_splits set amount = 1 where id = tests.id('parte_viaje_ana') $$,
+  '42501', null, 'expense_splits: una ajena no edita partes (nadie edita sus montos)'
 );
 select is_empty(
   $$ update public.expense_splits set deleted_at = now() where id = tests.id('parte_viaje_ana') returning id $$,
@@ -142,9 +145,11 @@ select is_empty(
 select throws_ok(
   $$
     insert into public.transfers
-      (id, group_id, from_member_id, to_member_id, amount, currency, group_amount, occurred_on)
+      (id, group_id, from_member_id, to_member_id, amount, currency, group_currency, group_amount,
+        occurred_on)
     values
-      (tests.id('nuevo_1'), tests.id('viaje'), tests.id('viaje_ana'), tests.id('viaje_beto'), 1, 'USD', 1, '2026-10-11')
+      (tests.id('nuevo_1'), tests.id('viaje'), tests.id('viaje_ana'), tests.id('viaje_beto'), 1, 'USD',
+        'USD', 1, '2026-10-11')
   $$,
   '42501',
   null,
@@ -181,7 +186,7 @@ select results_eq(
   'groups: un miembro ve su grupo y ningún otro'
 );
 select isnt_empty(
-  $$ update public.groups set name = 'Viaje a Lima', version = version + 1 where id = tests.id('viaje') returning id $$,
+  $$ update public.groups set name = 'Viaje a Lima' where id = tests.id('viaje') returning id $$,
   'groups: un miembro edita el grupo'
 );
 select lives_ok(
@@ -242,9 +247,10 @@ select results_eq(
 select lives_ok(
   $$
     insert into public.expenses
-      (id, group_id, kind, title, amount, currency, group_amount, split_method, category_id, occurred_on)
+      (id, group_id, kind, title, amount, currency, group_currency, group_amount, split_method,
+        category_id, occurred_on)
     values
-      (tests.id('nuevo_3'), tests.id('viaje'), 'income', 'Reembolso', 500, 'USD', 500, 'equal',
+      (tests.id('nuevo_3'), tests.id('viaje'), 'income', 'Reembolso', 500, 'USD', 'USD', 500, 'equal',
         tests.id('cat_comida'), '2026-10-11')
   $$,
   'expenses: un miembro registra un ingreso con una categoría predefinida'
@@ -270,9 +276,9 @@ select lives_ok(
   $$,
   'expense_payers: un miembro agrega un pagador'
 );
-select isnt_empty(
-  $$ update public.expense_payers set amount = 2000, group_amount = 2000 where id = tests.id('pago_viaje') returning id $$,
-  'expense_payers: un miembro edita un pagador'
+select throws_ok(
+  $$ update public.expense_payers set amount = 2000, group_amount = 2000 where id = tests.id('pago_viaje') $$,
+  '42501', null, 'expense_payers: un pagador no se edita; la edición del gasto crea otro'
 );
 select isnt_empty(
   $$ update public.expense_payers set deleted_at = now() where id = tests.id('pago_viaje') returning id $$,
@@ -291,9 +297,9 @@ select lives_ok(
   $$,
   'expense_splits: un miembro agrega una parte'
 );
-select isnt_empty(
-  $$ update public.expense_splits set input_value = 1 where id = tests.id('parte_viaje_ana') returning id $$,
-  'expense_splits: un miembro edita una parte'
+select throws_ok(
+  $$ update public.expense_splits set input_value = 1 where id = tests.id('parte_viaje_ana') $$,
+  '42501', null, 'expense_splits: una parte no se edita; la edición del gasto crea otra'
 );
 select isnt_empty(
   $$ update public.expense_splits set deleted_at = now() where id = tests.id('parte_viaje_ana') returning id $$,
@@ -308,9 +314,11 @@ select results_eq(
 select lives_ok(
   $$
     insert into public.transfers
-      (id, group_id, from_member_id, to_member_id, amount, currency, group_amount, occurred_on)
+      (id, group_id, from_member_id, to_member_id, amount, currency, group_currency, group_amount,
+        occurred_on)
     values
-      (tests.id('nuevo_1'), tests.id('viaje'), tests.id('viaje_ana'), tests.id('viaje_beto'), 700, 'USD', 700, '2026-10-11')
+      (tests.id('nuevo_1'), tests.id('viaje'), tests.id('viaje_ana'), tests.id('viaje_beto'), 700,
+        'USD', 'USD', 700, '2026-10-11')
   $$,
   'transfers: un miembro registra una transferencia'
 );
@@ -370,9 +378,11 @@ select is_empty(
 select throws_ok(
   $$
     insert into public.expenses
-      (id, group_id, kind, title, amount, currency, group_amount, split_method, occurred_on)
+      (id, group_id, kind, title, amount, currency, group_currency, group_amount, split_method,
+        occurred_on)
     values
-      (tests.id('nuevo_4'), tests.id('viaje'), 'expense', 'Tarde', 100, 'USD', 100, 'equal', '2026-10-11')
+      (tests.id('nuevo_4'), tests.id('viaje'), 'expense', 'Tarde', 100, 'USD', 'USD', 100, 'equal',
+        '2026-10-11')
   $$,
   '42501',
   null,

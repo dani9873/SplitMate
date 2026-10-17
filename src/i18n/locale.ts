@@ -1,15 +1,27 @@
-/** Lo que se necesita de cada locale del dispositivo para formatear. */
+/** Lo que se necesita de cada locale del dispositivo para elegir el calendario. */
 export interface DeviceFormattingLocale {
   languageTag: string;
   languageCode: string | null;
 }
 
+// Convención de números y fechas de cada idioma de la app. Sin región del teléfono: el mismo
+// idioma se ve igual en todos los dispositivos (la región y los datos de ICU cambian de un
+// fabricante a otro). Español latinoamericano: punto decimal y coma de miles.
+const FORMAT_LOCALES: Readonly<Record<string, string>> = {
+  es: 'es-419',
+  en: 'en-US',
+};
+
+/** Locale para `Intl` según el idioma de la app. Un idioma sin convención propia se usa tal cual. */
+export function resolveFormattingLocale(language: string): string {
+  return FORMAT_LOCALES[language] ?? language;
+}
+
 /**
- * Locale para `Intl`: el idioma de la app con la región del dispositivo cuando coinciden.
- * Con la app en español en un teléfono es-CO, los montos salen como en Colombia; con la app
- * en inglés en ese mismo teléfono, sale `en`.
+ * Locale del calendario: el idioma de la app con la región del dispositivo cuando coinciden. Solo
+ * sirve para el primer día de la semana (`weekStartsOn`), que sí depende de la región.
  */
-export function resolveFormattingLocale(
+export function resolveCalendarLocale(
   language: string,
   locales: readonly DeviceFormattingLocale[],
 ): string {

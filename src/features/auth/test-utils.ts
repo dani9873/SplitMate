@@ -31,7 +31,7 @@ export function createFakeAuthService(overrides: Partial<AuthService> = {}): Fak
       listeners.add(listener);
       return () => listeners.delete(listener);
     }),
-    ensureProfile: jest.fn(async () => undefined),
+    ensureProfile: jest.fn(async () => 'synced' as const),
     reauthenticateWithPassword: jest.fn(async () => undefined),
     deleteAccount: jest.fn(async () => undefined),
     emitSignedOut: () => listeners.forEach((listener) => listener()),

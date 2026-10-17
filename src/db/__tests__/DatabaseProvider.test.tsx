@@ -2,6 +2,7 @@ import { act, render, screen, userEvent } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import { changeLanguage } from '@/i18n';
+import { waitForPressCooldown } from '@/test/press-cooldown';
 
 import type { OpenedDatabase } from '../accounts';
 import { DatabaseGate, useDatabase, useDatabaseSetup } from '../DatabaseProvider';
@@ -12,10 +13,16 @@ function GroupCount() {
   return <Text>{`Grupos: ${repos.groups.list().length}`}</Text>;
 }
 
-function Harness({ open }: { open: () => Promise<OpenedDatabase> }) {
+function Harness({
+  open,
+  onReset,
+}: {
+  open: () => Promise<OpenedDatabase>;
+  onReset?: () => Promise<void>;
+}) {
   const database = useDatabaseSetup(open);
   return (
-    <DatabaseGate database={database}>
+    <DatabaseGate database={database} onReset={onReset}>
       <GroupCount />
     </DatabaseGate>
   );
@@ -83,5 +90,113 @@ describe('arranque de la base de datos', () => {
     await act(async () => unmount());
     await act(async () => finish(opened));
     expect(opened.close).toHaveBeenCalledTimes(1);
+  });
+
+  describe('reiniciar los datos de este teléfono', () => {
+    async function renderBroken(
+      onReset?: () => Promise<void>,
+      header = 'No se pudieron abrir tus datos',
+    ) {
+      const opened = await openedTestDatabase();
+      const open = jest
+        .fn<Promise<OpenedDatabase>, []>()
+        .mockRejectedValueOnce(new Error('clave perdida'))
+        .mockResolvedValue(opened);
+      await render(<Harness open={open} onReset={onReset} />);
+      await screen.findByRole('header', { name: header });
+      return open;
+    }
+
+    it('sin una acción para reiniciar, la pantalla de error no la ofrece', async () => {
+      await renderBroken();
+      expect(
+        screen.queryByRole('button', { name: 'Reiniciar los datos de este teléfono' }),
+      ).toBeNull();
+    });
+
+    it('pide dos confirmaciones, borra y vuelve a abrir una base nueva', async () => {
+      const user = userEvent.setup();
+      const onReset = jest.fn(async () => {});
+      const open = await renderBroken(onReset);
+
+      await user.press(
+        screen.getByRole('button', { name: 'Reiniciar los datos de este teléfono' }),
+      );
+      expect(
+        await screen.findByRole('header', { name: '¿Reiniciar los datos de este teléfono?' }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByText(/no se haya subido antes a la nube no se puede recuperar/),
+      ).toBeOnTheScreen();
+      expect(onReset).not.toHaveBeenCalled();
+
+      await user.press(screen.getByRole('button', { name: 'Continuar' }));
+      expect(
+        await screen.findByRole('header', { name: '¿Seguro? No se puede deshacer' }),
+      ).toBeOnTheScreen();
+      expect(screen.getByText(/Lo que no se había subido no se puede recuperar/)).toBeOnTheScreen();
+      expect(onReset).not.toHaveBeenCalled();
+
+      await waitForPressCooldown();
+      await user.press(screen.getByRole('button', { name: 'Borrar y reiniciar' }));
+      expect(await screen.findByText('Grupos: 0')).toBeOnTheScreen();
+      expect(onReset).toHaveBeenCalledTimes(1);
+      expect(open).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+      ['la primera', 0],
+      ['la segunda', 1],
+    ])('cancelar en %s confirmación vuelve al error sin borrar nada', async (_name, steps) => {
+      const user = userEvent.setup();
+      const onReset = jest.fn(async () => {});
+      const open = await renderBroken(onReset);
+
+      await user.press(
+        screen.getByRole('button', { name: 'Reiniciar los datos de este teléfono' }),
+      );
+      if (steps === 1) {
+        await user.press(await screen.findByRole('button', { name: 'Continuar' }));
+      }
+      await waitForPressCooldown();
+      await user.press(await screen.findByRole('button', { name: 'Cancelar' }));
+
+      expect(
+        await screen.findByRole('header', { name: 'No se pudieron abrir tus datos' }),
+      ).toBeOnTheScreen();
+      expect(onReset).not.toHaveBeenCalled();
+      expect(open).toHaveBeenCalledTimes(1);
+    });
+
+    it('si no se pueden borrar, lo dice y deja reintentar', async () => {
+      const user = userEvent.setup();
+      const onReset = jest.fn().mockRejectedValue(new Error('archivo en uso'));
+      const open = await renderBroken(onReset);
+
+      await user.press(
+        screen.getByRole('button', { name: 'Reiniciar los datos de este teléfono' }),
+      );
+      await user.press(await screen.findByRole('button', { name: 'Continuar' }));
+      await waitForPressCooldown();
+      await user.press(await screen.findByRole('button', { name: 'Borrar y reiniciar' }));
+
+      expect(
+        await screen.findByText(
+          /No se pudieron borrar los datos de este teléfono\. Inténtalo de nuevo\./,
+        ),
+      ).toBeOnTheScreen();
+      expect(open).toHaveBeenCalledTimes(1);
+      await waitForPressCooldown();
+      await user.press(screen.getByRole('button', { name: 'Reintentar' }));
+      expect(await screen.findByText('Grupos: 0')).toBeOnTheScreen();
+    });
+
+    it('habla en inglés', async () => {
+      await act(() => changeLanguage('en'));
+      await renderBroken(async () => {}, "Couldn't open your data");
+      expect(
+        screen.getByRole('button', { name: 'Reset the data on this phone' }),
+      ).toBeOnTheScreen();
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import { Button, Input } from '@/ui';
 import { forgotPasswordFormSchema } from '../auth-form';
 import { useAuth } from '../AuthProvider';
 import { AuthScreen, FormError, useAuthErrorText, useValidationText } from './parts';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 type Form = z.input<typeof forgotPasswordFormSchema>;
 type Values = z.output<typeof forgotPasswordFormSchema>;
@@ -17,7 +18,7 @@ type Values = z.output<typeof forgotPasswordFormSchema>;
 /** Recuperar la contraseña: el mismo mensaje exista o no la cuenta. */
 export function ForgotPasswordScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const { service } = useAuth();
   const validation = useValidationText();

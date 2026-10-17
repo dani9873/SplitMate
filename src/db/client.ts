@@ -26,7 +26,7 @@ const KEY_PATTERN = /^[0-9a-f]{64}$/;
  * Si algo falla, cierra la conexión y relanza el error para que la app ofrezca reintentar.
  * Cerrar dos veces no hace nada.
  */
-async function openDatabaseFile(file: string, key: string): Promise<OpenedDatabase> {
+export async function openDatabaseFile(file: string, key: string): Promise<OpenedDatabase> {
   const sqlite = openDatabaseSync(file);
   let closed = false;
   const close = () => {

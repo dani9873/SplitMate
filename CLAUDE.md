@@ -143,6 +143,35 @@ src/
 
   La caída al abrir un enlace ya se verificó con un enlace simulado
   (`design/fase-3/crash-migracion-0003.md`).
+- **Fase 4b: acceso del creador.** Desde la Fase 4a, el creador de un grupo siempre tiene acceso a
+  él en RLS (`private.can_access_group`), aunque no tenga un miembro vinculado: así se suben los
+  grupos sin "yo". Cuando existan invitaciones y expulsiones, el acceso debe pasar a depender de la
+  membresía, o un creador expulsado seguiría viendo el grupo (`design/fase-4a/diseno.md`).
+  Hasta entonces, el creador lee, edita y borra todo el grupo, agrega `owner` y puede borrar a
+  cualquier miembro, y cualquier miembro activo puede borrar a otro (lo deja sin acceso). Además, un
+  miembro que no es el creador no puede desvincular su "soy yo" ni borrarse: da `forbidden`.
+  Detalle en `design/fase-4a/revision-seguridad.md`.
+- **Pendientes de la revisión de seguridad de la Fase 4a** (`design/fase-4a/revision-seguridad.md`):
+  - `sync_pull` sin tope de filas por grupo ni cupos de grupos o filas (S3), y la página sin tope en
+    el cliente (C5);
+  - el cliente aplica por `id` sin comparar grupo ni gasto (C4);
+  - borradores de conflicto de grupos que ya no están (C6);
+  - valorar bloquear `ACCESS_WIFI_STATE` de expo-network (K2, con build);
+  - fijar las acciones del CI por SHA (K3);
+  - revisar en el panel si pg_graphql está activo y apagarlo si no se usa.
+- **Sincronización: S3, `sync_pull` sin tope por grupo.** Un grupo con muchísimas filas se baja
+  entero en una página (el primero entra siempre), y no hay cupos de grupos ni de filas por cuenta.
+  Poner topes y cupos en el servidor y en el cliente antes de abrir la app a más personas (detalle
+  en `design/fase-4a/revision-seguridad.md`, S3 y C5).
+- **Cambiar la contraseña de `prueba1@splitmate.test`.** Es la cuenta de `npm run check:data-api`;
+  la contraseña se usó en las pruebas de la Fase 4a. Cambiarla (la da el usuario; no va en el repo).
+- **Fila «Un cambio por subir» sin reproducir.** En la prueba del teléfono apareció esa fila en la
+  hoja de sincronización con un borrador por revisar; con el motor real y PGlite no se reprodujo
+  (los conteos salieron correctos; lo que sí fallaba era el texto de la cabecera, ya corregido). Si vuelve a
+  verse en el S24 o el Poco, anotar los pasos exactos y mirar `counts()` en ese momento.
+- **Decimal con punto de `es-419`.** El español usa `es-419` para números y fechas (punto decimal,
+  coma de miles, `FORMAT_LOCALES` en `src/i18n/locale.ts`). Si se suman otros países
+  hispanohablantes (Colombia, España, México…), revisar esa tabla: algunos usan coma decimal.
 - **Rutas tipadas de Expo Router desactivadas.** En Windows, el generador incremental de
   `.expo/types/router.d.ts` compara rutas con `'../'` y registra archivos de `src/` como
   rutas, lo que rompe `tsc` mientras Metro corre. Reevaluar en una fase futura o al
@@ -164,9 +193,6 @@ src/
 - **Build nativo local desde OneDrive.** Gradle y CMake fallan porque las rutas superan el
   límite de Windows (`LongPathsEnabled` está en 0). Los development builds se hacen con
   EAS Build (`eas build --profile development --platform android`).
-- **Clave de cifrado perdida.** Si se pierde la clave de expo-secure-store, la base cifrada
-  no se puede abrir y la app muestra su pantalla de error. La fase de sincronización debe
-  agregar la opción de reiniciar la base local y volver a descargar los datos.
 - **Exclusión del respaldo: falta compilarla en iOS.** La base y su WAL quedan fuera del
   respaldo. En Android, `allowBackup` en `false` más las reglas de
   `plugins/with-backup-rules.js`. En iOS, el módulo local `modules/splitmate-backup` marca la
@@ -214,3 +240,12 @@ src/
 - [x] Fase 1 — Motor de cálculo (dominio) y base de datos local (PR #2 integrado en `main`)
 - [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (PR #3 integrado en `main`)
 - [x] Fase 3 — Cuentas y nube con Supabase: login obligatorio, esquema en Postgres con RLS, sin sincronizar todavía (PR #4 integrado en `main`; antes de probar la Fase 4 con otra persona, las dos pruebas manuales de "Pendientes técnicos")
+- [x] Fase 4a — Sincronización offline-first (PR #5 integrado en `main`): servidor, motor, pantallas, correcciones tras la prueba en el teléfono y toques repetidos. **COMPLETA**, verificada en el teléfono (S24 Ultra y Poco X3) y con el CI en verde.
+- [ ] Fase 4b — Pendientes: invitaciones por enlace; SMTP propio para el correo; acceso del creador pasado a membresía; Realtime; S3 (`sync_pull` sin tope por grupo, cupos); cambiar la contraseña de `prueba1@splitmate.test`. Detalle en "Pendientes técnicos".
+
+## Exploración de código
+
+- Usa primero el grafo (`get_architecture`, `search_graph`, `trace_path`, `get_code_snippet`) antes de Grep o de leer archivos completos.
+- Lee el archivo real antes de editar o de afirmar que algo no existe o no tiene llamadores.
+- Usa `detect_changes` antes de la revisión de seguridad al cerrar una fase.
+- Si el índice parece viejo tras cambiar de rama, vuelve a correr `index_repository`.

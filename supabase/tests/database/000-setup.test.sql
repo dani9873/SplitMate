@@ -6,6 +6,7 @@
 -- - tests.crear_mundo(): tres grupos con miembros, categorías, gastos y transferencias.
 -- - tests.autenticar_como(id) y tests.autenticar_como_anon(): cambian de rol como lo hace la
 --   API de Supabase. Para volver a postgres, `reset role`.
+-- - tests.sin_marca_sync(): quita la marca de sync_push, para probar la guardia de escritura.
 begin;
 
 create extension if not exists pgtap with schema extensions;
@@ -58,6 +59,11 @@ as $$
     when 'nuevo_2' then '01990000-0000-7000-8000-000000000002'
     when 'nuevo_3' then '01990000-0000-7000-8000-000000000003'
     when 'nuevo_4' then '01990000-0000-7000-8000-000000000004'
+    when 'nuevo_5' then '01990000-0000-7000-8000-000000000005'
+    when 'nuevo_6' then '01990000-0000-7000-8000-000000000006'
+    when 'nuevo_7' then '01990000-0000-7000-8000-000000000007'
+    when 'nuevo_8' then '01990000-0000-7000-8000-000000000008'
+    when 'nuevo_9' then '01990000-0000-7000-8000-000000000009'
   end::uuid
 $$;
 
@@ -121,13 +127,14 @@ begin
     (tests.id('cat_casa'), tests.id('casa'), 'Mascotas', 'dog');
 
   insert into public.expenses
-    (id, group_id, kind, title, amount, currency, group_amount, split_method, category_id, occurred_on)
+    (id, group_id, kind, title, amount, currency, group_currency, group_amount, split_method,
+      category_id, occurred_on)
   values
-    (tests.id('gasto_viaje'), tests.id('viaje'), 'expense', 'Cena', 3000, 'USD', 3000, 'equal',
+    (tests.id('gasto_viaje'), tests.id('viaje'), 'expense', 'Cena', 3000, 'USD', 'USD', 3000, 'equal',
       tests.id('cat_viaje'), hoy),
-    (tests.id('gasto_oficina'), tests.id('oficina'), 'expense', 'Café', 800, 'USD', 800, 'equal',
-      tests.id('cat_oficina'), hoy),
-    (tests.id('gasto_casa'), tests.id('casa'), 'expense', 'Luz', 5000, 'EUR', 5000, 'equal',
+    (tests.id('gasto_oficina'), tests.id('oficina'), 'expense', 'Café', 800, 'USD', 'USD', 800,
+      'equal', tests.id('cat_oficina'), hoy),
+    (tests.id('gasto_casa'), tests.id('casa'), 'expense', 'Luz', 5000, 'EUR', 'EUR', 5000, 'equal',
       tests.id('cat_casa'), hoy);
 
   insert into public.expense_payers (id, group_id, expense_id, member_id, amount, group_amount) values
@@ -140,16 +147,19 @@ begin
     (tests.id('parte_casa_caro'), tests.id('casa'), tests.id('gasto_casa'), tests.id('casa_caro'), 5000, 5000);
 
   insert into public.transfers
-    (id, group_id, from_member_id, to_member_id, amount, currency, group_amount, occurred_on)
+    (id, group_id, from_member_id, to_member_id, amount, currency, group_currency, group_amount,
+      occurred_on)
   values
     (tests.id('transf_viaje'), tests.id('viaje'), tests.id('viaje_beto'), tests.id('viaje_ana'), 1500,
-      'USD', 1500, hoy),
+      'USD', 'USD', 1500, hoy),
     (tests.id('transf_casa'), tests.id('casa'), tests.id('casa_zoe'), tests.id('casa_caro'), 2500,
-      'EUR', 2500, hoy);
+      'EUR', 'EUR', 2500, hoy);
 end;
 $$;
 
--- Actúa como la API con el JWT de una cuenta: rol authenticated y sus claims.
+-- Actúa como la API con el JWT de una cuenta: rol authenticated y sus claims. Escribe como lo hace
+-- sync_push, con la marca que deja pasar la guardia de escritura: así estas pruebas revisan RLS, los
+-- privilegios y las reglas. Las pruebas de la guardia la quitan con tests.sin_marca_sync().
 create or replace function tests.autenticar_como(p_user_id uuid)
 returns void
 language plpgsql
@@ -160,7 +170,18 @@ begin
     jsonb_build_object('sub', p_user_id, 'role', 'authenticated', 'aud', 'authenticated')::text,
     true
   );
+  perform set_config('splitmate.sync_push', 'on', true);
   execute 'set local role authenticated';
+end;
+$$;
+
+-- Escribe como un POST o PATCH directo por REST: sin la marca de sync_push.
+create or replace function tests.sin_marca_sync()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('splitmate.sync_push', '', true);
 end;
 $$;
 

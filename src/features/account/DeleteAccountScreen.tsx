@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { useAuth, type AuthSession } from '@/features/auth';
 import { FormError, PasswordField, useAuthErrorText } from '@/features/auth/screens/parts';
+import { UnsyncedWarning } from '@/features/sync';
 import { Button, Input, Screen, Text } from '@/ui';
 
 import { ScreenHeader } from '../navigation';
@@ -122,6 +123,7 @@ function DeleteAccount({ session }: { session: AuthSession }) {
           />
         )}
       />
+      <UnsyncedWarning consequence={t('account.deleteScreen.unsyncedBody')} />
       <FormError message={submitError} />
       <Button
         testID="delete-account-submit"

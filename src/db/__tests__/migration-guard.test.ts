@@ -39,6 +39,14 @@ describe('migraciones que empaqueta la app (migrations.js)', () => {
   it('tienen SQL en cada trozo', () => {
     expect(() => assertMigrationsHaveSql(migrations)).not.toThrow();
   });
+
+  it('incluyen la 0004 de sincronización, con SQL propio y no la plantilla vacía', () => {
+    expect(migrations.journal.entries.map((entry) => entry.tag)).toContain('0004_sincronizacion');
+    const sql = (migrations.migrations as Record<string, string>).m0004 as string;
+    expect(sql).toContain('synced_version');
+    expect(sql).not.toContain('Custom SQL migration file');
+    expect(sql.split('--> statement-breakpoint').length).toBeGreaterThan(10);
+  });
 });
 
 describe('assertMigrationsHaveSql', () => {

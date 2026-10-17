@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Link2Off, MailCheck, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import { EmptyState, Screen, Text, useAppTheme } from '@/ui';
 
 import type { EmailFlow, PendingEmailFlow } from '../auth-service';
 import { useAuth } from '../AuthProvider';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 /** Lo que `+native-intent` deja pasar; se vuelve a validar porque la ruta existe siempre. */
 const paramsSchema = z.object({
@@ -25,7 +26,7 @@ const paramsSchema = z.object({
  */
 export function AuthCallbackScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { colors } = useAppTheme();
   const { state, service, signIn } = useAuth();
   const params = useLocalSearchParams<{ code?: string; sb_flow_id?: string }>();
@@ -115,7 +116,7 @@ function describeProblem(kind: ProblemKind, flow: EmailFlow | 'signedIn' | null)
 
 function LinkProblem({ kind }: { kind: ProblemKind }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { state, service } = useAuth();
   // `undefined` mientras se lee del teléfono: es un instante.
   const [pending, setPending] = useState<PendingEmailFlow | null | undefined>(undefined);

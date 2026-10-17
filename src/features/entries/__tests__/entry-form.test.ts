@@ -1,3 +1,4 @@
+import type { ConflictDraft } from '@/db/repositories';
 import { createTestGroup, createTestRepositories } from '@/db/test-utils';
 import { money } from '@/domain';
 
@@ -8,6 +9,7 @@ import {
   hasContent,
   percentToBasisPoints,
   problemOf,
+  valuesFromConflictDraft,
   valuesFromExpense,
   valuesFromTransfer,
   type EntryFormValues,
@@ -316,5 +318,173 @@ describe('editar un movimiento guardado', () => {
       fromId: ids[1],
       toId: ids[0],
     });
+  });
+});
+
+describe('valuesFromConflictDraft', () => {
+  const baseUsd = defaultEntryValues({
+    type: 'expense',
+    currency: 'USD',
+    memberIds: context.memberIds,
+    meId: ANA,
+    today: '2026-10-09',
+  });
+
+  const draft = (
+    entity: ConflictDraft['entity'],
+    data: Record<string, unknown>,
+  ): ConflictDraft => ({
+    id: '01990000-0000-7000-8000-0000000000c1',
+    entity,
+    entityId: '01990000-0000-7000-8000-0000000000e1',
+    groupId: 'g1',
+    reason: 'conflict',
+    data,
+    serverDeleted: false,
+    wasNew: false,
+    wasDeletion: false,
+    createdAt: 1,
+  });
+
+  const expenseData = (overrides: Record<string, unknown> = {}) => ({
+    id: '01990000-0000-7000-8000-0000000000e1',
+    group_id: 'g1',
+    kind: 'expense',
+    title: 'Cena',
+    amount: 3050,
+    currency: 'USD',
+    group_currency: 'USD',
+    group_amount: 3050,
+    exchange_rate: '1',
+    rate_date: null,
+    split_method: 'equal',
+    category_id: null,
+    occurred_on: '2026-10-08',
+    notes: null,
+    deleted: false,
+    payers: [{ id: 'p1', member_id: BETO, amount: 3050, group_amount: 3050 }],
+    splits: [
+      { id: 's1', member_id: ANA, amount: 1525, group_amount: 1525, input_value: null },
+      { id: 's2', member_id: BETO, amount: 1525, group_amount: 1525, input_value: null },
+    ],
+    ...overrides,
+  });
+
+  it('arma el gasto del usuario: pagador, participantes, monto y fecha', () => {
+    const values = valuesFromConflictDraft(draft('expense', expenseData()), baseUsd);
+
+    expect(values).toMatchObject({
+      type: 'expense',
+      title: 'Cena',
+      expression: '30.50',
+      currency: 'USD',
+      rate: '',
+      occurredOn: '2026-10-08',
+      multiplePayers: false,
+      payerId: BETO,
+      splitMethod: 'equal',
+      participants: { [ANA]: true, [BETO]: true, [CARLA]: false },
+    });
+    const again = evaluateEntry(values as EntryFormValues, context);
+    expect(again.problems).toEqual([]);
+    expect(again.input?.kind === 'entry' && again.input.value).toMatchObject({
+      amount: 3050,
+      payers: [{ memberId: BETO, amount: 3050 }],
+      split: { method: 'equal', participants: [ANA, BETO] },
+    });
+  });
+
+  it('conserva división desigual y varios pagadores', () => {
+    const values = valuesFromConflictDraft(
+      draft(
+        'expense',
+        expenseData({
+          split_method: 'exact',
+          payers: [
+            { id: 'p1', member_id: BETO, amount: 50, group_amount: 50 },
+            { id: 'p2', member_id: CARLA, amount: 3000, group_amount: 3000 },
+          ],
+          splits: [
+            { id: 's1', member_id: ANA, amount: 1000, group_amount: 1000, input_value: 1000 },
+            { id: 's2', member_id: BETO, amount: 2050, group_amount: 2050, input_value: 2050 },
+          ],
+        }),
+      ),
+      baseUsd,
+    );
+
+    expect(values).toMatchObject({
+      multiplePayers: true,
+      payerExpressions: { [BETO]: '0.50', [CARLA]: '30.00' },
+      splitMethod: 'exact',
+      exactExpressions: { [ANA]: '10.00', [BETO]: '20.50' },
+    });
+    expect(evaluateEntry(values as EntryFormValues, context).problems).toEqual([]);
+  });
+
+  it('un ingreso en otra moneda conserva su tasa mientras la moneda del grupo no cambie', () => {
+    const values = valuesFromConflictDraft(
+      draft(
+        'expense',
+        expenseData({
+          kind: 'income',
+          currency: 'EUR',
+          exchange_rate: '1.1',
+          group_currency: 'USD',
+        }),
+      ),
+      baseUsd,
+    );
+    expect(values).toMatchObject({ type: 'income', currency: 'EUR', rate: '1.1' });
+  });
+
+  it('si la moneda del grupo cambió, la tasa se vacía para escribir la nueva', () => {
+    const baseEur = { ...baseUsd, currency: 'EUR' };
+    const values = valuesFromConflictDraft(
+      draft(
+        'expense',
+        expenseData({ currency: 'GBP', exchange_rate: '1.1', group_currency: 'USD' }),
+      ),
+      baseEur,
+    );
+    expect(values).toMatchObject({ currency: 'GBP', rate: '' });
+  });
+
+  it('arma la transferencia del usuario', () => {
+    const values = valuesFromConflictDraft(
+      draft('transfer', {
+        id: '01990000-0000-7000-8000-0000000000e1',
+        group_id: 'g1',
+        from_member_id: BETO,
+        to_member_id: ANA,
+        amount: 2000,
+        currency: 'EUR',
+        group_currency: 'USD',
+        group_amount: 2200,
+        exchange_rate: '1.1',
+        rate_date: null,
+        occurred_on: '2026-10-07',
+        deleted: false,
+      }),
+      { ...baseUsd, type: 'transfer' },
+    );
+    expect(values).toMatchObject({
+      type: 'transfer',
+      expression: '20.00',
+      currency: 'EUR',
+      rate: '1.1',
+      occurredOn: '2026-10-07',
+      fromId: BETO,
+      toId: ANA,
+    });
+  });
+
+  it('un grupo, un miembro o datos ilegibles no son un movimiento', () => {
+    expect(valuesFromConflictDraft(draft('group', { name: 'Playa' }), baseUsd)).toBeNull();
+    expect(valuesFromConflictDraft(draft('member', { display_name: 'Beto' }), baseUsd)).toBeNull();
+    expect(
+      valuesFromConflictDraft(draft('expense', expenseData({ amount: 'mucho' })), baseUsd),
+    ).toBeNull();
+    expect(valuesFromConflictDraft(draft('transfer', { amount: 5 }), baseUsd)).toBeNull();
   });
 });

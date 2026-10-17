@@ -1,8 +1,8 @@
-import { useRouter } from 'expo-router';
 import { Compass } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { EmptyState, Screen } from '@/ui';
+import { useGuardedRouter } from './use-guarded-router';
 
 /**
  * Ruta inexistente, por ejemplo un enlace viejo o mal escrito. `home` es a dónde volver: sin
@@ -10,7 +10,7 @@ import { EmptyState, Screen } from '@/ui';
  */
 export function NotFoundScreen({ home = '/' }: { home?: '/' | '/welcome' }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   return (
     <Screen edges={['top', 'bottom']}>
       <EmptyState

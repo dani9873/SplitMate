@@ -23,6 +23,7 @@ export {
   type KeypadProps,
 } from './Keypad';
 export { ListRow, type ListRowProps } from './ListRow';
+export { usePressGuard, type PressGuardOptions } from './press-guard';
 export { Screen, type ScreenProps } from './Screen';
 export { SearchField, type SearchFieldProps } from './SearchField';
 export { SegmentedControl, type Segment, type SegmentedControlProps } from './SegmentedControl';

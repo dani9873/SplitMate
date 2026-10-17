@@ -48,6 +48,7 @@ export function Stepper({
       <IconButton
         testID={testID && `${testID}-decrease`}
         icon={Minus}
+        repeatable
         label={t('ui.stepper.decrease', { label })}
         tone="primary"
         disabled={value <= min}
@@ -59,6 +60,7 @@ export function Stepper({
       <IconButton
         testID={testID && `${testID}-increase`}
         icon={Plus}
+        repeatable
         label={t('ui.stepper.increase', { label })}
         tone="primary"
         disabled={value >= max}

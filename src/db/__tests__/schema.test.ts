@@ -60,22 +60,62 @@ describe('esquema y migraciones', () => {
       'group_members',
       'groups',
       'local_settings',
+      'sync_conflicts',
+      'sync_cursors',
+      'sync_outbox',
       'transfers',
       'users',
     ]);
   });
 
+  const columnsOf = (sqlite: Database, table: string) =>
+    (sqlite.exec(`PRAGMA table_info(${table})`)[0]?.values ?? []).map((row) => row[1]);
+
+  // Datos de este dispositivo que nunca se sincronizan como filas del servidor.
+  const LOCAL_ONLY = ['local_settings', 'sync_conflicts', 'sync_cursors', 'sync_outbox'];
+  // `users` se sincroniza por el perfil remoto, no por el envío de filas.
+  const SYNCED_ROWS = [
+    'categories',
+    'expense_payers',
+    'expense_splits',
+    'expenses',
+    'group_members',
+    'groups',
+    'transfers',
+  ];
+
   it('todas las tablas sincronizables tienen las columnas de sincronización', async () => {
     const { sqlite } = await createTestDatabase();
-    // local_settings guarda datos de este dispositivo y nunca se sincroniza.
-    for (const table of tableNames(sqlite).filter((name) => name !== 'local_settings')) {
-      const columns = (sqlite.exec(`PRAGMA table_info(${String(table)})`)[0]?.values ?? []).map(
-        (row) => row[1],
-      );
-      expect(columns).toEqual(
+    for (const table of tableNames(sqlite).filter((name) => !LOCAL_ONLY.includes(String(name)))) {
+      expect(columnsOf(sqlite, String(table))).toEqual(
         expect.arrayContaining(['id', 'created_at', 'updated_at', 'deleted_at', 'version']),
       );
     }
+  });
+
+  it('las 7 tablas que se envían llevan server_version y synced_version; users no', async () => {
+    const { sqlite } = await createTestDatabase();
+    for (const table of SYNCED_ROWS) {
+      expect(columnsOf(sqlite, table)).toEqual(
+        expect.arrayContaining(['server_version', 'synced_version']),
+      );
+    }
+    expect(columnsOf(sqlite, 'users')).not.toContain('synced_version');
+    expect(columnsOf(sqlite, 'users')).not.toContain('server_version');
+  });
+
+  it('gastos y transferencias llevan la moneda de su grupo', async () => {
+    const { sqlite } = await createTestDatabase();
+    expect(columnsOf(sqlite, 'expenses')).toContain('group_currency');
+    expect(columnsOf(sqlite, 'transfers')).toContain('group_currency');
+  });
+
+  it('una fila nueva nace pendiente: sin versión del servidor y synced_version en 0', async () => {
+    const { sqlite } = await createTestDatabase();
+    seedBase(sqlite);
+    expect(
+      sqlite.exec(`SELECT server_version, synced_version, version FROM groups`)[0]?.values,
+    ).toEqual([[null, 0, 1]]);
   });
 
   it('siembra las categorías predefinidas con su clave de traducción', async () => {

@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -7,11 +6,12 @@ import { useAuth } from '@/features/auth';
 import { Button, Card, Text } from '@/ui';
 
 import { SignOutSheet } from './SignOutSheet';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 /** Sección Cuenta de Ajustes: con qué cuenta entraste, cerrar sesión y borrar la cuenta. */
 export function AccountSection() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { state } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   if (state.status !== 'signedIn') {

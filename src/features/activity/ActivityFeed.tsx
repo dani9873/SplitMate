@@ -1,5 +1,4 @@
 import { FlashList } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
 import { ChevronDown, SearchX, Tag, User, X } from 'lucide-react-native';
 import { useCallback, useMemo, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +18,7 @@ import {
   type ActivityFilters,
 } from './activity-list';
 import { ActivityRow } from './ActivityRow';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 export interface FeedMember {
   readonly id: string;
@@ -48,7 +48,7 @@ export function ActivityFeed({
   bottomInset = 24,
 }: ActivityFeedProps) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const { day } = useFormatters();
   const categories = useCategories();
   const [filters, setFilters] = useState<ActivityFilters>(NO_FILTERS);

@@ -1,7 +1,8 @@
--- Estructura de seguridad: RLS en todo, privilegios mínimos por rol y funciones de apoyo
--- cerradas. Si una migración futura agrega una tabla o una función, estas pruebas la revisan.
+-- Estructura de seguridad: RLS en todo, privilegios mínimos por rol, columnas que pone el servidor
+-- y funciones de apoyo cerradas. Si una migración futura agrega una tabla o una función, estas
+-- pruebas la revisan.
 begin;
-select plan(17);
+select plan(20);
 
 -- Tablas -----------------------------------------------------------------------------------
 
@@ -9,7 +10,7 @@ select tables_are(
   'public',
   array[
     'profiles', 'groups', 'group_members', 'categories',
-    'expenses', 'expense_payers', 'expense_splits', 'transfers'
+    'expenses', 'expense_payers', 'expense_splits', 'transfers', 'change_log'
   ],
   'public tiene solo las tablas revisadas por estas pruebas'
 );
@@ -86,6 +87,8 @@ select is_empty(
     from pg_class c
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
+      -- change_log es de solo lectura: 009-historial revisa sus privilegios.
+      and c.relname <> 'change_log'
       and not (
         has_table_privilege('authenticated', c.oid, 'SELECT')
         and has_table_privilege('authenticated', c.oid, 'INSERT')
@@ -114,10 +117,10 @@ select is_empty(
       and c.relkind in ('r', 'p')
       and a.attnum > 0
       and not a.attisdropped
-      and a.attname in ('id', 'group_id', 'created_by', 'user_id', 'role', 'key', 'created_at')
+      and a.attname in ('id', 'group_id', 'created_by', 'role', 'key', 'created_at', 'change_seq')
       and has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')
   $$,
-  'authenticated no edita id, group_id, created_by, user_id, role, key ni created_at'
+  'authenticated no edita id, group_id, created_by, role, key, created_at ni change_seq'
 );
 
 select is_empty(
@@ -126,13 +129,41 @@ select is_empty(
     from pg_class c
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
-      and not (
-        has_column_privilege('authenticated', c.oid, 'updated_at', 'UPDATE')
-        and has_column_privilege('authenticated', c.oid, 'deleted_at', 'UPDATE')
-        and has_column_privilege('authenticated', c.oid, 'version', 'UPDATE')
-      )
+      and c.relname <> 'change_log'
+      -- Con CASE: el orden del WHERE no está fijo y la función falla en tablas sin deleted_at.
+      and case when c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')
+        then not has_column_privilege('authenticated', c.oid, 'deleted_at', 'UPDATE')
+      end
   $$,
-  'authenticated edita updated_at, deleted_at y version en todas las tablas'
+  'authenticated borra (marca deleted_at) en todas las tablas'
+);
+
+select is_empty(
+  $$
+    select c.relname, a.attname
+    from pg_attribute a
+    join pg_class c on c.oid = a.attrelid
+    where c.relnamespace = 'public'::regnamespace
+      and c.relkind in ('r', 'p')
+      and c.relname <> 'profiles'
+      and a.attname in ('updated_at', 'version')
+      and has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')
+  $$,
+  'En las tablas de grupo, updated_at y version los pone el servidor: authenticated no los edita'
+);
+
+select set_eq(
+  $$
+    select t.tgrelid::regclass::text
+    from pg_trigger t
+    where t.tgfoid = 'private.stamp_sync_row()'::regprocedure
+      and not t.tgisinternal
+  $$,
+  $$
+    values ('groups'), ('group_members'), ('categories'), ('expenses'), ('expense_payers'),
+      ('expense_splits'), ('transfers')
+  $$,
+  'Las siete tablas de grupo tienen el trigger de las columnas del servidor y la guardia'
 );
 
 -- Funciones --------------------------------------------------------------------------------
@@ -156,7 +187,7 @@ select is(
       and p.prosecdef
       and p.provolatile = 's'
   ),
-  array['can_bootstrap_group', 'is_group_member', 'shares_group_with'],
+  array['can_access_group', 'is_group_creator', 'is_group_member', 'shares_group_with'],
   'Las funciones de apoyo de RLS son SECURITY DEFINER y STABLE'
 );
 
@@ -172,17 +203,37 @@ select is_empty(
     from (
       values
         ('private.is_group_member(uuid)'),
-        ('private.can_bootstrap_group(uuid)'),
-        ('private.shares_group_with(uuid)')
+        ('private.can_access_group(uuid)'),
+        ('private.is_group_creator(uuid)'),
+        ('private.shares_group_with(uuid)'),
+        ('private.next_change_seq(uuid)')
     ) as f (signature)
     where not has_function_privilege('authenticated', f.signature, 'EXECUTE')
   $$,
-  'authenticated ejecuta las funciones de apoyo que usan las políticas'
+  'authenticated ejecuta las funciones que usan las políticas y el trigger de columnas'
 );
 
-select ok(
-  not has_function_privilege('authenticated', 'private.check_expense_category()', 'EXECUTE'),
-  'La función del trigger de categoría no se puede llamar: solo la usa el trigger'
+select is_empty(
+  $$
+    select p.oid::regprocedure
+    from pg_proc p
+    where p.pronamespace = 'private'::regnamespace
+      and p.prorettype = 'trigger'::regtype
+      and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+  $$,
+  'Las funciones de los triggers no se pueden llamar: solo las usan los triggers'
+);
+
+select is_empty(
+  $$
+    select c.relname, r.rolname
+    from pg_class c
+    cross join (values ('anon'), ('authenticated'), ('service_role')) as r (rolname)
+    where c.relnamespace = 'private'::regnamespace
+      and c.relkind in ('r', 'p')
+      and has_table_privilege(r.rolname, c.oid, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
+  $$,
+  'Las tablas de private no tienen privilegios para los roles de la API'
 );
 
 select is_empty(

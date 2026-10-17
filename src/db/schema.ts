@@ -27,7 +27,27 @@ const syncColumns = () => ({
   version: integer('version').notNull().default(1),
 });
 
+/**
+ * Estado de sincronización de las 7 tablas que se envían al servidor (`users` no: su perfil
+ * remoto se asegura aparte):
+ * - `server_version`: la `version` que tiene el servidor de esta fila; nulo si nunca llegó.
+ * - `synced_version`: la `version` local que el servidor ya confirmó.
+ *
+ * Una fila está pendiente cuando `version <> synced_version`. No hay otra marca: toda
+ * escritura local sube `version`, así que queda pendiente sola.
+ */
+const syncState = () => ({
+  serverVersion: integer('server_version'),
+  syncedVersion: integer('synced_version').notNull().default(0),
+});
+
+/** Columnas comunes más el estado de sincronización, para las tablas que se envían. */
+const syncedColumns = () => ({ ...syncColumns(), ...syncState() });
+
 const isActive = (deletedAt: AnySQLiteColumn): SQL => sql`${deletedAt} IS NULL`;
+/** Fila con cambios locales que el servidor todavía no confirma. */
+const isPending = (syncedVersion: AnySQLiteColumn, version: AnySQLiteColumn): SQL =>
+  sql`${syncedVersion} <> ${version}`;
 const currencyCheck = (column: AnySQLiteColumn): SQL => sql`${column} GLOB '[A-Z][A-Z][A-Z]'`;
 const dateCheck = (column: AnySQLiteColumn): SQL =>
   sql`${column} GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'`;
@@ -52,7 +72,7 @@ export const users = sqliteTable(
 export const groups = sqliteTable(
   'groups',
   {
-    ...syncColumns(),
+    ...syncedColumns(),
     name: text('name').notNull(),
     currency: text('currency').notNull(),
     createdBy: text('created_by')
@@ -71,13 +91,14 @@ export const groups = sqliteTable(
     check('groups_currency_format', currencyCheck(t.currency)),
     check('groups_version_positive', sql`${t.version} >= 1`),
     index('groups_active_updated_idx').on(t.updatedAt).where(isActive(t.deletedAt)),
+    index('groups_pending_idx').on(t.id).where(isPending(t.syncedVersion, t.version)),
   ],
 );
 
 export const groupMembers = sqliteTable(
   'group_members',
   {
-    ...syncColumns(),
+    ...syncedColumns(),
     groupId: text('group_id')
       .notNull()
       .references(() => groups.id, { onDelete: 'restrict' }),
@@ -96,13 +117,14 @@ export const groupMembers = sqliteTable(
     uniqueIndex('group_members_user_unique')
       .on(t.groupId, t.userId)
       .where(sql`${t.userId} IS NOT NULL AND ${t.deletedAt} IS NULL`),
+    index('group_members_pending_idx').on(t.id).where(isPending(t.syncedVersion, t.version)),
   ],
 );
 
 export const categories = sqliteTable(
   'categories',
   {
-    ...syncColumns(),
+    ...syncedColumns(),
     /** Nulo en las predefinidas, que son comunes a todos los grupos. */
     groupId: text('group_id').references(() => groups.id, { onDelete: 'restrict' }),
     /** Clave de traducción de las predefinidas, por ejemplo `food`. */
@@ -121,16 +143,25 @@ export const categories = sqliteTable(
       .on(t.key)
       .where(sql`${t.key} IS NOT NULL`),
     index('categories_group_idx').on(t.groupId).where(isActive(t.deletedAt)),
+    index('categories_pending_idx').on(t.id).where(isPending(t.syncedVersion, t.version)),
   ],
 );
 
 export const expenses = sqliteTable(
   'expenses',
   {
-    ...syncColumns(),
+    ...syncedColumns(),
     groupId: text('group_id')
       .notNull()
       .references(() => groups.id, { onDelete: 'restrict' }),
+    /**
+     * Moneda del grupo cuando se registró el gasto. El servidor exige que coincida con la actual
+     * y por eso `restore` falla con `CURRENCY_CHANGED` si el grupo cambió de moneda. El CHECK de
+     * formato vive en la migración 0004 como restricción de columna (como el de la 0002), y allí
+     * también el DEFAULT que SQLite exige para agregar una columna NOT NULL: el código no lo usa,
+     * siempre manda el valor.
+     */
+    groupCurrency: text('group_currency').notNull(),
     kind: text('kind', { enum: ['expense', 'income'] }).notNull(),
     title: text('title').notNull(),
     /** Monto original en unidades menores de `currency`. */
@@ -166,13 +197,14 @@ export const expenses = sqliteTable(
     check('expenses_notes_length', sql`${t.notes} IS NULL OR length(${t.notes}) <= 1000`),
     check('expenses_version_positive', sql`${t.version} >= 1`),
     index('expenses_group_date_idx').on(t.groupId, t.occurredOn).where(isActive(t.deletedAt)),
+    index('expenses_pending_idx').on(t.id).where(isPending(t.syncedVersion, t.version)),
   ],
 );
 
 export const expensePayers = sqliteTable(
   'expense_payers',
   {
-    ...syncColumns(),
+    ...syncedColumns(),
     expenseId: text('expense_id')
       .notNull()
       .references(() => expenses.id, { onDelete: 'restrict' }),
@@ -192,13 +224,14 @@ export const expensePayers = sqliteTable(
       .on(t.expenseId, t.memberId)
       .where(isActive(t.deletedAt)),
     index('expense_payers_member_idx').on(t.memberId).where(isActive(t.deletedAt)),
+    index('expense_payers_pending_idx').on(t.id).where(isPending(t.syncedVersion, t.version)),
   ],
 );
 
 export const expenseSplits = sqliteTable(
   'expense_splits',
   {
-    ...syncColumns(),
+    ...syncedColumns(),
     expenseId: text('expense_id')
       .notNull()
       .references(() => expenses.id, { onDelete: 'restrict' }),
@@ -223,16 +256,19 @@ export const expenseSplits = sqliteTable(
       .on(t.expenseId, t.memberId)
       .where(isActive(t.deletedAt)),
     index('expense_splits_member_idx').on(t.memberId).where(isActive(t.deletedAt)),
+    index('expense_splits_pending_idx').on(t.id).where(isPending(t.syncedVersion, t.version)),
   ],
 );
 
 export const transfers = sqliteTable(
   'transfers',
   {
-    ...syncColumns(),
+    ...syncedColumns(),
     groupId: text('group_id')
       .notNull()
       .references(() => groups.id, { onDelete: 'restrict' }),
+    /** Moneda del grupo al registrar la transferencia; ver `expenses.groupCurrency`. */
+    groupCurrency: text('group_currency').notNull(),
     fromMemberId: text('from_member_id')
       .notNull()
       .references(() => groupMembers.id, { onDelete: 'restrict' }),
@@ -256,6 +292,7 @@ export const transfers = sqliteTable(
     check('transfers_occurred_on_format', dateCheck(t.occurredOn)),
     check('transfers_version_positive', sql`${t.version} >= 1`),
     index('transfers_group_date_idx').on(t.groupId, t.occurredOn).where(isActive(t.deletedAt)),
+    index('transfers_pending_idx').on(t.id).where(isPending(t.syncedVersion, t.version)),
   ],
 );
 
@@ -270,6 +307,83 @@ export const localSettings = sqliteTable('local_settings', {
   updatedAt: integer('updated_at').notNull(),
 });
 
+const SYNC_ENTITIES = ['group', 'member', 'category', 'expense', 'transfer'] as const;
+const CONFLICT_REASONS = ['conflict', 'currency_locked', 'group_currency_changed'] as const;
+const inList = (column: AnySQLiteColumn, values: readonly string[]): SQL =>
+  sql`${column} IN (${sql.raw(values.map((value) => `'${value}'`).join(', '))})`;
+
+/**
+ * Envíos que ya salieron o fallaron, uno por unidad (grupo, miembro, categoría, gasto o
+ * transferencia). Un envío "en vuelo" se repite con el mismo `id` y contenido hasta recibir
+ * respuesta; uno "apartado" el servidor lo rechazó por inválido o prohibido y espera al usuario.
+ * Datos de este dispositivo: no se sincronizan y no llevan las columnas de sincronización.
+ */
+export const syncOutbox = sqliteTable(
+  'sync_outbox',
+  {
+    /** UUID del envío; el servidor lo usa para no aplicarlo dos veces. */
+    id: text('id').primaryKey(),
+    entity: text('entity', { enum: SYNC_ENTITIES }).notNull(),
+    entityId: text('entity_id').notNull(),
+    groupId: text('group_id').notNull(),
+    /** Versión del servidor sobre la que se hizo el cambio; nulo si la unidad es nueva. */
+    base: integer('base'),
+    /** El contenido enviado, en JSON. */
+    data: text('data').notNull(),
+    state: text('state', { enum: ['in_flight', 'failed'] })
+      .notNull()
+      .default('in_flight'),
+    failReason: text('fail_reason'),
+    failField: text('fail_field'),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    check('sync_outbox_entity', inList(t.entity, SYNC_ENTITIES)),
+    check('sync_outbox_state', inList(t.state, ['in_flight', 'failed'])),
+    check('sync_outbox_base_positive', sql`${t.base} IS NULL OR ${t.base} >= 1`),
+    // Una unidad tiene a lo sumo un envío a la vez.
+    uniqueIndex('sync_outbox_entity_unique').on(t.entity, t.entityId),
+    index('sync_outbox_group_idx').on(t.groupId),
+  ],
+);
+
+/** Hasta qué `change_seq` del servidor se descargó cada grupo. Datos de este dispositivo. */
+export const syncCursors = sqliteTable(
+  'sync_cursors',
+  {
+    groupId: text('group_id').primaryKey(),
+    cursor: integer('cursor').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [check('sync_cursors_cursor_non_negative', sql`${t.cursor} >= 0`)],
+);
+
+/**
+ * Cambios del usuario que el servidor rechazó por un conflicto. Nunca se pierden: quedan como
+ * borrador por revisar. Datos de este dispositivo.
+ */
+export const syncConflicts = sqliteTable(
+  'sync_conflicts',
+  {
+    id: text('id').primaryKey(),
+    entity: text('entity', { enum: SYNC_ENTITIES }).notNull(),
+    entityId: text('entity_id').notNull(),
+    groupId: text('group_id').notNull(),
+    reason: text('reason', { enum: CONFLICT_REASONS }).notNull(),
+    /** La versión rechazada, tal como se envió, en JSON. */
+    data: text('data').notNull(),
+    serverDeleted: integer('server_deleted', { mode: 'boolean' }).notNull().default(false),
+    wasNew: integer('was_new', { mode: 'boolean' }).notNull().default(false),
+    wasDeletion: integer('was_deletion', { mode: 'boolean' }).notNull().default(false),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    check('sync_conflicts_entity', inList(t.entity, SYNC_ENTITIES)),
+    check('sync_conflicts_reason', inList(t.reason, CONFLICT_REASONS)),
+    index('sync_conflicts_group_idx').on(t.groupId),
+  ],
+);
+
 export const schema = {
   users,
   groups,
@@ -280,6 +394,9 @@ export const schema = {
   expenseSplits,
   transfers,
   localSettings,
+  syncOutbox,
+  syncCursors,
+  syncConflicts,
 };
 
 export type Schema = typeof schema;

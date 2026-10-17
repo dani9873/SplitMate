@@ -26,7 +26,12 @@ jest.mock('@/db/app-deps', () => {
   };
 });
 
-// Teléfono en español de Colombia: así lo aplican las preferencias al cargar Ajustes.
+// El flujo recorre la app entera. Sin otras suites tarda unos 15 s, pero con todas en paralelo en
+// la PC a veces pasaba los 20 s del límite general (igual con las versiones anteriores de Expo).
+jest.setTimeout(60_000);
+
+// Teléfono en español de Colombia: así lo aplican las preferencias al cargar Ajustes. Los montos
+// salen con la convención del idioma de la app (es), no con la región del teléfono.
 jest.mock('expo-localization', () => {
   const locales = [{ languageCode: 'es', languageTag: 'es-CO', regionCode: 'CO' }];
   return { getLocales: () => locales, useLocales: () => locales };
@@ -161,9 +166,9 @@ describe('flujo completo de un grupo', () => {
     // Las filas van con "tú" primero y después en orden de creación.
     const balance = (index: number) =>
       screen.getByTestId(`balance-${index}`).props.accessibilityLabel as string;
-    expect(balance(0)).toMatch(/^Ana \(tú\), le deben .*30,00/);
-    expect(balance(1)).toMatch(/^Beto, debe .*35,00/);
-    expect(balance(2)).toMatch(/^Carla, le deben .*5,00/);
+    expect(balance(0)).toMatch(/^Ana \(tú\), le deben \$30\.00/);
+    expect(balance(1)).toMatch(/^Beto, debe \$35\.00/);
+    expect(balance(2)).toMatch(/^Carla, le deben \$5\.00/);
 
     // 7. Liquidar con las dos transferencias sugeridas.
     const suggested = screen.getAllByRole('button', { name: /^Marcar como pagada: Beto le paga/ });

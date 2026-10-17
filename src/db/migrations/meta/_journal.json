@@ -29,6 +29,13 @@
       "when": 1791721540133,
       "tag": "0003_gastos_sin_categoria_en_otros",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792165101107,
+      "tag": "0004_sincronizacion",
+      "breakpoints": true
     }
   ]
 }

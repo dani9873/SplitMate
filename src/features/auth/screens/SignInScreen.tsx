@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import { AuthError } from '../auth-errors';
 import { signInFormSchema } from '../auth-form';
 import { useAuth } from '../AuthProvider';
 import { AuthScreen, FormError, PasswordField, useAuthErrorText, useValidationText } from './parts';
+import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 
 type Form = z.input<typeof signInFormSchema>;
 type Values = z.output<typeof signInFormSchema>;
@@ -18,7 +19,7 @@ type Values = z.output<typeof signInFormSchema>;
 /** Entrar con correo y contraseña. Un correo sin confirmar ofrece reenviar la confirmación. */
 export function SignInScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const { service, signIn } = useAuth();
   const validation = useValidationText();

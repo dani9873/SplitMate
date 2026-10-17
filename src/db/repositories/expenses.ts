@@ -14,7 +14,7 @@ import {
 import type { TableName } from '../changes';
 import { categories, expensePayers, expenseSplits, expenses } from '../schema';
 import { OTHER_CATEGORY_ID } from './categories';
-import { conflict, invalid, notFound, parse } from './errors';
+import { conflict, invalid, notFound, parse, ruleViolation } from './errors';
 import { listMembers, requireWritableGroup, type Group } from './queries';
 import type { AppDatabase, RepositoryContext } from './types';
 import { addExpenseSchema, type AddExpenseInput } from './validation';
@@ -154,6 +154,7 @@ function prepareExpense(
     data,
     values: {
       groupId: group.id,
+      groupCurrency: group.currency,
       kind: data.kind,
       title: data.title,
       amount: total.amount,
@@ -360,7 +361,13 @@ export function createExpensesRepository(ctx: RepositoryContext) {
       if (!removed) {
         throw notFound('El gasto borrado');
       }
-      requireWritableGroup(db, removed.groupId);
+      const group = requireWritableGroup(db, removed.groupId);
+      if (group.currency !== removed.groupCurrency) {
+        throw ruleViolation(
+          'CURRENCY_CHANGED',
+          'El grupo cambió de moneda desde que se registró este movimiento',
+        );
+      }
       const deletedAt = removed.deletedAt as number;
       db.transaction((tx) => {
         const now = deps.now();

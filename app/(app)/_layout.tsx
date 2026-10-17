@@ -1,10 +1,11 @@
 import { Stack } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { openAccountDatabase } from '@/db/client';
+import { deleteAccountData, openAccountDatabase } from '@/db/client';
 import { DatabaseGate, useDatabaseSetup } from '@/db/DatabaseProvider';
 import { useAuth, type AuthSession } from '@/features/auth';
+import { SyncNotices, SyncProvider } from '@/features/sync';
 import { UndoProvider } from '@/features/undo';
 
 /**
@@ -32,26 +33,33 @@ function AccountArea({ session }: { session: AuthSession }) {
     [userId, email, displayName, fallbackName],
   );
   const database = useDatabaseSetup(open);
+  // Si la base no abre, la pantalla de error ofrece borrarla para empezar de nuevo (la nube la repone).
+  const reset = useCallback(() => deleteAccountData(userId), [userId]);
 
-  // Al entrar (o al abrir la app con sesión), el perfil remoto existe. Sin red, al próximo arranque.
-  useEffect(() => {
-    void service.ensureProfile({ userId, displayName: displayName ?? fallbackName });
-  }, [service, userId, displayName, fallbackName]);
+  // El motor de sincronización asegura el perfil remoto: al entrar o al abrir la app con sesión, y
+  // otra vez en el siguiente ciclo si no hubo red.
+  const ensureProfile = useCallback(
+    () => service.ensureProfile({ userId, displayName: displayName ?? fallbackName }),
+    [service, userId, displayName, fallbackName],
+  );
   return (
-    <DatabaseGate database={database}>
-      <UndoProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          {/* Los formularios suben como modales: se cierran y vuelven a donde estabas. */}
-          <Stack.Screen name="groups/new" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="groups/[groupId]/entries/new" options={{ presentation: 'modal' }} />
-          <Stack.Screen
-            name="groups/[groupId]/entries/[entryId]/edit"
-            options={{ presentation: 'modal' }}
-          />
-          <Stack.Screen name="account/delete" options={{ presentation: 'modal' }} />
-        </Stack>
-      </UndoProvider>
+    <DatabaseGate database={database} onReset={reset}>
+      <SyncProvider ensureProfile={ensureProfile}>
+        <UndoProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            {/* Los formularios suben como modales: se cierran y vuelven a donde estabas. */}
+            <Stack.Screen name="groups/new" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="groups/[groupId]/entries/new" options={{ presentation: 'modal' }} />
+            <Stack.Screen
+              name="groups/[groupId]/entries/[entryId]/edit"
+              options={{ presentation: 'modal' }}
+            />
+            <Stack.Screen name="account/delete" options={{ presentation: 'modal' }} />
+          </Stack>
+          <SyncNotices />
+        </UndoProvider>
+      </SyncProvider>
     </DatabaseGate>
   );
 }
