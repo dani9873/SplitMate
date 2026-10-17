@@ -12,7 +12,7 @@ import {
   type DayStyle,
 } from '@/lib/format';
 
-import { resolveFormattingLocale, weekStartsOn } from './locale';
+import { resolveCalendarLocale, resolveFormattingLocale, weekStartsOn } from './locale';
 
 export interface Formatters {
   readonly locale: string;
@@ -24,20 +24,24 @@ export interface Formatters {
   instant(value: number): string;
 }
 
-/** Formateadores de montos y fechas con el idioma de la app y la región del dispositivo. */
+/**
+ * Formateadores de montos y fechas con el idioma de la app: igual en todos los teléfonos. Solo el
+ * primer día de la semana mira la región del dispositivo.
+ */
 export function useFormatters(): Formatters {
   const { i18n } = useTranslation();
   const deviceLocales = useLocales();
-  const locale = resolveFormattingLocale(i18n.language, deviceLocales);
+  const locale = resolveFormattingLocale(i18n.language);
+  const calendarLocale = resolveCalendarLocale(i18n.language, deviceLocales);
   return useMemo(
     () => ({
       locale,
       decimalSeparator: decimalSeparator(locale),
-      weekStartsOn: weekStartsOn(locale),
+      weekStartsOn: weekStartsOn(calendarLocale),
       money: (value: Money) => formatMoney(value, locale),
       day: (value: CalendarDate, style: DayStyle) => formatDay(value, locale, style),
       instant: (value: number) => formatInstant(value, locale),
     }),
-    [locale],
+    [locale, calendarLocale],
   );
 }

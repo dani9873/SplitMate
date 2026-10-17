@@ -375,7 +375,31 @@
       (`onlyDrafts`) y `unsynced-guard` (hoja de cerrar sesión y borrar cuenta); vistas en rojo antes de
       implementar. Con `src/features/account`, `conflicts-repository` e `i18n`: 10 suites, 72 pruebas en
       verde. `tsc`, eslint y prettier de lo tocado sin errores. Sin suite completa.
-  - [ ] B. Formato de moneda por teléfono.
+  - [x] B. Formato de moneda por teléfono.
+    - **Diagnóstico: hipótesis confirmada.** Todo el dinero pasa por `formatMoney` (`src/lib/format.ts`)
+      vía `useFormatters().money`, y no hay montos armados a mano. El locale era el tag completo del
+      teléfono (`resolveFormattingLocale`: `es-US`, `es-GT`…), y `Intl` decide por región y por los datos
+      de cada teléfono dónde va el símbolo (con Node: `es-US` "GTQ 1.00", `es-GT` "Q 1.00", `es`
+      "1,00 GTQ"). Android además no usa ICU igual en cada fabricante. El tag exacto de cada teléfono no
+      se leyó (no se instaló nada); no hace falta para la corrección.
+    - **Decisión del usuario:** español latinoamericano (punto decimal, coma de miles). `es` → `es-419`
+      y `en` → `en-US` para los números y fechas (`FORMAT_LOCALES` en `src/i18n/locale.ts`); un idioma
+      nuevo usa su propio código. Para Colombia o España habría que cambiar esa tabla.
+    - `formatMoney` arma el monto: signo, símbolo, cifra. El símbolo sale siempre de `en-US` (`$`, `€`,
+      `¥`, `GTQ`, `KWD`, `MX$`…) y va antes de la cifra, pegado si termina en signo de moneda y con
+      espacio duro si es un código de letras: "GTQ 1.00", "$1,234.56", "-$5.00". La cifra sale de
+      `Intl.NumberFormat` con los decimales de la moneda (JPY 0, KWD 3). No toca `src/domain/`.
+    - La región del teléfono solo se usa ya para el primer día de la semana
+      (`resolveCalendarLocale` + `weekStartsOn`).
+    - Cambios visibles: antes, español en un teléfono es-CO daba "US$ 30,00" y ahora "$30.00";
+      el campo de monto usa el punto como separador decimal en español.
+    - Pruebas: `format.test` (GTQ, USD, JPY, KWD, EUR en `es-419` y `en-US`; el símbolo no cambia de
+      lugar en 9 locales), `locale.test`, `use-formatters.test` (4 teléfonos distintos en es y en dan lo
+      mismo; la semana sigue la región) vistas en rojo antes. Ajustados `balance-status.test` y
+      `flujo-grupo.test` a la salida nueva. Con balances, activity, entries, groups, group-detail, ui, lib,
+      settings, account y auth: todo en verde. `tsc`, eslint y prettier sin errores. Sin suite completa.
+    - Límite: no se pudo probar en un Android real; el número usa `Intl` del teléfono, así que el
+      agrupador de miles de cuatro cifras podría variar entre fabricantes (a comprobar en el S24 y el Poco).
   - [ ] C. Toques repetidos (segunda sesión: wrapper de navegación, guard en `src/ui`, escrituras).
 
 ## Notas para retomar
