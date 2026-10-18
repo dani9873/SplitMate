@@ -9,6 +9,7 @@ const { readFileSync, readdirSync } = require('node:fs');
 const path = require('node:path');
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgcrypto } = require('@electric-sql/pglite/contrib/pgcrypto');
 
 const SUPABASE_DIR = path.join(__dirname, '..', '..', 'supabase');
 const RPC_NAMES = ['sync_push', 'sync_pull'];
@@ -19,7 +20,7 @@ let db;
 let nextUser = 1;
 
 async function init() {
-  db = await PGlite.create();
+  db = await PGlite.create({ extensions: { pgcrypto } });
   await db.exec(readFileSync(path.join(SUPABASE_DIR, 'pglite', 'plataforma.sql'), 'utf8'));
   const migrations = path.join(SUPABASE_DIR, 'migrations');
   for (const file of readdirSync(migrations)

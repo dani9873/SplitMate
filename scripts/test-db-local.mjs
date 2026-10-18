@@ -8,6 +8,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { PGlite } from '@electric-sql/pglite';
+import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 import { pgtap } from '@electric-sql/pglite-pgtap';
 
 const MIGRATIONS = 'supabase/migrations';
@@ -20,7 +21,7 @@ const sqlFiles = (dir, suffix) =>
     .filter((file) => file.endsWith(suffix))
     .sort();
 
-const db = await PGlite.create({ extensions: { pgtap } });
+const db = await PGlite.create({ extensions: { pgtap, pgcrypto } });
 await db.exec(readFileSync(PLATFORM, 'utf8'));
 for (const file of sqlFiles(MIGRATIONS, '.sql')) {
   try {

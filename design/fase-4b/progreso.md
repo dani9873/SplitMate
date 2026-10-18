@@ -6,7 +6,7 @@
 - [x] 3. Cupos en `sync_push`: migración `20261018110000_cupos.sql`, pruebas `015-cupos` (37)
 - [x] 4a. `check:data-api` con los casos nuevos (commit d99235b)
 - [ ] 4. 🔒 `db push` n.º 1: **aplicado el 2026-10-18** (commit de la rama `d99235b`); **verificado en teléfono y con `check:data-api` el 2026-10-18** (reporte del usuario). Remoto: 2 grupos activos, 2 filas de `group_access`, un dueño por grupo y el grupo nuevo es de su creador (usuario +splitmate)
-- [ ] 5. Invitaciones (servidor)
+- [~] 5. Invitaciones (servidor): migración `20261019090000_invitaciones.sql`, pruebas `013-invitaciones` (155) en verde; falta la revisión de seguridad y el dry-run
 - [ ] 6. 🔒 `db push` n.º 2
 - [ ] 7. Base local 0005
 - [ ] 8. Motor con `sync_pull_v2`

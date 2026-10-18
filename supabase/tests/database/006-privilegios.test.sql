@@ -88,6 +88,11 @@ select set_eq(
     'sync_pull_v2(jsonb,integer)',
     'leave_group(uuid)',
     'remove_access(uuid,uuid)',
+    'create_invitation(uuid,integer,integer)',
+    'preview_invitation(text)',
+    'accept_invitation(text,uuid,jsonb)',
+    'revoke_invitation(uuid)',
+    'list_invitations(uuid)',
     'private.sync_find_mutation(uuid)',
     'private.sync_remember_mutation(uuid,text,uuid,integer)',
     'private.lock_group_changes(uuid)',
@@ -112,7 +117,7 @@ select set_eq(
     'private.sync_apply_expense(jsonb,integer,uuid)',
     'private.sync_apply_transfer(jsonb,integer,uuid)'
   ],
-  'authenticated: EXECUTE solo en las funciones de las políticas, del trigger de columnas, de sync_push, de sync_pull, de sync_pull_v2, de leave_group y de remove_access'
+  'authenticated: EXECUTE solo en las funciones de las políticas, del trigger de columnas, de sync_push, de sync_pull, de sync_pull_v2, de leave_group, de remove_access y de las cinco RPC de invitaciones'
 );
 
 select is_empty(

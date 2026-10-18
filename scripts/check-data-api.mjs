@@ -2,7 +2,8 @@
 // acceso a ninguna tabla ni RPC, y authenticated con los suyos (lee las tablas, crea y lee su
 // perfil, no ve ni crea perfiles ajenos, no borra filas, ejecuta sync_pull, sync_pull_v2 y sync_push,
 // lee group_access sin escribirla, no escribe en change_log, no escribe en los grupos fuera de
-// sync_push y no sale ni quita el acceso a un grupo ajeno). Detecta lo que pgTAP no ve: cambios
+// sync_push, no sale ni quita el acceso a un grupo ajeno y no crea, lista ni revoca enlaces de
+// invitación ajenos; con un token inventado recibe SMINV). Detecta lo que pgTAP no ve: cambios
 // hechos en el remoto fuera de las migraciones (design/fase-3/data-api-privilegios.md). Correr
 // después de cada `supabase db push`.
 //
@@ -11,7 +12,9 @@
 // - Usuario de prueba confirmado y sin grupos: SPLITMATE_TEST_EMAIL (correo real; por omisión
 //   prueba1@splitmate.test, que Supabase no acepta) y SPLITMATE_TEST_PASSWORD. Si falta la contraseña, la pide sin
 //   mostrarla. Ni la contraseña ni el token se imprimen ni se guardan.
-import { randomUUID } from 'node:crypto';
+// - Gasta 2 de los 10 intentos fallidos por hora de la cuenta de prueba (vista previa y aceptar con un token
+//   inventado): no la corras más de unas pocas veces seguidas. El token inventado no se imprime.
+import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 
 const TABLES = [
@@ -64,8 +67,9 @@ function askHidden(label) {
   });
 }
 
-async function request(method, path, { token, body, prefer } = {}) {
+async function request(method, path, { token, body, prefer, profile } = {}) {
   const headers = { apikey: key };
+  if (profile) headers['Accept-Profile'] = profile;
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (prefer) headers.Prefer = prefer;
@@ -126,6 +130,18 @@ const anonRemove = await request('POST', '/rest/v1/rpc/remove_access', {
   body: { p_group_id: randomUUID(), p_user_id: randomUUID() },
 });
 check('no ejecuta remove_access', denied(anonRemove), describe(anonRemove));
+
+const INVITATION_RPC = [
+  ['create_invitation', { p_group_id: randomUUID() }],
+  ['preview_invitation', { p_token: 'x' }],
+  ['accept_invitation', { p_token: 'x', p_member_id: randomUUID() }],
+  ['revoke_invitation', { p_invitation_id: randomUUID() }],
+  ['list_invitations', { p_group_id: randomUUID() }],
+];
+for (const [name, body] of INVITATION_RPC) {
+  const r = await request('POST', `/rest/v1/rpc/${name}`, { body });
+  check(`no ejecuta ${name}`, denied(r), describe(r));
+}
 
 console.log(`authenticated (${email})`);
 const login = await request('POST', '/auth/v1/token?grant_type=password', {
@@ -231,6 +247,49 @@ try {
     denied(removeOther),
     describe(removeOther),
   );
+  // Un token inventado: la respuesta es { error: SMINV } con estado 200, igual que para un token
+  // vencido o revocado. Cuenta como 1 intento (y aceptar, otro) fallido de la hora.
+  const invented = await request('POST', '/rest/v1/rpc/preview_invitation', {
+    token,
+    body: { p_token: randomBytes(32).toString('base64url') },
+  });
+  check(
+    'preview_invitation con un token inventado responde SMINV',
+    invented.status === 200 && invented.json?.error === 'SMINV',
+    describe(invented),
+  );
+  const createForeign = await request('POST', '/rest/v1/rpc/create_invitation', {
+    token,
+    body: { p_group_id: randomUUID() },
+  });
+  check('no crea un enlace en un grupo ajeno', denied(createForeign), describe(createForeign));
+  const listForeign = await request('POST', '/rest/v1/rpc/list_invitations', {
+    token,
+    body: { p_group_id: randomUUID() },
+  });
+  check('no lista los enlaces de un grupo ajeno', denied(listForeign), describe(listForeign));
+  const revokeForeign = await request('POST', '/rest/v1/rpc/revoke_invitation', {
+    token,
+    body: { p_invitation_id: randomUUID() },
+  });
+  check('no revoca un enlace ajeno', denied(revokeForeign), describe(revokeForeign));
+  const acceptInvented = await request('POST', '/rest/v1/rpc/accept_invitation', {
+    token,
+    body: { p_token: randomBytes(32).toString('base64url'), p_member_id: randomUUID() },
+  });
+  check(
+    'accept_invitation con un token inventado responde SMINV',
+    acceptInvented.status === 200 && acceptInvented.json?.error === 'SMINV',
+    describe(acceptInvented),
+  );
+  // El esquema private no está expuesto en la Data API: ni la tabla de invitaciones ni los eventos.
+  for (const table of ['group_invitations', 'rate_events']) {
+    const r = await request('GET', `/rest/v1/${table}?select=*&limit=1`, {
+      token,
+      profile: 'private',
+    });
+    check(`no lee private.${table}`, r.status >= 400, `${r.status}`);
+  }
   const logInsert = await request('POST', '/rest/v1/change_log', {
     token,
     body: {
