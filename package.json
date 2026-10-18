@@ -17,7 +17,8 @@
     "test:coverage": "jest --coverage",
     "check:bundle": "node scripts/check-prod-bundle.mjs",
     "check:data-api": "node scripts/check-data-api.mjs",
-    "test:db:local": "node scripts/test-db-local.mjs"
+    "test:db:local": "node scripts/test-db-local.mjs",
+    "test:concurrencia": "node scripts/test-concurrencia.mjs"
   },
   "jest": {
     "preset": "jest-expo",
@@ -107,6 +108,7 @@
     "fast-check": "^4.10.2",
     "jest": "~29.7.0",
     "jest-expo": "~57.0.6",
+    "pg": "^8.23.1",
     "prettier": "^3.9.9",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "sql.js": "^1.14.2",

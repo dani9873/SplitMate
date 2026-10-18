@@ -61,3 +61,17 @@ jobs:
       # y perfiles.
       - name: Pruebas de seguridad de la base
         run: supabase test db
+
+      # Dos conexiones a la vez contra ese mismo Postgres: el último uso de un enlace de invitación
+      # lo gana exactamente una cuenta. Corre después de pgTAP porque deja cuentas y grupos de prueba.
+      # Solo necesita `pg`; no hay que compilar nada de la app.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --ignore-scripts
+
+      - name: Concurrencia de las invitaciones
+        run: npm run test:concurrencia
