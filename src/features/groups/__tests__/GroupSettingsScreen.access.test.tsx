@@ -142,6 +142,9 @@ describe('ajustes del grupo: quitar acceso', () => {
     const dialog = lastDialog();
     expect(dialog.title).toBe('¿Quitar el acceso de Beto?');
     expect(dialog.message).toMatch(/sus movimientos se conservan/i);
+    // Expulsar revoca todos los enlaces vigentes: el dueño sabe que tendrá que crear otros.
+    expect(dialog.message).toMatch(/dejan de servir/i);
+    expect(dialog.message).toMatch(/crea enlaces nuevos/i);
     expect(access.removeAccess).not.toHaveBeenCalled();
 
     await confirm('Quitar acceso');

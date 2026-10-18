@@ -2,9 +2,19 @@ import { act, render, screen, waitFor } from '@testing-library/react-native';
 import { useEffect } from 'react';
 import { AppState, Text, type AppStateStatus } from 'react-native';
 
+import {
+  clearPendingInvite,
+  purgeExpiredPendingInvite,
+} from '@/features/invitations/pending-invite';
+
 import type { AuthSession } from '../auth-service';
 import { AuthProvider, useAuth } from '../AuthProvider';
 import { TEST_SESSION, createFakeAuthService, type FakeAuthService } from '../test-utils';
+
+jest.mock('@/features/invitations/pending-invite', () => ({
+  clearPendingInvite: jest.fn(async () => undefined),
+  purgeExpiredPendingInvite: jest.fn(async () => undefined),
+}));
 
 function Status() {
   const { state } = useAuth();
@@ -193,6 +203,73 @@ describe('AuthProvider', () => {
     });
     await act(() => done);
     expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  describe('enlace de invitación pendiente', () => {
+    const OTHER_SESSION: AuthSession = {
+      userId: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4e',
+      email: 'beto@example.com',
+      displayName: 'Beto',
+    };
+
+    beforeEach(() => {
+      jest.mocked(clearPendingInvite).mockClear();
+      jest.mocked(purgeExpiredPendingInvite).mockClear();
+    });
+
+    it('al abrir la app borra el que ya venció', async () => {
+      await renderProvider(createFakeAuthService());
+      await waitFor(() => expect(status()).toBe('signedOut'));
+      expect(purgeExpiredPendingInvite).toHaveBeenCalledTimes(1);
+    });
+
+    it('al cerrar la sesión de esta app se borra', async () => {
+      const service = createFakeAuthService({ restore: async () => TEST_SESSION });
+      await renderProvider(service);
+      await waitFor(() => expect(status()).toBe('signedIn:ana@example.com'));
+      expect(clearPendingInvite).not.toHaveBeenCalled();
+
+      await act(() => auth!.signOut());
+      expect(clearPendingInvite).toHaveBeenCalledTimes(1);
+    });
+
+    it('cuando Supabase cierra la sesión también se borra', async () => {
+      const service = createFakeAuthService({ restore: async () => TEST_SESSION });
+      await renderProvider(service);
+      await waitFor(() => expect(status()).toBe('signedIn:ana@example.com'));
+
+      await act(async () => service.emitSignedOut());
+      expect(clearPendingInvite).toHaveBeenCalledTimes(1);
+    });
+
+    it('al pasar de una cuenta a otra se borra', async () => {
+      const service = createFakeAuthService({ restore: async () => TEST_SESSION });
+      await renderProvider(service);
+      await waitFor(() => expect(status()).toBe('signedIn:ana@example.com'));
+
+      await act(async () => auth!.signIn(OTHER_SESSION));
+      expect(status()).toBe('signedIn:beto@example.com');
+      expect(clearPendingInvite).toHaveBeenCalledTimes(1);
+    });
+
+    it('volver a entrar con la misma cuenta no lo borra', async () => {
+      const service = createFakeAuthService({ restore: async () => TEST_SESSION });
+      await renderProvider(service);
+      await waitFor(() => expect(status()).toBe('signedIn:ana@example.com'));
+
+      await act(async () => auth!.signIn({ ...TEST_SESSION }, { recovery: true }));
+      expect(clearPendingInvite).not.toHaveBeenCalled();
+    });
+
+    it('registrarse o entrar desde sin sesión lo conserva: es para quien se registra', async () => {
+      const service = createFakeAuthService();
+      await renderProvider(service);
+      await waitFor(() => expect(status()).toBe('signedOut'));
+
+      await act(async () => auth!.signIn(TEST_SESSION));
+      expect(status()).toBe('signedIn:ana@example.com');
+      expect(clearPendingInvite).not.toHaveBeenCalled();
+    });
   });
 
   it('useAuth fuera del proveedor avisa del error de programación', async () => {

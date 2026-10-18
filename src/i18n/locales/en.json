@@ -93,7 +93,7 @@
       "ownerTag": "Owner",
       "removeAccess": "Remove {{name}}'s access",
       "removeAccessTitle": "Remove {{name}}'s access?",
-      "removeAccessMessage": "They will stop seeing and changing this group. Their entries stay and their name remains in the group, without an account. Active invitation links stop working.",
+      "removeAccessMessage": "They will stop seeing and changing this group. Their entries stay and their name remains in the group, without an account. All active invitation links stop working: create new links for the people you do want to invite.",
       "removeAccessConfirm": "Remove access",
       "cannotRemoveLinked": "{{name}} has an account in the group. To remove them, remove their access first.",
       "leave": "Leave group",

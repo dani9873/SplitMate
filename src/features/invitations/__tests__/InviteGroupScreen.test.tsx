@@ -126,8 +126,10 @@ describe('Invitar: crear y compartir', () => {
   it('crea un enlace de 7 días por omisión, lo guarda en el teléfono y abre la hoja de compartir', async () => {
     const user = userEvent.setup();
     const created = { id: ID_NEW, token: NEW_TOKEN, expiresAt: NOW + 7 * DAY, maxUses: 10 };
+    // Como el servidor de verdad: el enlace recién creado sale en la lista.
     const invitations = createFakeInvitationService({
       create: jest.fn().mockResolvedValue(created),
+      list: jest.fn(async () => [info({ id: ID_NEW, useCount: 0 })]),
     });
     const { ctx, group } = await setup({ invitations });
 
@@ -220,6 +222,7 @@ describe('Invitar: crear y compartir', () => {
     const created = { id: ID_NEW, token: NEW_TOKEN, expiresAt: NOW + 7 * DAY, maxUses: 10 };
     const invitations = createFakeInvitationService({
       create: jest.fn().mockResolvedValue(created),
+      list: jest.fn(async () => [info({ id: ID_NEW, useCount: 0 })]),
     });
     const { ctx } = await setup({ invitations });
     await user.press(await screen.findByTestId('create-invite-link'));
@@ -288,6 +291,40 @@ describe('Invitar: la lista de enlaces', () => {
     });
     await screen.findByTestId(`invite-link-${ID_MINE}`);
     expect(screen.queryByText(new RegExp(TOKEN))).toBeNull();
+  });
+
+  it('borra del teléfono el token de los enlaces que ya no sirven', async () => {
+    const list = jest.fn();
+    const { ctx, group } = await setup({
+      invitations: createFakeInvitationService({ list }),
+      seed: (repos, groupId, me) => {
+        list.mockResolvedValue([
+          info({ createdBy: me }),
+          info({ id: ID_REVOKED, createdBy: me, status: 'revoked', revokedAt: 1 }),
+          // ID_OTHER ya no sale en la lista del servidor (pasaron más de 7 días).
+        ]);
+        for (const [id, token] of [
+          [ID_MINE, TOKEN],
+          [ID_REVOKED, NEW_TOKEN],
+          [ID_OTHER, 'o'.repeat(43)],
+        ] as const) {
+          repos.repos.invitationLinks.save({
+            id,
+            groupId,
+            token,
+            expiresAt: NOW + DAY,
+            maxUses: 10,
+          });
+        }
+      },
+    });
+
+    await screen.findByTestId(`invite-link-${ID_MINE}`);
+    await waitFor(() =>
+      expect(ctx.repos.invitationLinks.listByGroup(group.id).map((link) => link.id)).toEqual([
+        ID_MINE,
+      ]),
+    );
   });
 
   it('"Compartir de nuevo" solo en los vigentes que creó este teléfono', async () => {

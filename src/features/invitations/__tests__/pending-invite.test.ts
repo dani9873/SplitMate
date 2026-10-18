@@ -70,6 +70,18 @@ describe('el enlace pendiente', () => {
     expect(items.size).toBe(0);
   });
 
+  it('purgeExpired borra del almacén el que venció y deja el vigente', async () => {
+    const { storage, items } = memoryStorage();
+    createPendingInviteStore(storage).set(TOKEN, T0);
+    await Promise.resolve();
+
+    await createPendingInviteStore(storage).purgeExpired(T0 + 60_000);
+    expect(items.size).toBe(1);
+
+    await createPendingInviteStore(storage).purgeExpired(T0 + PENDING_INVITE_TTL_MS);
+    expect(items.size).toBe(0);
+  });
+
   it('lo guardado con otra forma se ignora y se borra', async () => {
     for (const bad of [
       'no es json',

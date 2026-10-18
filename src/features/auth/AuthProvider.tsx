@@ -10,6 +10,10 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 
+import {
+  clearPendingInvite,
+  purgeExpiredPendingInvite,
+} from '@/features/invitations/pending-invite';
 import { logger } from '@/lib/logger';
 
 import type { AuthService, AuthSession } from './auth-service';
@@ -66,6 +70,22 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
       unsubscribe();
     };
   }, [service]);
+
+  // Un enlace de invitación pendiente es de quien lo recibió: no sobrevive a la sesión que lo vio.
+  // Al abrir la app se borra el que ya venció; al cerrar sesión o pasar a otra cuenta, el que haya.
+  // Entrar desde sin sesión lo conserva: es el caso de quien se registra con un enlace.
+  useEffect(() => {
+    void purgeExpiredPendingInvite();
+  }, []);
+  const userId = state.status === 'signedIn' ? state.session.userId : null;
+  const lastUserId = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = lastUserId.current;
+    lastUserId.current = userId;
+    if (previous !== null && previous !== userId) {
+      void clearPendingInvite();
+    }
+  }, [userId]);
 
   const signedIn = state.status === 'signedIn';
   useEffect(() => {

@@ -102,6 +102,11 @@ export function createPendingInviteStore(storage: SecureValueStore) {
       return parsed.data.token;
     },
 
+    /** Borra del almacén el enlace guardado si ya venció o no tiene la forma esperada. */
+    async purgeExpired(now: number = Date.now()): Promise<void> {
+      await this.load(now);
+    },
+
     /** Se usó (o se descartó): fuera de la memoria y del almacén. */
     async clear(): Promise<void> {
       memory = null;
@@ -120,3 +125,4 @@ export const setPendingInvite = (token: string) => pendingInvite.set(token);
 export const peekPendingInvite = () => pendingInvite.peek();
 export const loadPendingInvite = () => pendingInvite.load();
 export const clearPendingInvite = () => pendingInvite.clear();
+export const purgeExpiredPendingInvite = () => pendingInvite.purgeExpired();

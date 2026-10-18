@@ -93,7 +93,7 @@
       "ownerTag": "Dueño",
       "removeAccess": "Quitar el acceso de {{name}}",
       "removeAccessTitle": "¿Quitar el acceso de {{name}}?",
-      "removeAccessMessage": "Dejará de ver y de cambiar este grupo. Sus movimientos se conservan y su nombre queda en el grupo, sin cuenta. Los enlaces de invitación vigentes dejan de servir.",
+      "removeAccessMessage": "Dejará de ver y de cambiar este grupo. Sus movimientos se conservan y su nombre queda en el grupo, sin cuenta. Todos los enlaces de invitación vigentes dejan de servir: crea enlaces nuevos para quien sí quieras invitar.",
       "removeAccessConfirm": "Quitar acceso",
       "cannotRemoveLinked": "{{name}} tiene cuenta en el grupo. Para quitarlo, primero quítale el acceso.",
       "leave": "Salir del grupo",

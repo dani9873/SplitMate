@@ -95,3 +95,131 @@ builds): aquí queda lo que se miró y lo que se corrigió.
 
 Revisar de nuevo con la skill y `detect_changes`, comprobar `adb shell pm get-app-links` en el teléfono
 y confirmar en el panel que `log_parameter_max_length_on_error` sigue en 0 (I5).
+
+## Segunda revisión (2026-10-18, jornada autónoma)
+
+Revisión adversarial: se leyó el diff de la rama contra `main` como lo haría quien quiere entrar sin
+invitación, quedarse después de una expulsión, sacar un token o agotar los topes. Servidor:
+`20261018090000_acceso_membresia.sql`, `20261018100000_sync_pull_v2.sql`,
+`20261019090000_invitaciones.sql` y los triggers de la 4a que siguen en pie (`check_member_link`,
+`stamp_sync_row`). Cliente: `src/features/invitations`, `src/features/auth/AuthProvider.tsx`,
+`app/+native-intent.tsx`, `src/lib/supabase/rpc.ts`, `src/db/repositories/invitation-links.ts`,
+`plugins/with-invite-links.js` y `web/links`. No hay dependencias nuevas (`package.json` no cambió).
+El grafo de código no estaba disponible (el servidor MCP no conectó); se leyó el código real.
+
+**Resultado: sin hallazgos críticos ni altos. Un medio (C12) y dos bajos (C13, C14), corregidos con
+pruebas escritas antes que el código. En el servidor no salió nada de severidad media o superior, así
+que `20261019090000_invitaciones.sql` no cambió.**
+
+### Hallazgos corregidos
+
+| Id | Sev. | Hallazgo | Estado |
+|---|---|---|---|
+| C12 | Media | El enlace de invitación pendiente (en memoria y en `expo-secure-store`) no se borraba al cerrar sesión ni al pasar a otra cuenta. En un teléfono compartido, quien entraba después veía la vista previa del grupo de la persona anterior (nombre, miembros sin cuenta) y podía unirse con su enlace. | **Corregido**: `AuthProvider` llama a `clearPendingInvite()` cuando una sesión con usuario termina (cierre propio, cierre de Supabase, borrar cuenta) o cambia de usuario. Entrar desde «sin sesión» lo conserva, porque es el caso de quien se registra con un enlace. Al abrir la app se borra también el que ya venció (`purgeExpiredPendingInvite`), aunque no haya sesión. Pruebas: 6 en `AuthProvider.test.tsx` y 1 en `pending-invite.test.ts`. |
+| C13 | Baja | El token de un enlace que ya no sirve (vencido, revocado desde otro teléfono o por una expulsión, agotado, o que el servidor dejó de listar a los 7 días) quedaba para siempre en `invitation_links`, dentro de la base cifrada. | **Corregido**: al cargar la lista, `InviteGroupScreen` borra los tokens locales cuyo estado no es `active` o que el servidor ya no lista; uno creado después de pedir la lista no se toca (carrera con «crear»). Prueba nueva en `InviteGroupScreen.test.tsx`. |
+| C14 | Baja | El aviso de «Quitar acceso» decía que los enlaces vigentes dejan de servir, pero no que el dueño tendrá que crear otros. | **Corregido**: el texto (es/en) ahora lo dice; prueba en `GroupSettingsScreen.access.test.tsx`. |
+
+### Preguntas del encargo, con su respuesta
+
+**Funciones `SECURITY DEFINER`.** Las cinco RPC y las de apoyo tienen `set search_path = ''`; cada
+objeto va calificado (`private.`, `public.`, `extensions.gen_random_bytes`) y lo demás es de
+`pg_catalog`. `revoke ... from public, anon, authenticated, service_role` y `grant execute` solo a
+`authenticated` en las cinco; las de apoyo (`claim_invitation_use`, `invitation_attempts_blocked`,
+`invitation_failure`, `release_access`) no las ejecuta nadie más que las RPC.
+
+- **Quién crea, revoca y lista.** Crear y listar piden `can_access_group` (acceso activo en
+  `group_access`; ser creador ya no basta). Revocar pide acceso activo y ser quien creó el enlace o el
+  dueño. Un id que no existe, de otro grupo o sin permiso da el mismo `42501`.
+- **IDOR entre grupos.** Ninguna RPC acepta un `group_id` junto con un `invitation_id`: la revocación
+  deduce el grupo de la propia invitación y comprueba el acceso a ese grupo; `list_invitations` filtra
+  por el grupo al que se tiene acceso; en `accept_invitation` el miembro elegido debe pertenecer al
+  grupo de la invitación (`m.group_id = v_group_id`), si no es `SMTKN`.
+- **`list_invitations` nunca expone el hash ni el token**: el `select` interior no los nombra y la
+  prueba de `013` comprueba las claves exactas (`id, created_by, created_at, expires_at, max_uses,
+  use_count, revoked_at, status`).
+
+**`accept_invitation`.**
+
+- *Misma persona dos veces:* la segunda llamada ve `can_access_group` y devuelve `{ group_id }` sin
+  reclamar un uso, sin escribir historial y sin tocar el miembro (prueba de `013`, «Aceptar otra vez
+  devuelve lo mismo»). Dos llamadas simultáneas de la misma cuenta se serializan en el bloqueo del
+  contador del grupo, así que la segunda siempre cae en ese camino y no hay violación de la clave
+  única `(group_id, user_id)`. Con dos enlaces distintos pasa lo mismo.
+- *Grupo lleno:* 50 cuentas activas, 200 miembros y 200 grupos por cuenta se revisan **antes** de
+  reclamar el uso y responden `SMGFL`; como la respuesta confirma la transacción, no puede quedar un
+  uso gastado.
+- *Ya es miembro:* ver arriba. *Expulsado:* puede volver, pero solo con un enlace creado después de la
+  expulsión, porque `remove_access` revoca todos los vigentes (I1); su fila de acceso se reactiva como
+  `member`, nunca como `owner`. *Salió por su cuenta:* igual, y sus propios enlaces quedaron revocados.
+- *Revocado a mitad:* quien acepta bloquea primero el contador del grupo y luego la invitación
+  (`FOR UPDATE`); revocar y expulsar toman el mismo bloqueo del grupo antes de escribir. O la
+  revocación confirmó antes (y la aceptación ve el enlace revocado y da `SMINV`) o la aceptación
+  confirmó antes (y fue legítima). No hay orden intermedio ni interbloqueo, porque todas toman el
+  contador del grupo antes que la invitación.
+- *Cuenta recién creada:* los topes son por cuenta (I4): 10 intentos fallidos por hora, 20 enlaces por
+  día y 20 activos por grupo. Una cuenta nueva no se salta ninguno, pero quien tenga muchas cuentas
+  multiplica los intentos; con 256 bits de token eso no sirve para adivinar, y el alta de cuentas está
+  limitada por Auth. Queda como I4 (aceptado) y el CAPTCHA, en pendientes.
+
+**Expulsar o quitar acceso revoca los enlaces y la interfaz lo avisa:** `remove_access` revoca todos los
+vigentes del grupo si el destinatario tenía acceso; `leave_group`, los del que sale. El aviso del dueño
+decía solo la mitad (C14, corregido).
+
+**`sync_pull_v2` y `group_access`.** La función es `SECURITY INVOKER`: todo pasa por RLS. Las políticas
+de `groups`, `group_access`, `group_members`, etc. piden `can_access_group`, que lee `group_access` con
+`deleted_at is null`. Un usuario sin acceso no recibe filas nuevas de ese grupo, ni siquiera con un
+cursor viejo: el grupo no está en `visible`, y sale en `lost`. `lost` solo dice «este id no lo ves»,
+igual para un grupo que no existe que para uno que perdiste. La única excepción de lectura es el
+creador de un grupo recién insertado sin ninguna fila de acceso (`group_has_access_rows`), que no se
+puede explotar: el trigger del dueño agrega su fila en la misma instrucción, y un creador expulsado
+tiene su fila con `deleted_at`, que cuenta como «hay filas».
+
+**Solo lectura no escribe por `sync_push`.** `sync_push` es `SECURITY INVOKER`, así que las políticas
+de inserción y actualización exigen `can_access_group` y fallan con `forbidden`. Volver a insertar un
+grupo perdido choca con la clave primaria (`forbidden`, no se crea otro) y editarlo da `not_found`.
+`group_access` no tiene `INSERT`, `UPDATE` ni `DELETE` para `authenticated`. Un miembro no puede
+poner la cuenta de otra persona en un miembro (`check_member_link`, que solo se salta con roles de
+servidor, como las RPC `SECURITY DEFINER`).
+
+**Cliente.**
+
+- *El token fuera de registros y reportes:* `logger` no registra nada en producción y, en
+  desarrollo, los únicos mensajes de este código son fijos y sin argumentos. `createSupabaseRpc` copia
+  solo el código del error, nunca el mensaje ni los argumentos. No hay servicio de reporte de errores
+  (ni Sentry ni equivalente) ni captura global de excepciones; si se agrega uno, hay que excluir los
+  argumentos de las RPC de invitaciones.
+- *En la ruta, el historial de navegación y los parámetros:* `redirectSystemPath` devuelve solo
+  `/invite`; el token queda en el fragmento del enlace de entrada, nunca en la ruta del router ni en
+  `useLocalSearchParams`. Pruebas en `native-intent.test.ts`.
+- *En el portapapeles:* la app no lo escribe nunca (no usa `expo-clipboard`); comparte con la hoja
+  del sistema (`Share.share`). Lo que la persona elija ahí, como «Copiar», es decisión suya. La página
+  web de respaldo copia el enlace solo al pulsar «Copiar enlace».
+- *En almacenamiento sin cifrar:* el pendiente va a `expo-secure-store`; el de «Compartir de nuevo», a
+  `invitation_links` dentro de SQLCipher; ninguno entra al respaldo de Android (excluido) ni se
+  sincroniza.
+- *Enlaces malformados, enormes o con esquemas raros:* `parseInviteLink` limita a 256 caracteres
+  (2048 si es un mensaje pegado), exige el host exacto (sin usuario, puerto, consulta ni ruta extra) o
+  `splitmate://`, y el token de 43 caracteres base64url. `javascript:`, `intent:`, `http:`, `file:`,
+  hosts parecidos y fragmentos con porcentajes se rechazan; `INVITE_HOST` con el marcador `<dominio>`
+  nunca coincide con nada.
+- *Pendiente de 1 hora:* vence en memoria y en el almacén; se borra al usarlo, ante un error que no
+  mejora, al abrir la app si ya venció (C12), al cerrar sesión y al cambiar de cuenta (C12).
+- *Android:* el `intent-filter` es solo `https://<dominio>/i` con ruta exacta y `autoVerify`.
+
+### Descartado, con su motivo
+
+| Id | Sev. | Qué se consideró | Por qué no se cambia |
+|---|---|---|---|
+| I8 | Info | `group_access.invitation_id` baja a todos los miembros del grupo, y `list_invitations` muestra `created_by`: cualquier miembro puede saber quién invitó a quién. | Es información del propio grupo, ya visible por la lista de cuentas; el id de la invitación no sirve para nada sin el token. |
+| I9 | Info | Los intentos con un token que existe pero está vencido o revocado toman el bloqueo del grupo antes de fallar, así que tardan algo más que los de un token inexistente. | Es un canal lateral de tiempo sobre un valor de 256 bits que ya hay que conocer entero. No hay nada que adivinar. |
+| I10 | Baja | `accept_invitation` lanza `22023` si el id del miembro nuevo ya existe, y ese error lleva el cuerpo de la petición. | Solo lo provoca un cliente defectuoso o el dueño del propio token (I5). Se revisará al ver `log_parameter_max_length_on_error` (tarea 3). |
+| C15 | Info | Otra app instalada puede abrir `splitmate://i#<token>` con un token suyo y mostrar la vista previa de su grupo (suplantación). | Aceptar exige una pulsación explícita y la vista previa muestra el nombre del grupo; el servidor valida el token. Es el mismo supuesto que C11. El enlace https verificado es el principal. |
+| C16 | Baja | El teclado puede aprender o sugerir el texto pegado en «Unirme con un enlace». | No hay forma portable de impedirlo salvo `secureTextEntry`, que oculta el texto y estorba. El campo ya usa `autoComplete="off"` y `autoCorrect={false}`. |
+| C17 | Info | Un enlace pendiente viaja de una cuenta a otra si llega **antes** de iniciar sesión. | Es el flujo previsto (registrarse con un enlace); se limita a 1 hora y se borra al cerrar sesión. |
+| I11 | Info | `rate_events` crece sin límite si una cuenta deja de usar la app. | Ya es I3; cada cuenta tiene como máximo 10 + 20 filas vivas por día. |
+| I12 | Info | Orden de bloqueos con `sync_push` y `leave_group`. | Todas toman primero el contador del grupo; no hay ciclo posible. |
+
+### Pendiente para la prueba real
+
+La concurrencia del último uso se prueba en el CI con dos conexiones (tarea 2 de la jornada). La
+verificación de `log_parameter_max_length_on_error` en el remoto es la tarea 3.

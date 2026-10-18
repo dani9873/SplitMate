@@ -149,7 +149,18 @@ function InviteContent({ groupId, data }: { groupId: string; data: GroupData }) 
     let cancelled = false;
     void (async () => {
       try {
+        const askedAt = Date.now();
         const infos = await service.list(groupId);
+        // El token de un enlace que ya no está vigente (o que el servidor ya no lista) no sirve para
+        // nada: no se guarda más tiempo del necesario. Uno creado después de pedir la lista todavía
+        // no puede salir en ella.
+        const byId = new Map(infos.map((i) => [i.id, i]));
+        for (const local of repos.invitationLinks.listByGroup(groupId)) {
+          const known = byId.get(local.id);
+          if (known ? known.status !== 'active' : local.createdAt < askedAt) {
+            repos.invitationLinks.remove(local.id);
+          }
+        }
         const locals = new Map(repos.invitationLinks.listByGroup(groupId).map((l) => [l.id, l]));
         if (!cancelled) {
           setList({
