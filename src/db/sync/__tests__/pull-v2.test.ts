@@ -6,7 +6,7 @@ import type { DataChange } from '../../changes';
 import { OTHER_CATEGORY_ID } from '../../repositories';
 import { createTestRepositories } from '../../test-utils';
 import { iso, rows, serverRow } from '../test-fixtures';
-import { forgetGroupDownload } from '../pull';
+import { forgetGroupDownload, MAX_STAGED_PAGES } from '../pull';
 import { createSyncStore } from '../store';
 import type { PullCursorObject, PulledGroup, PullResponse, RemoteRow } from '../wire';
 
@@ -526,6 +526,39 @@ describe('applyPull: descarga de un grupo grande por páginas', () => {
     const outcome = s.store.applyPull(response([partial([], next(3, 30, 5, EXPENSE))], [], true));
     expect(outcome.held).toEqual([{ id: GROUP, cursor: null }]);
     expect(count(s, 'sync_pull_pages')).toBe(0);
+  });
+});
+
+describe('applyPull: tope de páginas guardadas', () => {
+  it('un servidor que nunca cierra la descarga no llena el teléfono: pasado el tope, se descarta y se retiene', async () => {
+    const s = await setup();
+    s.store.applyPull(response([partial([], next(0, 40, 2, id(50)))], [], true));
+    // Ya hay MAX_STAGED_PAGES páginas guardadas (la primera más las que se agregan a mano).
+    for (let page = 2; page <= MAX_STAGED_PAGES; page += 1) {
+      s.sqlite.run(
+        `INSERT INTO sync_pull_pages (group_id, page, rows, created_at) VALUES ('${GROUP}', ${page}, '[]', 1)`,
+      );
+    }
+    expect(count(s, 'sync_pull_pages')).toBe(MAX_STAGED_PAGES);
+
+    const outcome = s.store.applyPull(response([partial([], next(0, 40, 2, id(51)))], [], true));
+
+    expect(outcome.held).toEqual([{ id: GROUP, cursor: null }]);
+    expect(count(s, 'sync_pull_pages')).toBe(0);
+    expect(s.store.pullCursors()).toEqual({ [GROUP]: 0 });
+  });
+
+  it('con una página menos que el tope, todavía entra', async () => {
+    const s = await setup();
+    s.store.applyPull(response([partial([], next(0, 40, 2, id(50)))], [], true));
+    for (let page = 2; page < MAX_STAGED_PAGES; page += 1) {
+      s.sqlite.run(
+        `INSERT INTO sync_pull_pages (group_id, page, rows, created_at) VALUES ('${GROUP}', ${page}, '[]', 1)`,
+      );
+    }
+    const outcome = s.store.applyPull(response([partial([], next(0, 40, 2, id(51)))], [], true));
+    expect(outcome.held).toEqual([]);
+    expect(count(s, 'sync_pull_pages')).toBe(MAX_STAGED_PAGES);
   });
 });
 

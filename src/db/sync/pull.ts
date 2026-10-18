@@ -571,6 +571,29 @@ function stateOf(tx: AppDatabase, groupId: string): CursorRow | undefined {
   return tx.select().from(syncCursors).where(eq(syncCursors.groupId, groupId)).get();
 }
 
+/**
+ * Tope de páginas guardadas por grupo: a 1000 filas cada una son 150 000 filas, bastante más de lo
+ * que cabe en un grupo con los cupos del servidor. Un servidor que nunca cierra la descarga no llena
+ * el teléfono: al pasar el tope se descarta lo guardado y el grupo queda retenido.
+ */
+export const MAX_STAGED_PAGES = 150;
+
+/** Guarda una página de la descarga de un grupo, a continuación de las que ya hay. */
+function appendStagedPage(tx: AppDatabase, group: PulledGroup, now: number): void {
+  const last = tx
+    .select({ page: sql<number>`coalesce(max(${syncPullPages.page}), 0)` })
+    .from(syncPullPages)
+    .where(eq(syncPullPages.groupId, group.id))
+    .get();
+  const page = (last?.page ?? 0) + 1;
+  if (page > MAX_STAGED_PAGES) {
+    throw new PullStateError();
+  }
+  tx.insert(syncPullPages)
+    .values({ groupId: group.id, page, rows: JSON.stringify(group.rows), createdAt: now })
+    .run();
+}
+
 export interface PulledResult extends GroupApplyResult {
   /** Se guardó una página sin aplicar nada (parcial, o la última a la espera de la ronda extra). */
   readonly staged: boolean;
@@ -599,19 +622,7 @@ export function applyPulledGroup(tx: AppDatabase, group: PulledGroup, now: numbe
     if (next.seq !== expectedSeq || (midRound && next.hw !== state.hw)) {
       throw new PullStateError();
     }
-    const last = tx
-      .select({ page: sql<number>`coalesce(max(${syncPullPages.page}), 0)` })
-      .from(syncPullPages)
-      .where(eq(syncPullPages.groupId, group.id))
-      .get();
-    tx.insert(syncPullPages)
-      .values({
-        groupId: group.id,
-        page: (last?.page ?? 0) + 1,
-        rows: JSON.stringify(group.rows),
-        createdAt: now,
-      })
-      .run();
+    appendStagedPage(tx, group, now);
     tx.insert(syncCursors)
       .values({
         groupId: group.id,
@@ -648,19 +659,7 @@ export function applyPulledGroup(tx: AppDatabase, group: PulledGroup, now: numbe
     if (cursor !== state.hw) {
       throw new PullStateError();
     }
-    const last = tx
-      .select({ page: sql<number>`coalesce(max(${syncPullPages.page}), 0)` })
-      .from(syncPullPages)
-      .where(eq(syncPullPages.groupId, group.id))
-      .get();
-    tx.insert(syncPullPages)
-      .values({
-        groupId: group.id,
-        page: (last?.page ?? 0) + 1,
-        rows: JSON.stringify(group.rows),
-        createdAt: now,
-      })
-      .run();
+    appendStagedPage(tx, group, now);
     tx.update(syncCursors)
       .set({ staged: true, afterT: null, afterId: null, updatedAt: now })
       .where(eq(syncCursors.groupId, group.id))

@@ -54,3 +54,44 @@ El cliente (enlaces de entrada, almacenamiento del token pendiente, pantallas) s
 y en el paso 13. La concurrencia real de dos sesiones simultáneas no se puede reproducir en pgTAP ni en
 PGlite (una sola conexión): la garantía descansa en el bloqueo del grupo, el `FOR UPDATE` y el
 `UPDATE` condicionado, y se prueba como secuencia. Conviene probarla en el teléfono con dos cuentas.
+
+## Bloque B: cliente (autoevaluación de la noche del 18 al 19)
+
+Revisión manual del código nuevo del cliente (pasos 7 a 12), con las pruebas como evidencia. **No
+reemplaza la revisión del paso 13** (skill security-code-review con `detect_changes`, después de los
+builds): aquí queda lo que se miró y lo que se corrigió.
+
+### Qué se revisó
+
+`src/db/sync` (pull por páginas, `lost`, accesos, usuarios remotos), `src/features/invitations`,
+`src/features/access`, `app/+native-intent.tsx`, `plugins/with-invite-links.js` y `web/links`.
+
+### Hallazgos y estado
+
+| Id | Sev. | Hallazgo | Estado |
+|---|---|---|---|
+| C4 | Media | Una fila con el `id` de otra fila local (de otro grupo, o un pagador o parte de otro gasto) se aplicaba por `id` y la secuestraba. | **Cerrado**: `findIdConflicts` no aplica la unidad y deja el grupo retenido (`pull-v2`, 2 pruebas). |
+| C5 | Media | La respuesta de descarga no tenía tope en el cliente. | **Cerrado**: zod acota filas por grupo (2000), grupos (2000) y `lost` (1000); `createSyncRemote.pull` rechaza más filas que `p_max_rows`, grupos repetidos, `lost` fuera de lo pedido y una página parcial mezclada con otro grupo (`wire` y `remote`). |
+| C7 | Media | Un servidor que nunca cerrara una descarga por páginas llenaba el teléfono con páginas guardadas. | **Corregido** con TDD: tope de 150 páginas por grupo (`MAX_STAGED_PAGES`); al pasarlo se descarta lo guardado y el grupo queda retenido. |
+| C8 | Baja | Un grupo cuya creadora borró su cuenta llega con `created_by` nulo, y el esquema lo rechazaba: el grupo quedaba retenido para siempre. | **Corregido**: `created_by` nulo se guarda con un usuario remoto fijo (`DELETED_ACCOUNT_ID`); `compartir.int` lo prueba. |
+| C9 | Baja | Si el servidor borra por cascada la fila de acceso de una cuenta ya marcada, el teléfono no se entera y la deja activa. | Aceptado: la fila solo sirve para las marcas «con cuenta» y «dueño»; el acceso real lo decide el servidor. |
+| C10 | Info | El token se muestra solo en la hoja de compartir (por diseño) y se guarda en `invitation_links`, dentro de la base cifrada; se borra al revocar. No va a registros ni a mensajes de error (pruebas en `native-intent`, `pending-invite`, `invitation-service` y `InviteGroupScreen`). | Sin acción |
+| C11 | Info | Cualquier app puede registrar el esquema `splitmate://`; por eso el enlace https verificado es el principal. Un enlace con el esquema propio solo entrega un token que el servidor valida. | Aceptado (diseño) |
+
+### Verificado con pruebas
+
+- `app/+native-intent.tsx` solo deja pasar `/auth/callback` validado y enlaces de invitación exactos
+  (host configurado, ruta `/i`, sin consulta ni usuario ni puerto, token de 43 caracteres base64url en
+  el fragmento); el token no viaja por la ruta.
+- Toda respuesta del servidor de invitaciones pasa por zod; los errores del servidor se traducen a
+  códigos y nunca copian su mensaje ni el token.
+- `web/links`: sin recursos externos, sin código ni estilos en línea, CSP estricta,
+  `Referrer-Policy: no-referrer`; la página solo usa `textContent` y valida el fragmento antes de
+  armar el enlace.
+- El plugin de Android agrega `https://<dominio>/i` con `autoVerify` y ruta exacta, solo si
+  `EXPO_PUBLIC_INVITE_HOST` es un dominio; sin él, no toca nada.
+
+### Para el paso 13
+
+Revisar de nuevo con la skill y `detect_changes`, comprobar `adb shell pm get-app-links` en el teléfono
+y confirmar en el panel que `log_parameter_max_length_on_error` sigue en 0 (I5).
