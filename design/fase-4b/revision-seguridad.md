@@ -30,7 +30,7 @@ deja leer el token o su hash.
 | I2 | Baja | Un miembro puede crear 20 enlaces al día y llenar el tope de 20 activos del grupo: otros no pueden crear hasta que se revoquen. | Aceptado: los miembros son de confianza y el dueño revoca cualquier enlace (`revoke_invitation`). |
 | I3 | Baja | `private.rate_events` solo se purga por cuenta cuando esa cuenta llama; si deja de usar la app, sus eventos viejos se quedan. | Aceptado; ya en pendientes del diseño («purgar con un trabajo programado, si crecen»). |
 | I4 | Baja | Los topes de intentos son por cuenta: quien tenga muchas cuentas multiplica los intentos. Con 256 bits de token, adivinar es inviable; el tope solo frena la saturación y el sondeo. | Aceptado. El registro ya tiene límites de Auth; CAPTCHA queda en pendientes. |
-| I5 | Baja | Un error de programación lanzado por `accept_invitation` (22023, o una violación de clave de una cuenta sin perfil) viaja a PostgREST con el cuerpo de la petición, que contiene el token. Postgres no registra los parámetros si `log_parameter_max_length_on_error` es 0 (su valor por omisión). | **A verificar en el panel** (mañana): que esa opción siga en 0. Los argumentos se validan antes que el token y el cliente los valida con zod, así que solo ocurre por un cliente defectuoso. |
+| I5 | Baja | Un error de programación lanzado por `accept_invitation` (22023, o una violación de clave de una cuenta sin perfil) viaja a PostgREST con el cuerpo de la petición, que contiene el token. Postgres no registra los parámetros si `log_parameter_max_length_on_error` es 0 (su valor por omisión). | **Verificado el 2026-10-18** con `supabase db query --linked "show log_parameter_max_length_on_error;"` (solo lectura): vale `0`, así que Postgres no registra los parámetros de una petición fallida. Los argumentos se validan antes que el token y el cliente los valida con zod, así que solo ocurre por un cliente defectuoso. Si algún día se sube ese valor, el token entraría a los registros de errores: no tocarlo. |
 | I6 | Info | `SMTKN` y `SMGFL` requieren un token válido, así que no son un oráculo sobre tokens. No cuentan como intento fallido, a propósito. | Sin acción |
 | I7 | Info | `list_invitations` expone el `created_by` (id de cuenta) a los miembros del grupo, como pide el diseño; la app lo muestra por el nombre del miembro vinculado. | Sin acción |
 
@@ -221,5 +221,5 @@ servidor, como las RPC `SECURITY DEFINER`).
 
 ### Pendiente para la prueba real
 
-La concurrencia del último uso se prueba en el CI con dos conexiones (tarea 2 de la jornada). La
-verificación de `log_parameter_max_length_on_error` en el remoto es la tarea 3.
+La concurrencia del último uso se prueba ahora con dos conexiones reales (`scripts/test-concurrencia.mjs`,
+en el CI). `log_parameter_max_length_on_error` en el remoto vale `0` (I5, verificado).
