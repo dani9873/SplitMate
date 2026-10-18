@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
-import { ChevronDown, ChevronUp, Plus, Users } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Link2, Plus, Users } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
@@ -27,6 +27,7 @@ export function GroupsScreen() {
 
   const openGroup = useCallback((groupId: string) => router.push(`/groups/${groupId}`), [router]);
   const createGroup = useCallback(() => router.push('/groups/new'), [router]);
+  const joinWithLink = useCallback(() => router.push('/join'), [router]);
 
   const rows = useMemo<Row[]>(() => {
     if (query.status !== 'ready') {
@@ -50,6 +51,12 @@ export function GroupsScreen() {
           {t('groups.title')}
         </Text>
         <SyncStatusButton />
+        <IconButton
+          testID="join-with-link"
+          icon={Link2}
+          label={t('groups.joinWithLink')}
+          onPress={joinWithLink}
+        />
         <IconButton
           testID="new-group"
           icon={Plus}

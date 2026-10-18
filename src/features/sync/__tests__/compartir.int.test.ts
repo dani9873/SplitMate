@@ -3,6 +3,7 @@ import { createSyncRemote, type SyncRemote } from '@/db/sync';
 import { createSupabaseTestServer, type SupabaseTestServer } from '@/test/supabase-pglite';
 
 import { createAccessService } from '../../access';
+import { createInvitationService, InvitationError } from '../../invitations/invitation-service';
 import { runSyncCycle } from '../cycle';
 import { createDevice, serverSnapshot, type Device } from '../test-utils';
 
@@ -385,5 +386,138 @@ describe('el servicio de acceso contra el servidor', () => {
     expect(rowsOf(b, 'SELECT access_lost_at FROM groups')).toEqual([
       { access_lost_at: expect.any(Number) },
     ]);
+  });
+});
+
+describe('el servicio de invitaciones contra el servidor', () => {
+  const NEW_MEMBER = '01990000-0000-7000-8000-00000000e001';
+  const service = (device: Device) =>
+    createInvitationService(device.rpc, {
+      newId: () =>
+        '01990000-0000-7000-8000-00000000e00' + String(Math.floor(Math.random() * 9) + 1),
+    });
+  const codeOf = async (run: () => Promise<unknown>) => {
+    try {
+      await run();
+    } catch (error) {
+      return error instanceof InvitationError ? error.code : String(error);
+    }
+    return null;
+  };
+
+  it('crear, ver, aceptar y volver a ver: el flujo completo con las respuestas validadas', async () => {
+    const { a, b, group, memberIds } = await world();
+    const created = await service(a).create({ groupId: group.id, expiresHours: 24, maxUses: 3 });
+    expect(created.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(created.maxUses).toBe(3);
+    expect(created.expiresAt).toBeGreaterThan(Date.now() + 23 * 3_600_000);
+
+    const preview = await service(b).preview(created.token);
+    expect(preview.group).toMatchObject({ id: group.id, name: 'Viaje', currency: 'USD' });
+    // Solo los miembros sin cuenta: Ana (yo) tiene la suya.
+    expect(preview.members.map((m) => m.displayName).sort()).toEqual(['Beto', 'Caro']);
+    expect(preview.accounts).toBe(1);
+    expect(preview.alreadyMember).toBe(false);
+
+    expect(
+      await service(b).accept(created.token, { kind: 'member', memberId: memberIds[1] as string }),
+    ).toEqual({
+      groupId: group.id,
+    });
+    expect((await service(b).preview(created.token)).alreadyMember).toBe(true);
+
+    const list = await service(a).list(group.id);
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ id: created.id, useCount: 1, maxUses: 3, status: 'active' });
+    await b.sync();
+    expect(await b.snapshot()).toEqual(await serverSnapshot(server, [group.id]));
+  });
+
+  it('unirse como alguien nuevo crea el miembro en el grupo', async () => {
+    const { a, b, group } = await world();
+    const { token } = await service(a).create({ groupId: group.id });
+    const accepted = await createInvitationService(b.rpc, { newId: () => NEW_MEMBER }).accept(
+      token,
+      {
+        kind: 'new',
+        displayName: 'Eli',
+      },
+    );
+    expect(accepted.groupId).toBe(group.id);
+    expect(
+      await one<{ display_name: string; user_id: string }>(
+        `select display_name, user_id from public.group_members where id = $1`,
+        [NEW_MEMBER],
+      ),
+    ).toEqual({ display_name: 'Eli', user_id: b.userId });
+  });
+
+  it('un token inventado, uno revocado y uno agotado dan el mismo INVALID_LINK', async () => {
+    const { a, b, c, group, memberIds } = await world();
+    const invented = 'Z'.repeat(43);
+    const revoked = await service(a).create({ groupId: group.id });
+    await service(a).revoke(revoked.id);
+    const single = await service(a).create({ groupId: group.id, maxUses: 1 });
+    await service(b).accept(single.token, { kind: 'member', memberId: memberIds[1] as string });
+
+    expect(await codeOf(() => service(c).preview(invented))).toBe('INVALID_LINK');
+    expect(await codeOf(() => service(c).preview(revoked.token))).toBe('INVALID_LINK');
+    expect(await codeOf(() => service(c).preview(single.token))).toBe('INVALID_LINK');
+    expect(
+      await codeOf(() =>
+        service(c).accept(single.token, { kind: 'member', memberId: memberIds[2] as string }),
+      ),
+    ).toBe('INVALID_LINK');
+  });
+
+  it('el miembro que otra persona ya eligió da MEMBER_TAKEN y no gasta el uso', async () => {
+    const { a, b, c, group, memberIds } = await world();
+    const { token, id } = await service(a).create({ groupId: group.id });
+    await service(b).accept(token, { kind: 'member', memberId: memberIds[1] as string });
+
+    expect(
+      await codeOf(() =>
+        service(c).accept(token, { kind: 'member', memberId: memberIds[1] as string }),
+      ),
+    ).toBe('MEMBER_TAKEN');
+    expect((await service(a).list(group.id)).find((l) => l.id === id)?.useCount).toBe(1);
+    // Y todavía puede elegir a otra persona.
+    expect(
+      await service(c).accept(token, { kind: 'member', memberId: memberIds[2] as string }),
+    ).toEqual({ groupId: group.id });
+  });
+
+  it('después de 10 intentos fallidos en la hora, ni un token bueno pasa (RATE_LIMITED)', async () => {
+    const { a, c, group } = await world();
+    const { token } = await service(a).create({ groupId: group.id });
+    for (let i = 0; i < 10; i += 1) {
+      expect(await codeOf(() => service(c).preview('Y'.repeat(42) + String(i)))).toBe(
+        'INVALID_LINK',
+      );
+    }
+    expect(await codeOf(() => service(c).preview(token))).toBe('RATE_LIMITED');
+  });
+
+  it('revocar: lo hace quien lo creó o la dueña; las demás cuentas reciben FORBIDDEN', async () => {
+    const { a, b, c, group, memberIds } = await world();
+    const mine = await service(a).create({ groupId: group.id });
+    await service(b).accept((await service(a).create({ groupId: group.id })).token, {
+      kind: 'member',
+      memberId: memberIds[1] as string,
+    });
+    const bs = await service(b).create({ groupId: group.id });
+
+    expect(await codeOf(() => service(b).revoke(mine.id))).toBe('FORBIDDEN');
+    expect(await codeOf(() => service(c).revoke(mine.id))).toBe('FORBIDDEN');
+    await service(b).revoke(bs.id);
+    await service(a).revoke(mine.id);
+    const list = await service(a).list(group.id);
+    expect(list.find((l) => l.id === mine.id)?.status).toBe('revoked');
+    expect(list.find((l) => l.id === bs.id)?.status).toBe('revoked');
+  });
+
+  it('listar sin acceso al grupo da FORBIDDEN', async () => {
+    const { c, group } = await world();
+    expect(await codeOf(() => service(c).list(group.id))).toBe('FORBIDDEN');
   });
 });

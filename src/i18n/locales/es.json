@@ -112,7 +112,8 @@
       "forbidden": "Solo el dueño del grupo puede hacer esto."
     },
     "lostBadge": "Sin acceso",
-    "summaryLineLost": "{{members}} · {{currency}} · {{lost}}"
+    "summaryLineLost": "{{members}} · {{currency}} · {{lost}}",
+    "joinWithLink": "Unirme con un enlace"
   },
   "activity": {
     "title": "Actividad",
@@ -253,7 +254,8 @@
     "removeFromPhoneMessage": "Se borra la copia de este grupo que hay en este teléfono. No se puede deshacer.",
     "removeFromPhoneUnsynced_one": "Además se pierde {{count}} cambio que no se subió.",
     "removeFromPhoneUnsynced_other": "Además se pierden {{count}} cambios que no se subieron.",
-    "removeFromPhoneConfirm": "Quitar"
+    "removeFromPhoneConfirm": "Quitar",
+    "invite": "Invitar"
   },
   "balance": {
     "youAreOwed": "Te deben {{amount}}",
@@ -744,6 +746,85 @@
       "dataDeleted": "Cerraste sesión y se borraron los datos de este teléfono.",
       "dataDeleteFailed": "Cerraste sesión, pero no se pudieron borrar los datos de este teléfono. Siguen cifrados; desinstalar la app también los borra.",
       "dismiss": "Entendido"
+    }
+  },
+  "invite": {
+    "join": {
+      "title": "Unirme con un enlace",
+      "label": "Enlace de invitación",
+      "placeholder": "Pega aquí el enlace",
+      "hint": "Pégalo tal como te lo mandaron.",
+      "continue": "Continuar",
+      "invalid": "Ese texto no es un enlace de invitación de SplitMate."
+    },
+    "screen": {
+      "title": "Unirte a un grupo",
+      "checking": "Revisando el enlace…",
+      "joinTitle": "Unirte a «{{name}}»",
+      "groupLine": "{{currency}} · {{accounts}}",
+      "accounts_one": "{{count}} persona con cuenta",
+      "accounts_other": "{{count}} personas con cuenta",
+      "expires": "El enlace vence el {{when}}.",
+      "alreadyMember": "Ya eres parte de este grupo.",
+      "openGroup": "Abrir grupo",
+      "whoAreYou": "¿Quién eres?",
+      "whoHint": "Elige tu nombre en el grupo. Desde ahora verás y cambiarás el grupo como los demás.",
+      "noFreeMembers": "Todas las personas del grupo ya tienen cuenta. Entra como alguien nuevo.",
+      "newPerson": "Soy alguien nuevo",
+      "yourName": "Tu nombre en el grupo",
+      "join": "Unirme",
+      "joining": "Uniéndote…",
+      "downloading": "Descargando el grupo…",
+      "retry": "Reintentar",
+      "close": "Cerrar",
+      "nameRequired": "Escribe tu nombre."
+    },
+    "errors": {
+      "invalidLink": "Este enlace no es válido. Pídele a quien te invitó uno nuevo.",
+      "rateLimited": "Demasiados intentos. Prueba de nuevo en una hora.",
+      "memberTaken": "Alguien ya eligió a {{name}}. Elige de nuevo.",
+      "memberTakenGeneric": "Alguien ya eligió a esa persona. Elige de nuevo.",
+      "groupFull": "El grupo llegó al máximo de personas.",
+      "tooManyGroups": "Llegaste al máximo de grupos.",
+      "offline": "Hace falta conexión a internet para esto. Inténtalo de nuevo cuando vuelva.",
+      "forbidden": "No tienes permiso para hacer esto.",
+      "auth": "Tu sesión ya no es válida. Cierra sesión y vuelve a entrar.",
+      "generic": "No se pudo completar. Inténtalo de nuevo."
+    },
+    "manage": {
+      "title": "Invitar a «{{name}}»",
+      "intro": "Crea un enlace y compártelo. Quien lo abra elige quién es en el grupo y entra como miembro.",
+      "duration": "Cuánto dura el enlace",
+      "duration1": "1 día",
+      "duration7": "7 días",
+      "duration30": "30 días",
+      "create": "Crear enlace y compartir",
+      "creating": "Creando el enlace…",
+      "shareMessage": "Únete a «{{name}}» en SplitMate: {{link}}",
+      "shareTitle": "Invitación a {{name}}",
+      "links": "Enlaces",
+      "noLinks": "Todavía no hay enlaces.",
+      "loading": "Cargando los enlaces…",
+      "offlineList": "Sin conexión: solo se ven los enlaces que creaste en este teléfono.",
+      "listError": "No se pudo cargar la lista de enlaces.",
+      "status": {
+        "active": "Vigente",
+        "expired": "Vencido",
+        "revoked": "Revocado",
+        "exhausted": "Agotado"
+      },
+      "usage_one": "{{used}} de {{max}} uso",
+      "usage_other": "{{used}} de {{max}} usos",
+      "expiresOn": "Vence el {{when}}",
+      "byYou": "Creado por ti",
+      "byOther": "Creado por otra persona",
+      "by": "Creado por {{who}}",
+      "shareAgain": "Compartir de nuevo",
+      "otherPhone": "Creado en otro dispositivo: para compartirlo, crea uno nuevo.",
+      "revoke": "Revocar",
+      "revokeTitle": "¿Revocar este enlace?",
+      "revokeMessage": "Quien lo tenga ya no podrá usarlo. Quienes ya entraron siguen en el grupo.",
+      "revokeConfirm": "Revocar"
     }
   }
 }

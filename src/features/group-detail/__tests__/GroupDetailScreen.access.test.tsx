@@ -10,10 +10,11 @@ import { GroupDetailScreen } from '../GroupDetailScreen';
 
 const mockParams: { groupId?: string } = {};
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
   ...jest.requireActual('expo-router'),
   useLocalSearchParams: () => mockParams,
-  useRouter: () => ({ push: jest.fn(), back: jest.fn(), replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, back: jest.fn(), replace: mockReplace }),
 }));
 
 const NOW = 1_790_000_000_000;
@@ -21,6 +22,7 @@ let alertSpy: jest.SpyInstance;
 
 beforeEach(async () => {
   mockReplace.mockClear();
+  mockPush.mockClear();
   alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
   await act(() => changeLanguage('es'));
 });
@@ -137,5 +139,26 @@ describe('detalle de un grupo sin acceso', () => {
     await setup({ lost: true, pendingEdit: true });
     await user.press(await screen.findByRole('button', { name: 'Quitar de este teléfono' }));
     expect(lastDialog().message).toContain('Además se pierde 1 cambio que no se subió.');
+  });
+});
+
+describe('detalle del grupo: Invitar', () => {
+  it('con acceso hay un botón Invitar que lleva a la pantalla de enlaces', async () => {
+    const user = userEvent.setup();
+    const { group } = await setup();
+    await user.press(await screen.findByRole('button', { name: 'Invitar' }));
+    expect(mockPush).toHaveBeenCalledWith(`/groups/${group.id}/invite`);
+  });
+
+  it('sin acceso no se puede invitar', async () => {
+    await setup({ lost: true });
+    await screen.findByTestId('access-lost-banner');
+    expect(screen.queryByRole('button', { name: 'Invitar' })).toBeNull();
+  });
+
+  it('en inglés', async () => {
+    await act(() => changeLanguage('en'));
+    await setup();
+    expect(await screen.findByRole('button', { name: 'Invite' })).toBeOnTheScreen();
   });
 });

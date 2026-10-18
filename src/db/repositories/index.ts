@@ -6,6 +6,7 @@ import { createConflictsRepository } from './conflicts';
 import { createDraftsRepository } from './drafts';
 import { createExpensesRepository } from './expenses';
 import { createGroupsRepository, createUsersRepository } from './groups';
+import { createInvitationLinksRepository } from './invitation-links';
 import { computeGroupBalances, type GroupBalances } from './ledger';
 import { createMembersRepository } from './members';
 import { createProfileRepository } from './profile';
@@ -43,6 +44,7 @@ export function createRepositories(
     groups: createGroupsRepository(ctx),
     members: createMembersRepository(ctx),
     access: createAccessRepository(ctx),
+    invitationLinks: createInvitationLinksRepository(ctx),
     categories: createCategoriesRepository(ctx),
     expenses: createExpensesRepository(ctx),
     transfers: createTransfersRepository(ctx),
@@ -77,6 +79,7 @@ export type {
 } from './activity';
 export { OTHER_CATEGORY_ID, type Category } from './categories';
 export type { AccessEntry, AccessRole } from './access';
+export type { InvitationLink } from './invitation-links';
 export type { ConflictDraft } from './conflicts';
 export type { Expense, ExpensePayer, ExpenseSplit, ExpenseWithParts } from './expenses';
 export type { GroupSummary } from './groups';

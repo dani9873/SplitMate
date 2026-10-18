@@ -6,6 +6,7 @@ import type { DataChange } from '../../changes';
 import { OTHER_CATEGORY_ID } from '../../repositories';
 import { createTestRepositories } from '../../test-utils';
 import { iso, rows, serverRow } from '../test-fixtures';
+import { forgetGroupDownload } from '../pull';
 import { createSyncStore } from '../store';
 import type { PullCursorObject, PulledGroup, PullResponse, RemoteRow } from '../wire';
 
@@ -649,5 +650,32 @@ describe('applyPull: estadísticas y errores', () => {
     });
     const outcome = s.store.applyPull(response([entire([groupRow(OWNER), bad], 5)]));
     expect(outcome.held).toEqual([{ id: GROUP, cursor: 5 }]);
+  });
+});
+
+describe('forgetGroupDownload', () => {
+  it('borra el cursor y las páginas guardadas del grupo, y el servidor lo manda desde 0', async () => {
+    const s = await setup();
+    s.store.applyPull(response([entire(sharedRows(s), 7)]));
+    s.store.applyPull(response([partial([], next(7, 30, 5, EXPENSE))], [], true));
+    expect(count(s, 'sync_cursors')).toBe(1);
+    expect(count(s, 'sync_pull_pages')).toBe(1);
+
+    forgetGroupDownload(s.db, GROUP);
+
+    expect(count(s, 'sync_cursors')).toBe(0);
+    expect(count(s, 'sync_pull_pages')).toBe(0);
+    expect(s.store.pullCursors()).toEqual({});
+    // Los datos del grupo no se tocan.
+    expect(count(s, 'expenses')).toBe(1);
+  });
+
+  it('no toca el cursor de otros grupos', async () => {
+    const s = await setup();
+    s.sqlite.run(
+      `INSERT INTO sync_cursors (group_id, cursor, updated_at) VALUES ('${id(999)}', 4, 1)`,
+    );
+    forgetGroupDownload(s.db, GROUP);
+    expect(s.store.cursors()).toEqual({ [id(999)]: 4 });
   });
 });

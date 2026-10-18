@@ -112,7 +112,8 @@
       "forbidden": "Only the group owner can do this."
     },
     "lostBadge": "No access",
-    "summaryLineLost": "{{members}} · {{currency}} · {{lost}}"
+    "summaryLineLost": "{{members}} · {{currency}} · {{lost}}",
+    "joinWithLink": "Join with a link"
   },
   "activity": {
     "title": "Activity",
@@ -253,7 +254,8 @@
     "removeFromPhoneMessage": "The copy of this group on this phone is deleted. This can't be undone.",
     "removeFromPhoneUnsynced_one": "You would also lose {{count}} change that wasn't uploaded.",
     "removeFromPhoneUnsynced_other": "You would also lose {{count}} changes that weren't uploaded.",
-    "removeFromPhoneConfirm": "Remove"
+    "removeFromPhoneConfirm": "Remove",
+    "invite": "Invite"
   },
   "balance": {
     "youAreOwed": "You're owed {{amount}}",
@@ -744,6 +746,85 @@
       "dataDeleted": "You signed out and the data on this phone was deleted.",
       "dataDeleteFailed": "You signed out, but the data on this phone could not be deleted. It stays encrypted; uninstalling the app also deletes it.",
       "dismiss": "Got it"
+    }
+  },
+  "invite": {
+    "join": {
+      "title": "Join with a link",
+      "label": "Invitation link",
+      "placeholder": "Paste the link here",
+      "hint": "Paste it exactly as it was sent to you.",
+      "continue": "Continue",
+      "invalid": "That text isn't a SplitMate invitation link."
+    },
+    "screen": {
+      "title": "Join a group",
+      "checking": "Checking the link…",
+      "joinTitle": "Join \"{{name}}\"",
+      "groupLine": "{{currency}} · {{accounts}}",
+      "accounts_one": "{{count}} person with an account",
+      "accounts_other": "{{count}} people with an account",
+      "expires": "The link expires on {{when}}.",
+      "alreadyMember": "You are already part of this group.",
+      "openGroup": "Open group",
+      "whoAreYou": "Who are you?",
+      "whoHint": "Pick your name in the group. From now on you will see and change the group like everyone else.",
+      "noFreeMembers": "Everyone in the group already has an account. Join as someone new.",
+      "newPerson": "I'm someone new",
+      "yourName": "Your name in the group",
+      "join": "Join",
+      "joining": "Joining…",
+      "downloading": "Downloading the group…",
+      "retry": "Try again",
+      "close": "Close",
+      "nameRequired": "Enter your name."
+    },
+    "errors": {
+      "invalidLink": "This link isn't valid. Ask whoever invited you for a new one.",
+      "rateLimited": "Too many attempts. Try again in an hour.",
+      "memberTaken": "Someone already picked {{name}}. Pick again.",
+      "memberTakenGeneric": "Someone already picked that person. Pick again.",
+      "groupFull": "The group reached its maximum number of people.",
+      "tooManyGroups": "You reached the maximum number of groups.",
+      "offline": "This needs an internet connection. Try again when it's back.",
+      "forbidden": "You don't have permission to do this.",
+      "auth": "Your session is no longer valid. Sign out and sign in again.",
+      "generic": "That couldn't be completed. Try again."
+    },
+    "manage": {
+      "title": "Invite to \"{{name}}\"",
+      "intro": "Create a link and share it. Whoever opens it picks who they are in the group and joins as a member.",
+      "duration": "How long the link lasts",
+      "duration1": "1 day",
+      "duration7": "7 days",
+      "duration30": "30 days",
+      "create": "Create link and share",
+      "creating": "Creating the link…",
+      "shareMessage": "Join \"{{name}}\" on SplitMate: {{link}}",
+      "shareTitle": "Invitation to {{name}}",
+      "links": "Links",
+      "noLinks": "There are no links yet.",
+      "loading": "Loading the links…",
+      "offlineList": "Offline: you only see the links created on this phone.",
+      "listError": "The list of links couldn't be loaded.",
+      "status": {
+        "active": "Active",
+        "expired": "Expired",
+        "revoked": "Revoked",
+        "exhausted": "Used up"
+      },
+      "usage_one": "{{used}} of {{max}} use",
+      "usage_other": "{{used}} of {{max}} uses",
+      "expiresOn": "Expires on {{when}}",
+      "byYou": "Created by you",
+      "byOther": "Created by someone else",
+      "by": "Created by {{who}}",
+      "shareAgain": "Share again",
+      "otherPhone": "Created on another device: to share it, create a new one.",
+      "revoke": "Revoke",
+      "revokeTitle": "Revoke this link?",
+      "revokeMessage": "Anyone holding it won't be able to use it. People who already joined stay in the group.",
+      "revokeConfirm": "Revoke"
     }
   }
 }

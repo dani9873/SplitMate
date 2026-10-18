@@ -6,6 +6,7 @@ import {
   ReceiptText,
   Settings,
   ShieldAlert,
+  UserPlus,
   UserRound,
 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -172,12 +173,22 @@ function GroupContent({ data }: { data: DetailData }) {
       <ScreenHeader
         title={group.name}
         actions={
-          <IconButton
-            testID="group-settings"
-            icon={Settings}
-            label={t('groupDetail.settings')}
-            onPress={() => router.push(settingsPath)}
-          />
+          <>
+            {archived ? null : (
+              <IconButton
+                testID="group-invite"
+                icon={UserPlus}
+                label={t('groupDetail.invite')}
+                onPress={() => router.push(`/groups/${group.id}/invite`)}
+              />
+            )}
+            <IconButton
+              testID="group-settings"
+              icon={Settings}
+              label={t('groupDetail.settings')}
+              onPress={() => router.push(settingsPath)}
+            />
+          </>
         }
       />
       <View className="flex-row items-center gap-3 pb-4">

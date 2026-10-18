@@ -6,6 +6,11 @@ import { createTestRepositories, type TestRepositories } from '@/db/test-utils';
 import { AccessServiceProvider } from '@/features/access';
 import { createFakeAccessService, type FakeAccessService } from '@/features/access/fake-access';
 import { AuthProvider } from '@/features/auth';
+import {
+  createFakeInvitationService,
+  type FakeInvitationService,
+} from '@/features/invitations/fake-invitations';
+import { InvitationServiceProvider } from '@/features/invitations/InvitationProvider';
 import { TEST_SESSION, createFakeAuthService } from '@/features/auth/test-utils';
 import { createFakeSyncEngine, type FakeSyncEngine } from '@/features/sync/fake-engine';
 import { SyncEngineProvider } from '@/features/sync/SyncProvider';
@@ -15,6 +20,8 @@ export interface RenderOptions {
   readonly engine?: FakeSyncEngine;
   /** El servicio de acceso falso (salir y quitar acceso); por omisión, uno que sale bien. */
   readonly access?: FakeAccessService;
+  /** El servicio de invitaciones falso; por omisión, uno sin enlaces ni vista previa. */
+  readonly invitations?: FakeInvitationService;
 }
 
 /**
@@ -35,7 +42,11 @@ export async function renderWithDatabase(
       <DatabaseProvider value={{ db: ctx.db, repos: ctx.repos, bus: ctx.bus }}>
         <SyncEngineProvider engine={options.engine ?? createFakeSyncEngine()}>
           <AccessServiceProvider service={options.access ?? createFakeAccessService()}>
-            {ui}
+            <InvitationServiceProvider
+              service={options.invitations ?? createFakeInvitationService()}
+            >
+              {ui}
+            </InvitationServiceProvider>
           </AccessServiceProvider>
         </SyncEngineProvider>
       </DatabaseProvider>

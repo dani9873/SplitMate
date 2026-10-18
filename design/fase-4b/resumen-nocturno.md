@@ -19,7 +19,7 @@ ni correos de prueba, sin tocar `main`, sin abrir PR, sin borrar ramas.
 - [x] 8. Motor con `sync_pull_v2` (pruebas: `pull-v2` 30, `compartir.int` 10 contra PGlite con tres cuentas, wire/remote ampliados)
 - [x] 9. Permisos y acceso perdido en pantallas (Jest completo 1287 en verde)
 - [x] 10. Enlaces de entrada y página de respaldo (sin dominio ni huella reales; archivos listos, sin desplegar)
-- [ ] 11. Invitar y unirse
+- [x] 11. Invitar y unirse (Jest completo 1541 en verde)
 - [ ] 12. Doble toque a 300 ms
 
 ## Decisiones tomadas

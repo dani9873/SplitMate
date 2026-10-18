@@ -7,6 +7,7 @@ export {
   type NewConflict,
 } from './conflicts';
 export { createSyncRemote, SyncTransportError, type RpcCall, type SyncRemote } from './remote';
+export { forgetGroupDownload } from './pull';
 export { createSyncStore, type SyncStore } from './store';
 export type {
   ApplyOutcome,

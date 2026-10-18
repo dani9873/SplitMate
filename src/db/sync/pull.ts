@@ -751,3 +751,15 @@ export function writeCursor(tx: AppDatabase, groupId: string, cursor: number, no
     })
     .run();
 }
+
+/**
+ * La descarga de un grupo vuelve a empezar desde 0: sin cursor ni páginas guardadas. Se usa al
+ * entrar a un grupo con una invitación (también uno que el teléfono ya tenía y había perdido): el
+ * servidor manda todo y lo pendiente del usuario se envía después con sus versiones base.
+ */
+export function forgetGroupDownload(db: AppDatabase, groupId: string): void {
+  db.transaction((tx) => {
+    tx.delete(syncPullPages).where(eq(syncPullPages.groupId, groupId)).run();
+    tx.delete(syncCursors).where(eq(syncCursors.groupId, groupId)).run();
+  });
+}
