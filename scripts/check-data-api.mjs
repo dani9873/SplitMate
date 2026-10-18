@@ -1,14 +1,15 @@
 // Comprueba por REST, contra el proyecto de Supabase, los privilegios de la Data API: anon sin
 // acceso a ninguna tabla ni RPC, y authenticated con los suyos (lee las tablas, crea y lee su
-// perfil, no ve ni crea perfiles ajenos, no borra filas, ejecuta sync_pull y sync_push, no escribe
-// en change_log y no escribe en los grupos fuera de sync_push). Detecta lo que pgTAP no ve: cambios
+// perfil, no ve ni crea perfiles ajenos, no borra filas, ejecuta sync_pull, sync_pull_v2 y sync_push,
+// lee group_access sin escribirla, no escribe en change_log, no escribe en los grupos fuera de
+// sync_push y no sale ni quita el acceso a un grupo ajeno). Detecta lo que pgTAP no ve: cambios
 // hechos en el remoto fuera de las migraciones (design/fase-3/data-api-privilegios.md). Correr
 // después de cada `supabase db push`.
 //
 // Uso: npm run check:data-api
 // - URL y clave publicable: EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY (.env).
-// - Usuario de prueba confirmado y sin grupos: SPLITMATE_TEST_EMAIL (por omisión
-//   prueba1@splitmate.test) y SPLITMATE_TEST_PASSWORD. Si falta la contraseña, la pide sin
+// - Usuario de prueba confirmado y sin grupos: SPLITMATE_TEST_EMAIL (correo real; por omisión
+//   prueba1@splitmate.test, que Supabase no acepta) y SPLITMATE_TEST_PASSWORD. Si falta la contraseña, la pide sin
 //   mostrarla. Ni la contraseña ni el token se imprimen ni se guardan.
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -23,6 +24,7 @@ const TABLES = [
   'expense_splits',
   'transfers',
   'change_log',
+  'group_access',
 ];
 
 if (existsSync('.env')) process.loadEnvFile('.env');
@@ -114,6 +116,17 @@ check('no ejecuta sync_pull', denied(anonPull), describe(anonPull));
 const anonPush = await request('POST', '/rest/v1/rpc/sync_push', { body: { p_mutations: [] } });
 check('no ejecuta sync_push', denied(anonPush), describe(anonPush));
 
+const anonPullV2 = await request('POST', '/rest/v1/rpc/sync_pull_v2', { body: { p_cursors: {} } });
+check('no ejecuta sync_pull_v2', denied(anonPullV2), describe(anonPullV2));
+const anonLeave = await request('POST', '/rest/v1/rpc/leave_group', {
+  body: { p_group_id: randomUUID() },
+});
+check('no ejecuta leave_group', denied(anonLeave), describe(anonLeave));
+const anonRemove = await request('POST', '/rest/v1/rpc/remove_access', {
+  body: { p_group_id: randomUUID(), p_user_id: randomUUID() },
+});
+check('no ejecuta remove_access', denied(anonRemove), describe(anonRemove));
+
 console.log(`authenticated (${email})`);
 const login = await request('POST', '/auth/v1/token?grant_type=password', {
   body: { email, password },
@@ -172,6 +185,51 @@ try {
     'ejecuta sync_push con una lista vacía',
     push.status === 200 && Array.isArray(push.json) && push.json.length === 0,
     describe(push),
+  );
+  const pullV2 = await request('POST', '/rest/v1/rpc/sync_pull_v2', {
+    token,
+    body: { p_cursors: {} },
+  });
+  check(
+    'ejecuta sync_pull_v2 (sin grupos)',
+    pullV2.status === 200 &&
+      Array.isArray(pullV2.json?.groups) &&
+      pullV2.json.groups.length === 0 &&
+      Array.isArray(pullV2.json?.lost) &&
+      pullV2.json.lost.length === 0,
+    describe(pullV2),
+  );
+  const accessRead = await request('GET', '/rest/v1/group_access?select=*', { token });
+  check(
+    'lee group_access (vacía: no tiene grupos)',
+    accessRead.status === 200 && Array.isArray(accessRead.json) && accessRead.json.length === 0,
+    describe(accessRead),
+  );
+  const accessInsert = await request('POST', '/rest/v1/group_access', {
+    token,
+    body: { group_id: randomUUID(), user_id: me, role: 'owner' },
+  });
+  check('no inserta en group_access', denied(accessInsert), describe(accessInsert));
+  const accessUpdate = await request('PATCH', `/rest/v1/group_access?user_id=eq.${me}`, {
+    token,
+    body: { role: 'owner' },
+  });
+  check('no edita group_access', denied(accessUpdate), describe(accessUpdate));
+  const accessDelete = await request('DELETE', `/rest/v1/group_access?user_id=eq.${me}`, { token });
+  check('no borra de group_access', denied(accessDelete), describe(accessDelete));
+  const leave = await request('POST', '/rest/v1/rpc/leave_group', {
+    token,
+    body: { p_group_id: randomUUID() },
+  });
+  check('no sale de un grupo donde no tiene acceso (forbidden)', denied(leave), describe(leave));
+  const removeOther = await request('POST', '/rest/v1/rpc/remove_access', {
+    token,
+    body: { p_group_id: randomUUID(), p_user_id: randomUUID() },
+  });
+  check(
+    'no quita el acceso en un grupo ajeno (forbidden)',
+    denied(removeOther),
+    describe(removeOther),
   );
   const logInsert = await request('POST', '/rest/v1/change_log', {
     token,
