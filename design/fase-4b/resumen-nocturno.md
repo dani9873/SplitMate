@@ -20,7 +20,7 @@ dominio/huella de los enlaces, Brevo y los builds.
 | pgTAP local (`npm run test:db:local`) | **744 pruebas** en verde (013-invitaciones: 159) |
 | `npm run check:bundle` | OK |
 | CI del bloque A (commit `fca269d`) | verde, incluida «Base de datos y RLS» en Postgres 17 |
-| CI de los commits del bloque B | ver «Lo que quedó incompleto» (el último push va con este resumen) |
+| CI del bloque B (commit `58add3a`, el último de la noche) | **verde**: «Tipos, lint y pruebas» y «Base de datos y RLS» |
 | `supabase db push --dry-run` (solo lectura) | «Would push these migrations: `20261019090000_invitaciones.sql`». Solo esa. |
 
 ## Qué se hizo por paso
@@ -99,8 +99,6 @@ dominio/huella de los enlaces, Brevo y los builds.
   el marcador o una huella real.
 - **Las filas de acceso que el servidor borra por cascada** (cuenta eliminada) quedan activas en los
   teléfonos de los demás (C9, aceptado: solo afecta a las marcas).
-- **Pendiente de CI:** el último push (con este resumen) se vigila una sola vez; el resultado está en la
-  nota de cierre de la sesión.
 
 ## Lo que te toca en la mañana (en este orden)
 
