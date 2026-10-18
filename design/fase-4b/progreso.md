@@ -3,7 +3,7 @@
 - [x] 0. Diseño y plan (`diseno.md`, `plan.md`): escritos y aprobados con ajustes (2026-10-17)
 - [x] 1. Acceso por membresía (servidor): migración `20261018090000_acceso_membresia.sql`, pruebas `012-acceso` (81)
 - [x] 2. `sync_pull_v2`: migración `20261018100000_sync_pull_v2.sql`, pruebas `014-sync-pull-v2` (68)
-- [ ] 3. Cupos en `sync_push`
+- [x] 3. Cupos en `sync_push`: migración `20261018110000_cupos.sql`, pruebas `015-cupos` (37)
 - [ ] 4. 🔒 `db push` n.º 1
 - [ ] 5. Invitaciones (servidor)
 - [ ] 6. 🔒 `db push` n.º 2
@@ -17,7 +17,14 @@
 - [ ] 14. 🔒 `db push` n.º 3: retiro de `sync_pull` v1
 - [ ] 15. Documentación y PR
 
-**Siguiente paso:** paso 3, cupos en `sync_push` (pgTAP `015-cupos` primero).
+**Siguiente paso:** paso 4, `db push` n.º 1. Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
+
+**Notas del paso 3:**
+
+- Cupos: groups 200 (acceso activo de la cuenta; salir libera), members 200 y categories 100 por grupo (borrados incluidos), movements 20 000 por grupo (gastos + transferencias, borrados incluidos). Las categorías cuentan también las borradas: el diseño no lo decía y se eligió lo más estricto contra el abuso.
+- La respuesta es `{ status: 'rejected', reason: 'quota', quota: 'groups'|'members'|'categories'|'movements', current: [] }`.
+- Medición: el conteo de movimientos con 20 000 filas tarda ~10 ms de mediana (máx. 19 ms) en PGlite, más lento que Postgres nativo; no hace falta pasar a contadores.
+- Los cupos de la aceptación de una invitación (50 cuentas por grupo, 200 grupos por cuenta) se revisan en `accept_invitation` (paso 5).
 
 **Notas del paso 2:**
 

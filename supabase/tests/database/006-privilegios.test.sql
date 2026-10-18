@@ -92,6 +92,7 @@ select set_eq(
     'private.sync_remember_mutation(uuid,text,uuid,integer)',
     'private.lock_group_changes(uuid)',
     'private.record_change(uuid,text,uuid,text,integer,text[],jsonb,uuid)',
+    'private.sync_check_quota(text,uuid)',
     'private.sync_fail(text)',
     'private.sync_keys(jsonb,text[])',
     'private.sync_text(jsonb,text,integer,integer,boolean,text)',
