@@ -2,7 +2,7 @@
 -- completa con cursor 0, borrados incluidos, páginas que nunca parten un grupo, solo grupos con
 -- acceso y los límites del sobre. Se descarga como cada cuenta y se revisa como postgres.
 begin;
-select plan(39);
+select plan(40);
 
 select tests.crear_mundo();
 
@@ -63,6 +63,14 @@ select is(
   'El cursor de cada grupo es su change_seq más alto'
 );
 select is(tests.mas('completa'), false, 'Todo cabe en una página: has_more es false');
+select is_empty(
+  $$
+    select 1
+    from res, jsonb_array_elements(j -> 'groups') g, jsonb_array_elements(g -> 'rows') r
+    where k = 'completa' and r ->> 'table' = 'group_access'
+  $$,
+  'sync_pull (v1) no devuelve group_access aunque el grupo tenga filas de acceso: la app de la 4a no la conoce'
+);
 select is(
   (
     select array_agg(r ->> 'table' order by o)
