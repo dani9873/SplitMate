@@ -57,12 +57,15 @@ describe('esquema y migraciones', () => {
       'expense_payers',
       'expense_splits',
       'expenses',
+      'group_access',
       'group_members',
       'groups',
+      'invitation_links',
       'local_settings',
       'sync_conflicts',
       'sync_cursors',
       'sync_outbox',
+      'sync_pull_pages',
       'transfers',
       'users',
     ]);
@@ -72,7 +75,14 @@ describe('esquema y migraciones', () => {
     (sqlite.exec(`PRAGMA table_info(${table})`)[0]?.values ?? []).map((row) => row[1]);
 
   // Datos de este dispositivo que nunca se sincronizan como filas del servidor.
-  const LOCAL_ONLY = ['local_settings', 'sync_conflicts', 'sync_cursors', 'sync_outbox'];
+  const LOCAL_ONLY = [
+    'invitation_links',
+    'local_settings',
+    'sync_conflicts',
+    'sync_cursors',
+    'sync_outbox',
+    'sync_pull_pages',
+  ];
   // `users` se sincroniza por el perfil remoto, no por el envío de filas.
   const SYNCED_ROWS = [
     'categories',

@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  primaryKey,
   sqliteTable,
   text,
   uniqueIndex,
@@ -62,6 +63,12 @@ export const users = sqliteTable(
     ...syncColumns(),
     displayName: text('display_name').notNull(),
     email: text('email'),
+    /**
+     * Cuenta ajena que solo aparece como creadora de un grupo, como dueña de un acceso o como
+     * cuenta de un miembro: fila mínima (el id y un nombre de relleno) para que las claves
+     * foráneas valgan. Nunca se muestra ni se envía; las personas se muestran por su miembro.
+     */
+    isRemote: integer('is_remote', { mode: 'boolean' }).notNull().default(false),
   },
   (t) => [
     check('users_display_name_length', lengthBetween(t.displayName, 1, 80)),
@@ -85,6 +92,12 @@ export const groups = sqliteTable(
     color: text('color', { enum: GROUP_COLORS }).notNull().default(DEFAULT_GROUP_COLOR),
     /** Instante en que se archivó. Un grupo archivado es de solo lectura. */
     archivedAt: integer('archived_at'),
+    /**
+     * Instante en que el servidor dijo que esta cuenta ya no ve el grupo (expulsión, salida desde
+     * otro teléfono o borrado definitivo). El grupo queda como copia de solo lectura hasta que
+     * la persona lo quite del teléfono o vuelva a entrar con otra invitación. Local: no se sube.
+     */
+    accessLostAt: integer('access_lost_at'),
   },
   (t) => [
     check('groups_name_length', lengthBetween(t.name, 1, 80)),
@@ -118,6 +131,37 @@ export const groupMembers = sqliteTable(
       .on(t.groupId, t.userId)
       .where(sql`${t.userId} IS NOT NULL AND ${t.deletedAt} IS NULL`),
     index('group_members_pending_idx').on(t.id).where(isPending(t.syncedVersion, t.version)),
+  ],
+);
+
+/**
+ * Quién tiene acceso a cada grupo, tal como lo dice el servidor: una fila por cuenta y grupo. Es
+ * de solo bajada (la app nunca la edita ni la sube), por eso no lleva el estado de sincronización
+ * y `version` es la del servidor. `deleted_at` con valor quiere decir «sin acceso».
+ */
+export const groupAccess = sqliteTable(
+  'group_access',
+  {
+    id: text('id').primaryKey(),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'restrict' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    role: text('role', { enum: ['owner', 'member'] }).notNull(),
+    /** La invitación por la que entró; nulo para el dueño original. */
+    invitationId: text('invitation_id'),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+    deletedAt: integer('deleted_at'),
+    version: integer('version').notNull(),
+  },
+  (t) => [
+    check('group_access_role', sql`${t.role} IN ('owner', 'member')`),
+    check('group_access_version_positive', sql`${t.version} >= 1`),
+    uniqueIndex('group_access_group_user_unique').on(t.groupId, t.userId),
+    index('group_access_user_idx').on(t.userId),
   ],
 );
 
@@ -347,15 +391,67 @@ export const syncOutbox = sqliteTable(
   ],
 );
 
-/** Hasta qué `change_seq` del servidor se descargó cada grupo. Datos de este dispositivo. */
+/**
+ * Hasta qué `change_seq` del servidor se descargó (y aplicó) cada grupo. Datos de este dispositivo.
+ *
+ * Un grupo grande se baja por páginas: mientras dura, `hw` (el `change_seq` más alto al empezar) y
+ * `after_t`/`after_id` (dónde terminó la última página) dicen dónde seguir, y las filas ya bajadas
+ * esperan en `sync_pull_pages`. Con `staged` en 1 ya llegó la última página y solo falta la ronda
+ * desde `hw` para aplicarlo todo junto. `cursor` no se mueve hasta entonces.
+ */
 export const syncCursors = sqliteTable(
   'sync_cursors',
   {
     groupId: text('group_id').primaryKey(),
     cursor: integer('cursor').notNull(),
     updatedAt: integer('updated_at').notNull(),
+    hw: integer('hw'),
+    afterT: integer('after_t'),
+    afterId: text('after_id'),
+    staged: integer('staged', { mode: 'boolean' }).notNull().default(false),
   },
   (t) => [check('sync_cursors_cursor_non_negative', sql`${t.cursor} >= 0`)],
+);
+
+/**
+ * Páginas de la descarga de un grupo grande que todavía no se aplican: se juntan aquí, en la base
+ * cifrada y no en memoria, hasta tener la última. Datos de este dispositivo.
+ */
+export const syncPullPages = sqliteTable(
+  'sync_pull_pages',
+  {
+    groupId: text('group_id').notNull(),
+    page: integer('page').notNull(),
+    /** Las filas de la página, tal como llegaron (JSON). */
+    rows: text('rows').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.page] })],
+);
+
+/**
+ * Los enlaces de invitación que creó este teléfono, con su token, para **Compartir de nuevo**. El
+ * servidor solo guarda el hash del token; el teléfono que lo creó es el único que puede volver a
+ * mostrarlo. Datos de este dispositivo: no se sincronizan y viven en la base cifrada.
+ */
+export const invitationLinks = sqliteTable(
+  'invitation_links',
+  {
+    /** El id de la invitación en el servidor. */
+    id: text('id').primaryKey(),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'restrict' }),
+    token: text('token').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+    maxUses: integer('max_uses').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    check('invitation_links_token_length', sql`length(${t.token}) = 43`),
+    check('invitation_links_max_uses', sql`${t.maxUses} BETWEEN 1 AND 50`),
+    index('invitation_links_group_idx').on(t.groupId),
+  ],
 );
 
 /**
@@ -393,10 +489,13 @@ export const schema = {
   expensePayers,
   expenseSplits,
   transfers,
+  groupAccess,
   localSettings,
   syncOutbox,
   syncCursors,
+  syncPullPages,
   syncConflicts,
+  invitationLinks,
 };
 
 export type Schema = typeof schema;
