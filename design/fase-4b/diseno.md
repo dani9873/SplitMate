@@ -395,6 +395,11 @@ hacerlas antes de invitar a otra persona.
   | Gastos más transferencias por grupo, borrados incluidos | 20 000  |
   | Pagadores y partes por gasto                            | 50 (4a) |
 
+  **Compromiso conocido:** las categorías borradas cuentan para el cupo de 100 (como los miembros y
+  los movimientos, borrar no libera cupo). Se eligió lo más estricto contra el abuso; con 100 es
+  difícil que moleste. La respuesta de un cupo lleno es `rejected / quota` con el campo `quota`
+  (`groups`, `members`, `categories` o `movements`).
+
   Los conteos usan los índices `(group_id, change_seq)` que ya existen. Si en las pruebas resultan
   lentos, se pasan a contadores en `private.group_changes`.
 

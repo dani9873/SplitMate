@@ -142,7 +142,17 @@ Igual que el paso 4: diff, pgTAP, tu aprobación, push y `check:data-api`.
 
 ### Paso 8 — Motor con `sync_pull_v2` (TDD)
 
-- **Transporte:** `sync_pull_v2`.
+- **Transporte:** `sync_pull_v2`. Manda **siempre los cursores de todos los grupos** que tiene el
+  teléfono: si omite alguno, esa llamada lo descarga desde 0 y le quita el turno al grupo grande.
+- **Requisito: el wire de la 4a es estricto.** En `src/db/sync/wire.ts`, `pushResultSchema` valida
+  `reason` de `rejected` con `z.enum(['conflict', 'currency_locked', 'group_currency_changed'])`,
+  `SYNC_TABLES` no incluye `group_access` y `pullResponseSchema` no conoce `partial`, `next` ni
+  `lost`. Con el servidor de la 4b, un `rejected` con `member_linked` o `quota` (y su campo `quota`)
+  haría fallar el parseo de la respuesta entera de `sync_push`. Hay que ampliar el enum
+  (`member_linked`, `quota`), `RejectReason`, `SYNC_TABLES` y los esquemas de `sync_pull_v2`, y
+  tratar `member_linked` y `quota` como borrador. La app de la 4a no se ve afectada mientras no
+  reciba esos motivos; el riesgo es solo para ella con las reglas nuevas (ver la nota de
+  transición del diseño).
 - **zod** de la respuesta con topes (C5): filas, grupos, textos y `next`.
 - **Páginas parciales** a `sync_pull_pages`. Al terminar, la ronda desde `hw` y la aplicación en una
   transacción.
