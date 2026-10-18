@@ -12,7 +12,7 @@ no se tocó; no se abrió PR ni se borró ninguna rama. La fase **no** se marca 
 | 1 | Segunda revisión de seguridad adversarial | Hecha: ver abajo |
 | 2 | Prueba de concurrencia real del último uso | Hecha en local; falta ver el CI (se sube al cierre) |
 | 3 | `log_parameter_max_length_on_error` en el remoto (solo lectura) | Hecha: vale `0` |
-| 4 | `guia-manana.md` | Pendiente |
+| 4 | `guia-manana.md` | Hecha |
 | 5 | Borrador del push n.º 3 | Pendiente |
 | 6 | Auditoría de las pantallas nuevas | Pendiente |
 
@@ -68,3 +68,28 @@ lectura; no se cambió nada. Postgres no registra los parámetros de una petici�
 error de programación en `accept_invitation` no deja el token en los registros (hallazgo I5 cerrado en
 `revision-seguridad.md`). La CLI abre, como en `db push --dry-run`, un rol temporal de inicio de
 sesión para la consulta (aviso «Initialising login role…»).
+
+## Tarea 4 — `guia-manana.md`
+
+Guía para alguien que no lo ha hecho antes (Windows + PowerShell), con pasos numerados y qué debería verse:
+A) Cloudflare Pages con `wrangler`; B) huellas SHA-256; C) `EXPO_PUBLIC_INVITE_HOST` en EAS; D) Brevo y
+SMTP de Supabase; E) builds de Android y verificación del dominio con `adb`; F) tabla de 15 casos para dos
+teléfonos, con el resultado esperado de cada uno. Cada comando lleva ✅ (verificado) o ⚠️ (no verificado).
+
+Decisiones y cosas que conviene saber antes de leerla:
+
+- **No hace falta comprar un dominio para los enlaces:** Cloudflare Pages da `<proyecto>.pages.dev` gratis
+  y el plugin de Android lo acepta (probado con su misma validación). El dominio propio solo es
+  imprescindible para **Brevo** (sus registros DNS). Elegí `pages.dev` como arranque; cambiar de dominio
+  después exige otro build.
+- **Posible problema con las huellas de `development`:** ese perfil de `eas.json` usa
+  `withoutCredentials: true` y `assembleDebug`, así que `eas credentials` probablemente no muestra una firma
+  para él. La guía lee la huella directamente del APK con `keytool -printcert -jarfile` (⚠️ no verificado
+  que la firma de depuración sea siempre la misma). Si te estorba, la alternativa es probar los App Links
+  solo con el build `preview`.
+- **`env:set` o `env:create`:** la documentación actual muestra `eas env:set`, pero la CLI que baja `npx`
+  hoy (16.17.4) solo tiene `env:create`. La guía lo explica y los argumentos son los mismos.
+- Verificado con la documentación oficial de Cloudflare, Expo y Android (`pm get-app-links`,
+  `pm verify-app-links --re-verify`); no se ejecutó nada contra Cloudflare, EAS ni teléfonos.
+- El caso de «enlace agotado» (10 cuentas) y el de «vencido» (mínimo 1 día) son incómodos a mano; la guía
+  lo dice y apunta a las pruebas automáticas.
