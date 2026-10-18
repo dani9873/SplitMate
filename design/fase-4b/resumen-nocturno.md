@@ -20,7 +20,7 @@ ni correos de prueba, sin tocar `main`, sin abrir PR, sin borrar ramas.
 - [x] 9. Permisos y acceso perdido en pantallas (Jest completo 1287 en verde)
 - [x] 10. Enlaces de entrada y página de respaldo (sin dominio ni huella reales; archivos listos, sin desplegar)
 - [x] 11. Invitar y unirse (Jest completo 1541 en verde)
-- [ ] 12. Doble toque a 300 ms
+- [x] 12. Doble toque a 300 ms
 
 ## Decisiones tomadas
 

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { usePressGuard } from '../press-guard';
+import { DEFAULT_PRESS_COOLDOWN_MS, usePressGuard } from '../press-guard';
 
 describe('usePressGuard', () => {
   beforeEach(() => {
@@ -20,6 +20,27 @@ describe('usePressGuard', () => {
     });
 
     expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('sin opciones usa la ventana compartida de 300 ms: 299 ignora, 300 acepta', async () => {
+    const handler = jest.fn();
+    const { result } = await renderHook(() => usePressGuard(handler));
+    expect(DEFAULT_PRESS_COOLDOWN_MS).toBe(300);
+
+    await act(async () => {
+      result.current();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(299);
+      result.current();
+    });
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+      result.current();
+    });
+    expect(handler).toHaveBeenCalledTimes(2);
   });
 
   it('vuelve a responder cuando pasa el enfriamiento', async () => {

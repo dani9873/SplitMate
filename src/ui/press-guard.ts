@@ -5,7 +5,12 @@ export interface PressGuardOptions {
   cooldownMs?: number;
 }
 
-export const DEFAULT_PRESS_COOLDOWN_MS = 500;
+/**
+ * Ventana, en ms, en que un toque repetido se ignora. La usan `Button` e `IconButton` (y todo lo que
+ * pasa por `usePressGuard`). 300 ms tapa el doble toque accidental (dos toques en menos de unos
+ * 250 ms) sin perder un segundo toque a propósito, que casi siempre llega después. Antes eran 500 ms.
+ */
+export const DEFAULT_PRESS_COOLDOWN_MS = 300;
 
 function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
   return (
