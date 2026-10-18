@@ -66,9 +66,9 @@ function fakeNetwork(initial = true) {
 }
 
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
-const EMPTY: PullResponse = { groups: [], hasMore: false };
+const EMPTY: PullResponse = { groups: [], hasMore: false, lost: [] };
 const mutation: Mutation = { id: 'm1', entity: 'group', base: null, data: { id: 'g1' } };
-const group = { id: 'g1', cursor: 5, rows: [] };
+const group = { id: 'g1', cursor: 5, partial: false, next: null, rows: [] };
 
 interface SetupOptions {
   online?: boolean;
@@ -81,7 +81,7 @@ function setup(options: SetupOptions = {}) {
   const scheduler = manualScheduler();
   const network = fakeNetwork(options.online ?? true);
   const bus: ChangeBus = createChangeBus();
-  const counts = { value: { pending: 0, failed: 0, conflicts: 0 } as SyncCounts };
+  const counts = { value: { pending: 0, failed: 0, conflicts: 0, lost: 0 } as SyncCounts };
   const pending = { batches: [] as Mutation[][] };
   const nextBatch = jest.fn(() => pending.batches.shift() ?? []);
   const retryFailed = jest.fn(() => 0);
@@ -91,6 +91,8 @@ function setup(options: SetupOptions = {}) {
     applyPushResults: jest.fn(() => []),
     cursors: () => ({}),
     applyRemoteGroup: jest.fn(() => ({ applied: 0, skipped: 0, held: false })),
+    pullCursors: () => ({}),
+    applyPull: jest.fn(() => ({ applied: 0, skipped: 0, held: [], lost: [], more: false })),
     retryFailed,
     listConflicts: jest.fn(() => []),
     getConflict: jest.fn(),
@@ -335,7 +337,8 @@ describe('sin sesión o sin red', () => {
       store: {
         counts: () => h.counts.value,
         nextBatch: () => [],
-        cursors: () => ({}),
+        pullCursors: () => ({}),
+        applyPull: () => ({ applied: 0, skipped: 0, held: [], lost: [], more: false }),
         retryFailed: () => 0,
       } as never,
       remote: { push: h.push, pull: h.pull },
@@ -397,7 +400,7 @@ describe('errores y reintentos', () => {
 
   it('un fallo de tiempo deja pendiente, no error', async () => {
     const h = setup({ pull: failWith('timeout') });
-    h.counts.value = { pending: 1, failed: 0, conflicts: 0 };
+    h.counts.value = { pending: 1, failed: 0, conflicts: 0, lost: 0 };
     h.engine.start();
     await flush();
     expect(h.engine.getStatus().state).toBe('pending');
@@ -456,7 +459,7 @@ describe('estados que antes eran silenciosos', () => {
     const h = setup();
     h.engine.start();
     await flush();
-    h.counts.value = { pending: 0, failed: 1, conflicts: 0 };
+    h.counts.value = { pending: 0, failed: 1, conflicts: 0, lost: 0 };
     h.engine.request('manual');
     await flush();
     expect(h.engine.getStatus()).toMatchObject({ state: 'error', failed: 1 });
@@ -488,8 +491,16 @@ describe('estados que antes eran silenciosos', () => {
   it('grupos retenidos por una fila inválida: error con la cuenta, y se limpia al corregirse', async () => {
     let held = true;
     const h = setup({
-      pull: () => Promise.resolve({ groups: [group], hasMore: false }),
-      store: { applyRemoteGroup: () => ({ applied: 0, skipped: 0, held }) },
+      pull: () => Promise.resolve({ groups: [group], hasMore: false, lost: [] }),
+      store: {
+        applyPull: () => ({
+          applied: 0,
+          skipped: 0,
+          held: held ? [{ id: 'g1', cursor: 5 }] : [],
+          lost: [],
+          more: false,
+        }),
+      },
     });
     h.engine.start();
     await flush();
@@ -503,7 +514,7 @@ describe('estados que antes eran silenciosos', () => {
 
   it('cuenta los borradores por revisar', async () => {
     const h = setup();
-    h.counts.value = { pending: 0, failed: 0, conflicts: 2 };
+    h.counts.value = { pending: 0, failed: 0, conflicts: 2, lost: 0 };
     h.engine.start();
     await flush();
     expect(h.engine.getStatus()).toMatchObject({ state: 'synced', conflicts: 2 });
@@ -525,7 +536,7 @@ describe('perfil remoto', () => {
   it('si no se pudo, descarga pero no envía, y lo vuelve a intentar en el siguiente ciclo', async () => {
     let result: 'synced' | 'pending' = 'pending';
     const h = setup({ ensureProfile: () => Promise.resolve(result) });
-    h.counts.value = { pending: 1, failed: 0, conflicts: 0 };
+    h.counts.value = { pending: 1, failed: 0, conflicts: 0, lost: 0 };
     h.pending.batches.push([mutation]);
     h.engine.start();
     await flush();
@@ -579,7 +590,7 @@ describe('estado y avisos', () => {
     const h = setup();
     h.engine.start();
     await flush();
-    h.counts.value = { pending: 3, failed: 0, conflicts: 0 };
+    h.counts.value = { pending: 3, failed: 0, conflicts: 0, lost: 0 };
     localWrite(h.bus);
     expect(h.engine.getStatus()).toMatchObject({ state: 'pending', pending: 3 });
   });

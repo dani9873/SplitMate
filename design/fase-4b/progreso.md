@@ -9,7 +9,7 @@
 - [x] 5. Invitaciones (servidor): migración `20261019090000_invitaciones.sql`, pruebas `013-invitaciones` (159), revisión de seguridad hecha (`revision-seguridad.md`), dry-run limpio (solo esa migración)
 - [ ] 6. 🔒 `db push` n.º 2: **pendiente de aprobación del usuario** (no se ejecuta de noche; el dry-run lista solo `20261019090000_invitaciones.sql`)
 - [x] 7. Base local 0005: `0005_acceso_e_invitaciones.sql` (generada por drizzle-kit, con SQL; sin `--custom`), `users.is_remote`, `groups.access_lost_at`, `group_access`, `invitation_links`, `sync_pull_pages` y las columnas de descarga en curso de `sync_cursors`; pruebas `migration-0005`
-- [ ] 8. Motor con `sync_pull_v2`
+- [x] 8. Motor con `sync_pull_v2`: wire estricto ampliado (`member_linked`, `quota`, `group_access`, `partial`/`next`/`lost`), topes de C5 en `remote.pull`, páginas parciales en `sync_pull_pages` con ronda extra desde `hw`, `lost`, C4, usuarios remotos, cuenta borrada (`created_by` nulo); pruebas `pull-v2`, `outbox` y `compartir.int` (tres cuentas contra PGlite)
 - [ ] 9. Permisos y acceso perdido en pantallas
 - [ ] 10. Enlaces de entrada y página de respaldo
 - [ ] 11. Invitar y unirse
@@ -18,7 +18,7 @@
 - [ ] 14. 🔒 `db push` n.º 3: retiro de `sync_pull` v1
 - [ ] 15. Documentación y PR
 
-**Siguiente paso (noche del 18 al 19):** bloque B, paso 8 (motor con `sync_pull_v2`). El push n.º 2 espera tu aprobación. Antes: paso 5, invitaciones (servidor): pgTAP `013-invitaciones` primero, con las condiciones de seguridad de `plan.md` (uso atómico, mismo `SMINV`, vista previa mínima y con límite, token fuera de los registros). Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
+**Siguiente paso (noche del 18 al 19):** bloque B, paso 9 (permisos y acceso perdido en pantallas). El push n.º 2 espera tu aprobación. Antes: paso 5, invitaciones (servidor): pgTAP `013-invitaciones` primero, con las condiciones de seguridad de `plan.md` (uso atómico, mismo `SMINV`, vista previa mínima y con límite, token fuera de los registros). Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
 
 **Notas del paso 3:**
 

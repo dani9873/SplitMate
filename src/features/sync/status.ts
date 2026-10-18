@@ -18,6 +18,8 @@ export interface SyncStatus {
   readonly failed: number;
   /** Borradores por revisar. */
   readonly conflicts: number;
+  /** Unidades por subir en grupos a los que ya no se tiene acceso: no se enviarán. */
+  readonly lost: number;
   /** Grupos cuya descarga quedó retenida por una fila que no se pudo aplicar. */
   readonly held: number;
   /** Causa del último ciclo fallido; `null` si el último salió bien. */
@@ -52,6 +54,7 @@ export function deriveStatus(input: StatusInput): SyncStatus {
     pending: counts.pending,
     failed: counts.failed,
     conflicts: counts.conflicts,
+    lost: counts.lost,
     held,
     lastError,
     lastSyncedAt,
@@ -65,6 +68,7 @@ export function sameStatus(a: SyncStatus, b: SyncStatus): boolean {
     a.pending === b.pending &&
     a.failed === b.failed &&
     a.conflicts === b.conflicts &&
+    a.lost === b.lost &&
     a.held === b.held &&
     a.lastError === b.lastError &&
     a.lastSyncedAt === b.lastSyncedAt

@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 export type TableName =
   | 'users'
   | 'groups'
+  | 'group_access'
   | 'group_members'
   | 'categories'
   | 'expenses'
@@ -19,6 +20,7 @@ export type TableName =
 export const ALL_TABLES: readonly TableName[] = [
   'users',
   'groups',
+  'group_access',
   'group_members',
   'categories',
   'expenses',

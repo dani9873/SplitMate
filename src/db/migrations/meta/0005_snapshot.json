@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "3be0c5c3-c666-4ea0-9678-d1e6ff44d096",
+  "id": "5c057a63-e512-4283-9122-fe972a885e12",
   "prevId": "db165b3d-5ddb-4e0d-b2d5-928d28a92f3b",
   "tables": {
     "categories": {
@@ -1297,6 +1297,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "quota": {
+          "name": "quota",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "data": {
           "name": "data",
           "type": "text",
@@ -1355,7 +1362,11 @@
         },
         "sync_conflicts_reason": {
           "name": "sync_conflicts_reason",
-          "value": "\"sync_conflicts\".\"reason\" IN ('conflict', 'currency_locked', 'group_currency_changed')"
+          "value": "\"sync_conflicts\".\"reason\" IN ('conflict', 'currency_locked', 'group_currency_changed', 'member_linked', 'quota')"
+        },
+        "sync_conflicts_quota": {
+          "name": "sync_conflicts_quota",
+          "value": "\"sync_conflicts\".\"quota\" IS NULL OR \"sync_conflicts\".\"quota\" IN ('groups', 'members', 'categories', 'movements')"
         }
       }
     },
@@ -1381,6 +1392,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "round_seq": {
+          "name": "round_seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "hw": {

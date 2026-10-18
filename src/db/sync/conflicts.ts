@@ -3,7 +3,14 @@ import { z } from 'zod';
 
 import type { AppDatabase } from '../repositories/types';
 import { syncConflicts } from '../schema';
-import { SYNC_ENTITIES, type RejectReason, type SyncEntity } from './wire';
+import {
+  QUOTA_KINDS,
+  REJECT_REASONS,
+  SYNC_ENTITIES,
+  type QuotaKind,
+  type RejectReason,
+  type SyncEntity,
+} from './wire';
 
 /**
  * Un cambio del usuario que el servidor rechazó. Nunca se pierde: queda aquí hasta que el usuario
@@ -15,6 +22,8 @@ export interface ConflictDraft {
   readonly entityId: string;
   readonly groupId: string;
   readonly reason: RejectReason;
+  /** El cupo alcanzado; solo con `reason: 'quota'`. */
+  readonly quota?: QuotaKind;
   /** La versión del usuario, tal como la envió la sincronización. */
   readonly data: Readonly<Record<string, unknown>>;
   /** En el servidor está borrada. */
@@ -29,7 +38,8 @@ export interface ConflictDraft {
 export type NewConflict = ConflictDraft;
 
 const dataSchema = z.record(z.string(), z.unknown());
-const reasonSchema = z.enum(['conflict', 'currency_locked', 'group_currency_changed']);
+const reasonSchema = z.enum(REJECT_REASONS);
+const quotaSchema = z.enum(QUOTA_KINDS);
 const entitySchema = z.enum(SYNC_ENTITIES);
 
 type ConflictRow = typeof syncConflicts.$inferSelect;
@@ -45,6 +55,7 @@ function toDraft(row: ConflictRow): ConflictDraft | undefined {
   const data = dataSchema.safeParse(json);
   const reason = reasonSchema.safeParse(row.reason);
   const entity = entitySchema.safeParse(row.entity);
+  const quota = quotaSchema.safeParse(row.quota);
   if (!data.success || !reason.success || !entity.success) {
     return undefined;
   }
@@ -54,6 +65,7 @@ function toDraft(row: ConflictRow): ConflictDraft | undefined {
     entityId: row.entityId,
     groupId: row.groupId,
     reason: reason.data,
+    ...(quota.success ? { quota: quota.data } : {}),
     data: data.data,
     serverDeleted: row.serverDeleted,
     wasNew: row.wasNew,
@@ -71,6 +83,7 @@ export function recordConflict(db: AppDatabase, conflict: NewConflict): void {
       entityId: conflict.entityId,
       groupId: conflict.groupId,
       reason: conflict.reason,
+      quota: conflict.reason === 'quota' ? (conflict.quota ?? null) : null,
       data: JSON.stringify(conflict.data),
       serverDeleted: conflict.serverDeleted,
       wasNew: conflict.wasNew,

@@ -43,7 +43,7 @@ const count = async (sql: string, params: unknown[] = []) =>
   Number((await server.query<{ n: string }>(sql, params))[0]?.n);
 
 const pull = (rpc: ReturnType<SupabaseTestServer['rpcFor']>) =>
-  rpc('sync_pull', { p_cursors: {}, p_max_rows: 2000 }) as Promise<{
+  rpc('sync_pull_v2', { p_cursors: {}, p_max_rows: 2000 }) as Promise<{
     groups: { id: string }[];
     has_more: boolean;
   }>;

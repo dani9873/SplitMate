@@ -55,11 +55,29 @@ export function compareUnits(a: UnitRef, b: UnitRef): number {
   return a.id < b.id ? -1 : 1;
 }
 
+/** Los grupos a los que la cuenta ya no tiene acceso: de solo lectura y fuera de la cola de envío. */
+export function lostGroupIds(db: AppDatabase): Set<string> {
+  return new Set(
+    db
+      .select({ id: groups.id })
+      .from(groups)
+      .where(isNotNull(groups.accessLostAt))
+      .all()
+      .map((row) => row.id),
+  );
+}
+
 /**
  * Unidades con cambios que el servidor todavía no confirma (`version <> synced_version`), en orden
- * de envío. Las categorías predefinidas no tienen grupo y nunca se envían.
+ * de envío. Las categorías predefinidas no tienen grupo y nunca se envían. Por omisión no incluye
+ * las de grupos sin acceso (`lost`: solo esas).
  */
-export function listPendingUnits(db: AppDatabase): UnitRef[] {
+export function listPendingUnits(db: AppDatabase, scope: 'active' | 'lost' = 'active'): UnitRef[] {
+  const lost = lostGroupIds(db);
+  return pendingUnits(db).filter((unit) => lost.has(unit.groupId) === (scope === 'lost'));
+}
+
+function pendingUnits(db: AppDatabase): UnitRef[] {
   const pending: UnitRef[] = [
     ...db
       .select({ id: groups.id })

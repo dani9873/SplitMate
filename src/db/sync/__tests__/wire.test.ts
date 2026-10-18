@@ -13,11 +13,34 @@ describe('contrato de red: respuesta de sync_push', () => {
   });
 
   it('acepta un rechazo con cada razón y su unidad actual (que puede venir vacía)', () => {
-    for (const reason of ['conflict', 'currency_locked', 'group_currency_changed'] as const) {
+    for (const reason of [
+      'conflict',
+      'currency_locked',
+      'group_currency_changed',
+      'member_linked',
+    ] as const) {
       expect(
         pushResponseSchema.parse([{ id: ID, status: 'rejected', reason, current: [] }]),
       ).toEqual([{ id: ID, status: 'rejected', reason, current: [] }]);
     }
+  });
+
+  it('acepta un rechazo por cupo con el cupo que se alcanzó', () => {
+    for (const quota of ['groups', 'members', 'categories', 'movements'] as const) {
+      expect(
+        pushResponseSchema.parse([
+          { id: ID, status: 'rejected', reason: 'quota', quota, current: [] },
+        ]),
+      ).toEqual([{ id: ID, status: 'rejected', reason: 'quota', quota, current: [] }]);
+    }
+  });
+
+  it('rechaza un cupo desconocido', () => {
+    expect(
+      pushResponseSchema.safeParse([
+        { id: ID, status: 'rejected', reason: 'quota', quota: 'gastos', current: [] },
+      ]).success,
+    ).toBe(false);
   });
 
   it('acepta un envío fallido, con o sin el campo que falló', () => {
@@ -76,44 +99,90 @@ describe('contrato de red: respuesta de sync_push', () => {
   });
 });
 
-describe('contrato de red: respuesta de sync_pull', () => {
-  it('convierte has_more en hasMore y conserva grupos, cursores y filas', () => {
+describe('contrato de red: respuesta de sync_pull_v2', () => {
+  const entire = (over: Record<string, unknown> = {}) => ({
+    id: ID,
+    cursor: 12,
+    partial: false,
+    next: null,
+    rows: [group],
+    ...over,
+  });
+  const next = { seq: 0, hw: 40, after: { t: 3, id: OTHER_ID } };
+
+  it('convierte has_more en hasMore y conserva grupos, cursores, filas y lost', () => {
     expect(
-      pullResponseSchema.parse({
-        groups: [{ id: ID, cursor: 12, rows: [group] }],
-        has_more: true,
-      }),
-    ).toEqual({ groups: [{ id: ID, cursor: 12, rows: [group] }], hasMore: true });
+      pullResponseSchema.parse({ groups: [entire()], has_more: true, lost: [OTHER_ID] }),
+    ).toEqual({ groups: [entire()], hasMore: true, lost: [OTHER_ID] });
   });
 
   it('acepta una respuesta sin grupos', () => {
-    expect(pullResponseSchema.parse({ groups: [], has_more: false })).toEqual({
+    expect(pullResponseSchema.parse({ groups: [], has_more: false, lost: [] })).toEqual({
       groups: [],
       hasMore: false,
+      lost: [],
+    });
+  });
+
+  it('acepta una página parcial con su cursor siguiente y sin cursor', () => {
+    const partial = entire({ cursor: null, partial: true, next });
+    expect(pullResponseSchema.parse({ groups: [partial], has_more: true, lost: [] })).toEqual({
+      groups: [partial],
+      hasMore: true,
+      lost: [],
     });
   });
 
   it.each([
-    ['un cursor negativo', { groups: [{ id: ID, cursor: -1, rows: [] }], has_more: false }],
-    ['un cursor decimal', { groups: [{ id: ID, cursor: 1.5, rows: [] }], has_more: false }],
+    ['un cursor negativo', entire({ cursor: -1 })],
+    ['un cursor decimal', entire({ cursor: 1.5 })],
+    ['un cursor mayor que el entero seguro', entire({ cursor: Number.MAX_SAFE_INTEGER + 2 })],
+    ['un grupo sin cursor', { id: ID, partial: false, next: null, rows: [] }],
+    ['un grupo sin partial', { id: ID, cursor: 1, next: null, rows: [] }],
+    ['un id de grupo que no es UUID', entire({ id: 'x' })],
+    ['una tabla desconocida', entire({ rows: [{ table: 'x', row: { id: ID } }] })],
+    ['una parcial con cursor', entire({ partial: true, next })],
+    ['una parcial sin next', entire({ cursor: null, partial: true })],
+    ['una entera con next', entire({ next })],
+    ['una entera sin cursor', entire({ cursor: null })],
     [
-      'un cursor mayor que el entero seguro',
-      { groups: [{ id: ID, cursor: Number.MAX_SAFE_INTEGER + 2, rows: [] }], has_more: false },
-    ],
-    ['un grupo sin cursor', { groups: [{ id: ID, rows: [] }], has_more: false }],
-    [
-      'un id de grupo que no es UUID',
-      { groups: [{ id: 'x', cursor: 1, rows: [] }], has_more: false },
+      'un next con seq mayor que hw',
+      entire({ cursor: null, partial: true, next: { ...next, seq: 41 } }),
     ],
     [
-      'una tabla desconocida',
-      { groups: [{ id: ID, cursor: 1, rows: [{ table: 'x', row: { id: ID } }] }], has_more: false },
+      'un next con t fuera de 1 a 8',
+      entire({ cursor: null, partial: true, next: { ...next, after: { t: 9, id: ID } } }),
     ],
-    ['sin has_more', { groups: [] }],
-    ['has_more como texto', { groups: [], has_more: 'false' }],
-    ['sin groups', { has_more: false }],
+    [
+      'un next con id que no es UUID',
+      entire({ cursor: null, partial: true, next: { ...next, after: { t: 1, id: 'x' } } }),
+    ],
+  ])('rechaza %s', (_name, groupBody) => {
+    expect(
+      pullResponseSchema.safeParse({ groups: [groupBody], has_more: false, lost: [] }).success,
+    ).toBe(false);
+  });
+
+  it.each([
+    ['sin has_more', { groups: [], lost: [] }],
+    ['has_more como texto', { groups: [], has_more: 'false', lost: [] }],
+    ['sin groups', { has_more: false, lost: [] }],
+    ['sin lost', { groups: [], has_more: false }],
+    ['lost con algo que no es UUID', { groups: [], has_more: false, lost: ['x'] }],
     ['una lista en vez del objeto', []],
-  ])('rechaza %s', (_name, body) => {
+    [
+      'más de 2000 filas en un grupo',
+      {
+        groups: [entire({ rows: Array.from({ length: 2001 }, () => group) })],
+        has_more: false,
+        lost: [],
+      },
+    ],
+    [
+      'más de 1000 grupos perdidos',
+      { groups: [], has_more: false, lost: Array.from({ length: 1001 }, () => OTHER_ID) },
+    ],
+  ])('rechaza la respuesta %s', (_name, body) => {
     expect(pullResponseSchema.safeParse(body).success).toBe(false);
   });
 });
@@ -123,6 +192,7 @@ describe('listas del contrato', () => {
     expect([...SYNC_ENTITIES]).toEqual(['group', 'member', 'category', 'expense', 'transfer']);
     expect([...SYNC_TABLES]).toEqual([
       'groups',
+      'group_access',
       'group_members',
       'categories',
       'expenses',

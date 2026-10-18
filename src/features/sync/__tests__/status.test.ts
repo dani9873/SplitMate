@@ -1,7 +1,7 @@
 import { BACKOFF_MS, deriveStatus, nextBackoff, type StatusInput } from '../status';
 
 const base: StatusInput = {
-  counts: { pending: 0, failed: 0, conflicts: 0 },
+  counts: { pending: 0, failed: 0, conflicts: 0, lost: 0 },
   online: true,
   held: 0,
   lastError: null,

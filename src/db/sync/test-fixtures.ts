@@ -2,7 +2,7 @@ import { createIdGenerator } from '@/lib/ids';
 
 import { createTestGroup, createTestRepositories } from '../test-utils';
 import { createSyncStore } from './store';
-import type { PushResult, RemoteRow, SyncTable } from './wire';
+import type { PushResult, QuotaKind, RejectReason, RemoteRow, SyncTable } from './wire';
 
 /** Instante base de las filas que "manda el servidor" en las pruebas. */
 const SERVER_TIME = 1_790_000_000_000;
@@ -37,8 +37,9 @@ export const applied = (id: string, version: number, current: RemoteRow[] = []):
 export const rejected = (
   id: string,
   current: RemoteRow[],
-  reason: 'conflict' | 'currency_locked' | 'group_currency_changed' = 'conflict',
-): PushResult => ({ id, status: 'rejected', reason, current });
+  reason: RejectReason = 'conflict',
+  quota?: QuotaKind,
+): PushResult => ({ id, status: 'rejected', reason, ...(quota ? { quota } : {}), current });
 
 export const failed = (
   id: string,

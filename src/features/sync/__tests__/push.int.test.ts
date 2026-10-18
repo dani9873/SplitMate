@@ -107,7 +107,7 @@ describe('subida: el teléfono crea y el servidor queda igual', () => {
 
     expect(result).toMatchObject({ rejected: 0, failed: 0, notices: [] });
     expect(result.applied).toBe(result.sent);
-    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
+    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0, lost: 0 });
 
     const local = await phone.snapshot();
     expect(local.expenses).toHaveLength(3);
@@ -284,7 +284,7 @@ describe('fallas de red y del servidor', () => {
         group.id,
       ]),
     ).toEqual([{ version: 1 }]);
-    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
+    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0, lost: 0 });
     expect(phone.sqlite.exec(`SELECT server_version FROM expenses`)[0]?.values).toEqual([[1]]);
     expect(await serverSnapshot(server, phone.groupIds())).toEqual(await phone.snapshot());
   });
@@ -299,7 +299,8 @@ describe('descarga paginada del servidor (lectura)', () => {
       for (let e = 0; e < 15; e += 1) {
         addDinner(phone, group.id, memberIds, { title: `Gasto ${e}`, amount: 1000 + e });
       }
-      sizes.push(1 + 3 + 15 * 4);
+      // El grupo, la fila de acceso de su dueño, 3 miembros y 15 gastos con pagador y 2 partes.
+      sizes.push(1 + 1 + 3 + 15 * 4);
     }
     const result = await phone.sync();
     expect(result).toMatchObject({ failed: 0, rejected: 0 });
@@ -316,7 +317,7 @@ describe('descarga paginada del servidor (lectura)', () => {
         // Un grupo llega entero en una sola página.
         expect(received.has(changes.id)).toBe(false);
         received.set(changes.id, changes.rows.length);
-        cursors[changes.id] = changes.cursor;
+        cursors[changes.id] = changes.cursor ?? 0;
       }
       hasMore = page.hasMore;
       expect(pages).toBeLessThan(10);
@@ -326,6 +327,6 @@ describe('descarga paginada del servidor (lectura)', () => {
     expect([...received.keys()].sort()).toEqual(phone.groupIds().sort());
     expect([...received.values()].sort()).toEqual([...sizes].sort());
     // Con los cursores finales ya no hay nada nuevo.
-    expect(await remote.pull(cursors, 100)).toEqual({ groups: [], hasMore: false });
+    expect(await remote.pull(cursors, 100)).toEqual({ groups: [], hasMore: false, lost: [] });
   });
 });

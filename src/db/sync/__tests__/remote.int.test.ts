@@ -91,7 +91,8 @@ describe('createSyncRemote contra el servidor de prueba (migraciones reales)', (
     expect(first.hasMore).toBe(false);
     const changes = first.groups.find((group) => group.id === groupId);
     expect(changes?.cursor).toBeGreaterThan(0);
-    expect(changes?.rows.map((row) => row.table)).toEqual(['groups']);
+    // El grupo y la fila de acceso de su dueño (sync_pull_v2 manda group_access).
+    expect(changes?.rows.map((row) => row.table)).toEqual(['groups', 'group_access']);
 
     const second = await remote.pull({ [groupId]: changes?.cursor ?? 0 }, 2000);
     expect(second.groups.find((group) => group.id === groupId)).toBeUndefined();

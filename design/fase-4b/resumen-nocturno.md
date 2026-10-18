@@ -16,7 +16,7 @@ ni correos de prueba, sin tocar `main`, sin abrir PR, sin borrar ramas.
 ## Bloque B — Cliente (pasos 7 a 12)
 
 - [x] 7. Base local 0005 (`0005_acceso_e_invitaciones.sql`, 10 pruebas de migración sobre una base de la 4a con datos)
-- [ ] 8. Motor con `sync_pull_v2`
+- [x] 8. Motor con `sync_pull_v2` (pruebas: `pull-v2` 30, `compartir.int` 10 contra PGlite con tres cuentas, wire/remote ampliados)
 - [ ] 9. Permisos y acceso perdido en pantallas
 - [ ] 10. Enlaces de entrada y página de respaldo
 - [ ] 11. Invitar y unirse

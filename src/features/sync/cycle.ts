@@ -1,14 +1,11 @@
 import type { BatchLimits, SyncNotice, SyncRemote, SyncStore } from '@/db/sync';
 
 export interface SyncCycleOptions {
-  readonly store: Pick<
-    SyncStore,
-    'nextBatch' | 'applyPushResults' | 'cursors' | 'applyRemoteGroup'
-  >;
+  readonly store: Pick<SyncStore, 'nextBatch' | 'applyPushResults' | 'pullCursors' | 'applyPull'>;
   readonly remote: Pick<SyncRemote, 'push' | 'pull'>;
   /** Tamaño de cada lote de envío. Por omisión, 50 envíos y 256 KiB. */
   readonly batch?: BatchLimits;
-  /** Filas por página de descarga. Por omisión, 2000. */
+  /** Filas por página de descarga. Por omisión, 1000. */
   readonly pullMaxRows?: number;
   /** Se llama con cada aviso en cuanto se aplica su lote, aunque un lote posterior falle. */
   readonly onNotice?: (notice: SyncNotice) => void;
@@ -32,12 +29,14 @@ export interface SyncCycleResult {
   readonly skipped: number;
   /** Grupos cuyo cursor no avanzó porque algo no se pudo aplicar. */
   readonly held: number;
+  /** Grupos que el servidor dijo que la cuenta ya no ve (quedaron de solo lectura). */
+  readonly lost: number;
   readonly notices: SyncNotice[];
 }
 
 const DEFAULT_BATCH: BatchLimits = { count: 50, bytes: 262_144 };
 const DEFAULT_MAX_BATCHES = 200;
-const DEFAULT_PULL_MAX_ROWS = 2000;
+const DEFAULT_PULL_MAX_ROWS = 1000;
 const DEFAULT_MAX_PAGES = 50;
 
 /**
@@ -66,6 +65,7 @@ export async function runSyncCycle({
     pulled: 0,
     skipped: 0,
     held: 0,
+    lost: 0,
   };
   const notices: SyncNotice[] = [];
 
@@ -96,21 +96,27 @@ export async function runSyncCycle({
 
   // Un grupo retenido conserva su cursor en la base (se reintenta en el próximo ciclo), pero dentro
   // de este ciclo se pide desde donde llegó: así no se queda pidiendo siempre el mismo y los demás
-  // grupos avanzan.
+  // grupos avanzan. Siempre se mandan los cursores de todos los grupos del teléfono: el servidor
+  // descarga desde 0 el que falte.
   const heldCursors: Record<string, number> = {};
   while (result.pages < maxPages) {
-    const page = await remote.pull({ ...store.cursors(), ...heldCursors }, pullMaxRows);
+    const page = await remote.pull({ ...store.pullCursors(), ...heldCursors }, pullMaxRows);
     result.pages += 1;
-    for (const changes of page.groups) {
-      const outcome = store.applyRemoteGroup(changes);
-      result.pulled += outcome.applied;
-      result.skipped += outcome.skipped;
-      if (outcome.held) {
-        result.held += 1;
-        heldCursors[changes.id] = changes.cursor;
+    const outcome = store.applyPull(page);
+    result.pulled += outcome.applied;
+    result.skipped += outcome.skipped;
+    result.lost += outcome.lost.length;
+    let unsafe = false;
+    for (const held of outcome.held) {
+      result.held += 1;
+      if (held.cursor === null) {
+        // Sin un cursor seguro (se descartó una descarga por páginas): hasta el próximo ciclo.
+        unsafe = true;
+      } else {
+        heldCursors[held.id] = held.cursor;
       }
     }
-    if (!page.hasMore) {
+    if ((!page.hasMore && !outcome.more) || unsafe) {
       break;
     }
   }

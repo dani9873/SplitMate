@@ -9,6 +9,7 @@ export const SYNCED_STATUS: SyncStatus = {
   pending: 0,
   failed: 0,
   conflicts: 0,
+  lost: 0,
   held: 0,
   lastError: null,
   lastSyncedAt: null,

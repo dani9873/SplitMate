@@ -352,7 +352,15 @@ export const localSettings = sqliteTable('local_settings', {
 });
 
 const SYNC_ENTITIES = ['group', 'member', 'category', 'expense', 'transfer'] as const;
-const CONFLICT_REASONS = ['conflict', 'currency_locked', 'group_currency_changed'] as const;
+const CONFLICT_REASONS = [
+  'conflict',
+  'currency_locked',
+  'group_currency_changed',
+  'member_linked',
+  'quota',
+] as const;
+/** Qué cupo del servidor se alcanzó cuando el motivo es `quota`. */
+const QUOTAS = ['groups', 'members', 'categories', 'movements'] as const;
 const inList = (column: AnySQLiteColumn, values: readonly string[]): SQL =>
   sql`${column} IN (${sql.raw(values.map((value) => `'${value}'`).join(', '))})`;
 
@@ -394,10 +402,10 @@ export const syncOutbox = sqliteTable(
 /**
  * Hasta qué `change_seq` del servidor se descargó (y aplicó) cada grupo. Datos de este dispositivo.
  *
- * Un grupo grande se baja por páginas: mientras dura, `hw` (el `change_seq` más alto al empezar) y
- * `after_t`/`after_id` (dónde terminó la última página) dicen dónde seguir, y las filas ya bajadas
- * esperan en `sync_pull_pages`. Con `staged` en 1 ya llegó la última página y solo falta la ronda
- * desde `hw` para aplicarlo todo junto. `cursor` no se mueve hasta entonces.
+ * Un grupo grande se baja por páginas: mientras dura, `round_seq` y `hw` (el `change_seq` más alto
+ * al empezar la ronda) y `after_t`/`after_id` (dónde terminó la última página) dicen dónde seguir, y
+ * las filas ya bajadas esperan en `sync_pull_pages`. Con `staged` en 1 ya llegó la última página y
+ * solo falta la ronda desde `hw` para aplicarlo todo junto. `cursor` no se mueve hasta entonces.
  */
 export const syncCursors = sqliteTable(
   'sync_cursors',
@@ -405,6 +413,8 @@ export const syncCursors = sqliteTable(
     groupId: text('group_id').primaryKey(),
     cursor: integer('cursor').notNull(),
     updatedAt: integer('updated_at').notNull(),
+    /** Límite inferior (`seq`) de la ronda en curso; nulo si es el `cursor`. */
+    roundSeq: integer('round_seq'),
     hw: integer('hw'),
     afterT: integer('after_t'),
     afterId: text('after_id'),
@@ -466,6 +476,8 @@ export const syncConflicts = sqliteTable(
     entityId: text('entity_id').notNull(),
     groupId: text('group_id').notNull(),
     reason: text('reason', { enum: CONFLICT_REASONS }).notNull(),
+    /** El cupo alcanzado; solo con el motivo `quota`. */
+    quota: text('quota', { enum: QUOTAS }),
     /** La versión rechazada, tal como se envió, en JSON. */
     data: text('data').notNull(),
     serverDeleted: integer('server_deleted', { mode: 'boolean' }).notNull().default(false),
@@ -476,6 +488,7 @@ export const syncConflicts = sqliteTable(
   (t) => [
     check('sync_conflicts_entity', inList(t.entity, SYNC_ENTITIES)),
     check('sync_conflicts_reason', inList(t.reason, CONFLICT_REASONS)),
+    check('sync_conflicts_quota', sql`${t.quota} IS NULL OR ${inList(t.quota, QUOTAS)}`),
     index('sync_conflicts_group_idx').on(t.groupId),
   ],
 );

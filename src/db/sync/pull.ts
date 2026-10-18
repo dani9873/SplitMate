@@ -1,4 +1,5 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { logger } from '@/lib/logger';
 
@@ -12,17 +13,32 @@ import {
   groupMembers,
   groups,
   syncCursors,
+  syncOutbox,
+  syncPullPages,
   transfers,
 } from '../schema';
 import {
+  applyAccessRow,
+  ensureRemoteUsers,
+  findIdConflicts,
   insertUnitFromServer,
   parseRemoteRowsLenient,
+  RemoteRowError,
   replaceUnitFromServer,
   tablesOf,
   type ParsedRows,
 } from './apply';
 import type { ApplyOutcome } from './types';
-import type { RemoteGroupChanges, SyncEntity } from './wire';
+import { lostGroupIds } from './units';
+import {
+  remoteRowSchema,
+  type PullCursor,
+  type PullCursorObject,
+  type PulledGroup,
+  type RemoteGroupChanges,
+  type RemoteRow,
+  type SyncEntity,
+} from './wire';
 
 /**
  * Aplica a la base local la descarga de un grupo. Quien llama la envuelve en una transacción que
@@ -338,6 +354,7 @@ function orderedUnits(rows: ParsedRows): Unit[] {
 function foreignRows(groupId: string, rows: ParsedRows): number {
   return (
     rows.groups.filter((r) => r.id !== groupId).length +
+    rows.access.filter((r) => r.group_id !== groupId).length +
     rows.members.filter((r) => r.group_id !== groupId).length +
     rows.categories.filter((r) => r.group_id !== null && r.group_id !== groupId).length +
     rows.expenses.filter((r) => r.group_id !== groupId).length +
@@ -350,6 +367,7 @@ function onlyThisGroup(groupId: string, rows: ParsedRows): ParsedRows {
   const expenseIds = new Set(rows.expenses.filter((r) => r.group_id === groupId).map((r) => r.id));
   return {
     groups: rows.groups.filter((r) => r.id === groupId),
+    access: rows.access.filter((r) => r.group_id === groupId),
     members: rows.members.filter((r) => r.group_id === groupId),
     categories: rows.categories.filter((r) => r.group_id === groupId),
     expenses: rows.expenses.filter((r) => r.group_id === groupId),
@@ -376,27 +394,89 @@ export function applyGroupChanges(
   let applied = 0;
   let skipped = 0;
   const tables = new Set<TableName>();
-  for (const unit of orderedUnits(rows)) {
+
+  // Las cuentas ajenas que mencionan las filas entran como usuarios remotos mínimos, para que las
+  // claves foráneas valgan.
+  try {
+    tx.transaction((usersTx) => ensureRemoteUsers(usersTx, rows, now));
+  } catch (error) {
+    held = true;
+    logger.error('No se pudieron guardar las cuentas ajenas de la descarga', error);
+  }
+  // C4: lo que ya existe en el teléfono con otro grupo o gasto no se aplica.
+  const clashes = findIdConflicts(tx, rows);
+  if (clashes.units.size > 0 || clashes.access.size > 0) {
+    held = true;
+    logger.error('La descarga trae filas que cambian de grupo o de gasto');
+  }
+
+  const runUnit = (apply: () => 'applied' | 'skipped' | 'unchanged') => {
     try {
-      const result = tx.transaction((unitTx) =>
-        applyUnit(unitTx, unit.entity, unit.id, unit.version, rows, now),
-      );
+      const result = apply();
       if (result === 'applied') {
         applied += 1;
-        tablesOf(unit.entity).forEach((table) => tables.add(table));
       } else if (result === 'skipped') {
         skipped += 1;
       }
+      return result;
     } catch (error) {
       // La unidad se deshizo sola (punto de guardado). Un mensaje fijo: sin datos de la fila.
       held = true;
       logger.error('No se pudo aplicar una unidad de la descarga', error);
+      return 'failed' as const;
+    }
+  };
+  const applyUnits = (units: readonly Unit[]) => {
+    for (const unit of units) {
+      if (clashes.units.has(`${unit.entity}:${unit.id}`)) {
+        continue;
+      }
+      const result = runUnit(() =>
+        tx.transaction((unitTx) =>
+          applyUnit(unitTx, unit.entity, unit.id, unit.version, rows, now),
+        ),
+      );
+      if (result === 'applied') {
+        tablesOf(unit.entity).forEach((table) => tables.add(table));
+      }
+    }
+  };
+
+  // El grupo primero, después quién tiene acceso (necesita al grupo) y al final lo demás.
+  const ordered = orderedUnits(rows);
+  applyUnits(ordered.filter((unit) => unit.entity === 'group'));
+  for (const row of rows.access) {
+    if (clashes.access.has(row.id)) {
+      continue;
+    }
+    const result = runUnit(() => tx.transaction((accessTx) => applyAccessRow(accessTx, row, now)));
+    if (result === 'applied') {
+      tables.add('group_access');
+    }
+  }
+  applyUnits(ordered.filter((unit) => unit.entity !== 'group'));
+
+  // Si el servidor manda filas del grupo, la cuenta tiene acceso: se levanta el aviso de acceso
+  // perdido (entró de nuevo con otra invitación) y lo pendiente vuelve a la cola.
+  if (changes.rows.length > 0) {
+    const restored = tx
+      .update(groups)
+      .set({ accessLostAt: null })
+      .where(and(eq(groups.id, changes.id), isNotNull(groups.accessLostAt)))
+      .returning({ id: groups.id })
+      .all();
+    if (restored.length > 0) {
+      tables.add('groups');
+      // Lo que el servidor rechazó por falta de acceso vuelve a la cola: ahora sí hay acceso.
+      tx.delete(syncOutbox)
+        .where(and(eq(syncOutbox.groupId, changes.id), eq(syncOutbox.state, 'failed')))
+        .run();
     }
   }
   return { applied, skipped, held, tables: [...tables] };
 }
 
-/** Hasta qué `change_seq` se descargó cada grupo. */
+/** Hasta qué `change_seq` se descargó (y aplicó) cada grupo. */
 export function readCursors(db: AppDatabase): Record<string, number> {
   return Object.fromEntries(
     db
@@ -406,6 +486,259 @@ export function readCursors(db: AppDatabase): Record<string, number> {
       .all()
       .map((row) => [row.groupId, row.cursor]),
   );
+}
+
+type CursorRow = typeof syncCursors.$inferSelect;
+
+/**
+ * Lo que se manda por cada grupo de los que tiene el teléfono (los que perdieron el acceso no se
+ * piden). Siempre **todos**: el servidor descarga desde 0 el que falte.
+ * - sin descarga en curso: el cursor confirmado;
+ * - páginas en curso: el objeto `{ seq, hw, after }` para seguir donde se quedó;
+ * - ya llegó la última página: `hw` como entero, que es la ronda extra para traer lo que cambió
+ *   mientras bajaba.
+ */
+export function readPullCursors(db: AppDatabase): Record<string, PullCursor> {
+  const lost = lostGroupIds(db);
+  const result: Record<string, PullCursor> = {};
+  for (const row of db.select().from(syncCursors).orderBy(asc(syncCursors.groupId)).all()) {
+    if (!lost.has(row.groupId)) {
+      result[row.groupId] = cursorToSend(row);
+    }
+  }
+  return result;
+}
+
+function cursorToSend(row: CursorRow): PullCursor {
+  if (row.hw === null) {
+    return row.cursor;
+  }
+  if (row.staged) {
+    return row.hw;
+  }
+  if (row.afterT === null || row.afterId === null) {
+    return row.cursor;
+  }
+  return { seq: row.roundSeq ?? row.cursor, hw: row.hw, after: { t: row.afterT, id: row.afterId } };
+}
+
+/** Deja el cursor del grupo sin descarga en curso y borra las páginas guardadas. */
+export function clearStaging(tx: AppDatabase, groupId: string): void {
+  tx.delete(syncPullPages).where(eq(syncPullPages.groupId, groupId)).run();
+  tx.update(syncCursors)
+    .set({ roundSeq: null, hw: null, afterT: null, afterId: null, staged: false })
+    .where(eq(syncCursors.groupId, groupId))
+    .run();
+}
+
+/** Las filas de las páginas guardadas del grupo, en el orden en que llegaron. */
+function readStagedRows(tx: AppDatabase, groupId: string): RemoteRow[] {
+  const pages = tx
+    .select({ rows: syncPullPages.rows })
+    .from(syncPullPages)
+    .where(eq(syncPullPages.groupId, groupId))
+    .orderBy(asc(syncPullPages.page))
+    .all();
+  const result: RemoteRow[] = [];
+  for (const page of pages) {
+    const parsed = z.array(remoteRowSchema).safeParse(JSON.parse(page.rows));
+    if (!parsed.success) {
+      throw new RemoteRowError();
+    }
+    result.push(...parsed.data);
+  }
+  return result;
+}
+
+/** Junta las páginas y la ronda final: si una fila viene dos veces, vale la última. */
+function mergeRows(first: readonly RemoteRow[], last: readonly RemoteRow[]): RemoteRow[] {
+  const byKey = new Map<string, RemoteRow>();
+  for (const row of [...first, ...last]) {
+    byKey.set(`${row.table}:${String(row.row.id)}`, row);
+  }
+  return [...byKey.values()];
+}
+
+/** Error de la descarga por páginas: el servidor no siguió donde íbamos. */
+class PullStateError extends Error {
+  constructor() {
+    super('La descarga por páginas no sigue donde iba');
+    this.name = 'PullStateError';
+  }
+}
+
+function stateOf(tx: AppDatabase, groupId: string): CursorRow | undefined {
+  return tx.select().from(syncCursors).where(eq(syncCursors.groupId, groupId)).get();
+}
+
+export interface PulledResult extends GroupApplyResult {
+  /** Se guardó una página sin aplicar nada (parcial, o la última a la espera de la ronda extra). */
+  readonly staged: boolean;
+}
+
+const NOTHING: PulledResult = { applied: 0, skipped: 0, held: false, tables: [], staged: true };
+
+/**
+ * Aplica (o guarda) un grupo de la respuesta de `sync_pull_v2`. Quien llama lo envuelve en una
+ * transacción.
+ * - Parcial: la página espera en `sync_pull_pages`; el cursor confirmado no se mueve.
+ * - Entero, sin páginas guardadas: se aplica como siempre.
+ * - Entero, con páginas guardadas pero sin ronda extra todavía: es la última página; se guarda y
+ *   se pide la ronda extra desde `hw`.
+ * - Entero, con la ronda extra: se aplica todo junto y el cursor avanza.
+ * Si lo guardado no se puede aplicar, se descarta (el cursor no avanza y se baja de nuevo).
+ */
+export function applyPulledGroup(tx: AppDatabase, group: PulledGroup, now: number): PulledResult {
+  const state = stateOf(tx, group.id);
+  const midRound = state?.hw != null && !state.staged;
+
+  if (group.partial) {
+    const next = group.next as PullCursorObject;
+    // Debe seguir donde íbamos: la misma ronda (mismo hw) o, tras la última página, la ronda extra.
+    const expectedSeq = state ? (state.staged ? state.hw : (state.roundSeq ?? state.cursor)) : 0;
+    if (next.seq !== expectedSeq || (midRound && next.hw !== state.hw)) {
+      throw new PullStateError();
+    }
+    const last = tx
+      .select({ page: sql<number>`coalesce(max(${syncPullPages.page}), 0)` })
+      .from(syncPullPages)
+      .where(eq(syncPullPages.groupId, group.id))
+      .get();
+    tx.insert(syncPullPages)
+      .values({
+        groupId: group.id,
+        page: (last?.page ?? 0) + 1,
+        rows: JSON.stringify(group.rows),
+        createdAt: now,
+      })
+      .run();
+    tx.insert(syncCursors)
+      .values({
+        groupId: group.id,
+        cursor: state?.cursor ?? 0,
+        updatedAt: now,
+        roundSeq: next.seq,
+        hw: next.hw,
+        afterT: next.after.t,
+        afterId: next.after.id,
+        staged: false,
+      })
+      .onConflictDoUpdate({
+        target: syncCursors.groupId,
+        set: {
+          roundSeq: next.seq,
+          hw: next.hw,
+          afterT: next.after.t,
+          afterId: next.after.id,
+          staged: false,
+          updatedAt: now,
+        },
+      })
+      .run();
+    return NOTHING;
+  }
+
+  const cursor = group.cursor as number;
+  const staged = state?.hw != null;
+  if (!staged) {
+    return finish(tx, group.id, group.rows, cursor, now);
+  }
+  if (!state.staged) {
+    // La última página: el servidor cierra la ronda en hw. Se guarda y falta la ronda extra.
+    if (cursor !== state.hw) {
+      throw new PullStateError();
+    }
+    const last = tx
+      .select({ page: sql<number>`coalesce(max(${syncPullPages.page}), 0)` })
+      .from(syncPullPages)
+      .where(eq(syncPullPages.groupId, group.id))
+      .get();
+    tx.insert(syncPullPages)
+      .values({
+        groupId: group.id,
+        page: (last?.page ?? 0) + 1,
+        rows: JSON.stringify(group.rows),
+        createdAt: now,
+      })
+      .run();
+    tx.update(syncCursors)
+      .set({ staged: true, afterT: null, afterId: null, updatedAt: now })
+      .where(eq(syncCursors.groupId, group.id))
+      .run();
+    return NOTHING;
+  }
+  // La ronda extra: todo lo guardado más lo que cambió mientras bajaba.
+  return finish(tx, group.id, group.rows, cursor, now);
+}
+
+/**
+ * Aplica todo lo guardado de un grupo cuya última página ya llegó, aunque la ronda extra no haya
+ * traído nada de él. El cursor avanza hasta `hw`.
+ */
+export function finishStagedGroup(tx: AppDatabase, groupId: string, now: number): PulledResult {
+  const state = stateOf(tx, groupId);
+  if (!state || state.hw === null || !state.staged) {
+    return { ...NOTHING, staged: false };
+  }
+  return finish(tx, groupId, [], state.hw, now);
+}
+
+/** Aplica las páginas guardadas (si hay) más estas filas, y deja el cursor en `cursor`. */
+function finish(
+  tx: AppDatabase,
+  groupId: string,
+  rowsNow: readonly RemoteRow[],
+  cursor: number,
+  now: number,
+): PulledResult {
+  const stagedRows = readStagedRows(tx, groupId);
+  const rowsAll = stagedRows.length > 0 ? mergeRows(stagedRows, rowsNow) : rowsNow;
+  const applied = applyGroupChanges(tx, { id: groupId, cursor, rows: rowsAll }, now);
+  if (!applied.held) {
+    writeCursor(tx, groupId, cursor, now);
+  }
+  // Con o sin éxito la descarga por páginas termina: si falló, se baja de nuevo desde el cursor.
+  clearStaging(tx, groupId);
+  return { ...applied, staged: false };
+}
+
+/** Los grupos con la última página guardada, a la espera de la ronda extra. */
+export function stagedGroups(db: AppDatabase): { id: string; hw: number }[] {
+  return db
+    .select({ id: syncCursors.groupId, hw: syncCursors.hw })
+    .from(syncCursors)
+    .where(and(eq(syncCursors.staged, true), isNotNull(syncCursors.hw)))
+    .all()
+    .map((row) => ({ id: row.id, hw: row.hw as number }));
+}
+
+/**
+ * La cuenta ya no ve estos grupos: los que tiene el teléfono quedan de solo lectura
+ * (`access_lost_at`), dejan de pedirse y su descarga en curso se descarta. Lo que el teléfono
+ * tiene (incluido lo pendiente y los borradores) no se toca. Devuelve los grupos que cambiaron.
+ */
+export function markGroupsLost(
+  db: AppDatabase,
+  groupIds: readonly string[],
+  now: number,
+): string[] {
+  const changed: string[] = [];
+  for (const id of groupIds) {
+    db.transaction((tx) => {
+      const marked = tx
+        .update(groups)
+        .set({ accessLostAt: now })
+        .where(and(eq(groups.id, id), isNull(groups.accessLostAt)))
+        .returning({ id: groups.id })
+        .all();
+      if (marked.length > 0) {
+        changed.push(id);
+      }
+      tx.delete(syncPullPages).where(eq(syncPullPages.groupId, id)).run();
+      tx.delete(syncCursors).where(eq(syncCursors.groupId, id)).run();
+    });
+  }
+  return changed;
 }
 
 /** Guarda el cursor de un grupo. Nunca retrocede: un lote repetido o viejo no lo baja. */

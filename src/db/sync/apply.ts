@@ -1,4 +1,4 @@
-import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { GROUP_COLORS, MAX_EMOJI_LENGTH } from '@/lib/group-appearance';
@@ -16,9 +16,12 @@ import {
   expensePayers,
   expenses,
   expenseSplits,
+  groupAccess,
   groupMembers,
   groups,
+  syncOutbox,
   transfers,
+  users,
 } from '../schema';
 import { parseServerInstant } from './instant';
 import type { RemoteRow, SyncEntity } from './wire';
@@ -56,13 +59,28 @@ const stamps = { created_at: instant.optional(), updated_at: instant.optional() 
 const groupRow = z.object({
   ...stamps,
   id: uuid,
-  /** Solo hace falta al insertar el grupo; una edición no lo toca. */
-  created_by: uuid.optional(),
+  /**
+   * Solo hace falta al insertar el grupo; una edición no lo toca. Nulo si la cuenta de quien lo creó
+   * se borró (el servidor deja el grupo a las demás cuentas).
+   */
+  created_by: uuid.nullable().optional(),
   name: text(80),
   currency,
   emoji: text(MAX_EMOJI_LENGTH).nullable(),
   color: z.enum(GROUP_COLORS),
   archived_at: instant.nullable(),
+  deleted_at: instant.nullable(),
+  version,
+});
+
+/** Quién tiene acceso a un grupo. Solo bajada: la app nunca la edita. */
+const accessRow = z.object({
+  ...stamps,
+  id: uuid,
+  group_id: uuid,
+  user_id: uuid,
+  role: z.enum(['owner', 'member']),
+  invitation_id: uuid.nullable(),
   deleted_at: instant.nullable(),
   version,
 });
@@ -139,6 +157,7 @@ const transferRow = z.object({
 });
 
 export type GroupRow = z.output<typeof groupRow>;
+export type AccessRow = z.output<typeof accessRow>;
 export type MemberRow = z.output<typeof memberRow>;
 export type CategoryRow = z.output<typeof categoryRow>;
 export type ExpenseRow = z.output<typeof expenseRow>;
@@ -149,6 +168,7 @@ export type TransferRow = z.output<typeof transferRow>;
 /** Las filas del servidor de una unidad, validadas y agrupadas por tabla. */
 export interface ParsedRows {
   readonly groups: GroupRow[];
+  readonly access: AccessRow[];
   readonly members: MemberRow[];
   readonly categories: CategoryRow[];
   readonly expenses: ExpenseRow[];
@@ -169,6 +189,7 @@ type MutableParsed = { -readonly [K in keyof ParsedRows]: ParsedRows[K] };
 
 const emptyParsed = (): MutableParsed => ({
   groups: [],
+  access: [],
   members: [],
   categories: [],
   expenses: [],
@@ -189,6 +210,8 @@ function addRow(parsed: MutableParsed, { table, row }: RemoteRow): void {
   switch (table) {
     case 'groups':
       return check(groupRow, parsed.groups);
+    case 'group_access':
+      return check(accessRow, parsed.access);
     case 'group_members':
       return check(memberRow, parsed.members);
     case 'categories':
@@ -426,7 +449,7 @@ export function insertUnitFromServer(
   switch (entity) {
     case 'group': {
       const r = rows.groups.find((row) => row.id === id);
-      if (!r?.created_by) {
+      if (!r || r.created_by === undefined) {
         throw new RemoteRowError();
       }
       tx.insert(groups)
@@ -440,7 +463,7 @@ export function insertUnitFromServer(
           serverVersion: r.version,
           name: r.name,
           currency: r.currency,
-          createdBy: r.created_by,
+          createdBy: r.created_by ?? DELETED_ACCOUNT_ID,
           emoji: r.emoji,
           color: r.color,
           archivedAt: r.archived_at,
@@ -670,6 +693,280 @@ function reconcileSplits(tx: AppDatabase, expenseId: string, server: SplitRow[],
     .set({ syncedVersion: sql`${expenseSplits.version}` })
     .where(eq(expenseSplits.expenseId, expenseId))
     .run();
+}
+
+/** Nombre de relleno de las cuentas ajenas: nunca se muestra (a las personas se las nombra por su miembro). */
+export const REMOTE_USER_NAME = '?';
+
+/** La «creadora» de un grupo cuya cuenta se borró: un usuario remoto fijo, para la clave foránea. */
+export const DELETED_ACCOUNT_ID = '00000000-0000-0000-0000-000000000000';
+
+/**
+ * Las cuentas ajenas que mencionan las filas (creadora del grupo, cuenta de un miembro, dueña de un
+ * acceso) entran como usuarios remotos mínimos: así las claves foráneas locales valen sin reconstruir
+ * tablas. Las que ya existen no se tocan.
+ */
+export function ensureRemoteUsers(tx: AppDatabase, rows: ParsedRows, now: number): void {
+  const wanted = new Set<string>();
+  for (const row of rows.groups) {
+    if (row.created_by !== undefined) {
+      wanted.add(row.created_by ?? DELETED_ACCOUNT_ID);
+    }
+  }
+  for (const row of rows.members) {
+    if (row.user_id) {
+      wanted.add(row.user_id);
+    }
+  }
+  for (const row of rows.access) {
+    wanted.add(row.user_id);
+  }
+  const ids = [...wanted];
+  const known = new Set<string>();
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    for (const row of tx
+      .select({ id: users.id })
+      .from(users)
+      .where(inArray(users.id, chunk))
+      .all()) {
+      known.add(row.id);
+    }
+  }
+  for (const id of ids) {
+    if (!known.has(id)) {
+      tx.insert(users)
+        .values({
+          id,
+          createdAt: now,
+          updatedAt: now,
+          displayName: REMOTE_USER_NAME,
+          email: null,
+          isRemote: true,
+        })
+        .run();
+    }
+  }
+}
+
+/**
+ * Aplica una fila de `group_access`: se inserta, o reemplaza a la que ya hay si el servidor trae una
+ * versión más nueva. Si el servidor recreó el acceso de la cuenta con otro id (borró la fila al
+ * borrar la cuenta y volvió a crearla), la fila vieja se quita: es solo bajada, no se pierde nada.
+ */
+export function applyAccessRow(
+  tx: AppDatabase,
+  r: AccessRow,
+  now: number,
+): 'applied' | 'unchanged' {
+  const existing = tx.select().from(groupAccess).where(eq(groupAccess.id, r.id)).get();
+  if (existing) {
+    if (existing.groupId !== r.group_id || existing.userId !== r.user_id) {
+      throw new RemoteRowError();
+    }
+    if (r.version <= existing.version) {
+      return 'unchanged';
+    }
+    tx.update(groupAccess)
+      .set({
+        role: r.role,
+        invitationId: r.invitation_id,
+        deletedAt: r.deleted_at,
+        updatedAt: r.updated_at ?? now,
+        version: r.version,
+      })
+      .where(eq(groupAccess.id, r.id))
+      .run();
+    return 'applied';
+  }
+  tx.delete(groupAccess)
+    .where(and(eq(groupAccess.groupId, r.group_id), eq(groupAccess.userId, r.user_id)))
+    .run();
+  tx.insert(groupAccess)
+    .values({
+      id: r.id,
+      groupId: r.group_id,
+      userId: r.user_id,
+      role: r.role,
+      invitationId: r.invitation_id,
+      createdAt: r.created_at ?? now,
+      updatedAt: r.updated_at ?? now,
+      deletedAt: r.deleted_at,
+      version: r.version,
+    })
+    .run();
+  return 'applied';
+}
+
+/**
+ * C4: las unidades del lote cuyo id ya existe en el teléfono con otro grupo (o, en un pagador o una
+ * parte, con otro gasto). El servidor nunca cambia esos campos: una diferencia es un dato corrupto o
+ * malicioso. Devuelve las claves `entidad:id` de las unidades que no deben aplicarse, y los ids de
+ * las filas de acceso con ese problema.
+ */
+export function findIdConflicts(
+  tx: AppDatabase,
+  rows: ParsedRows,
+): { readonly units: Set<string>; readonly access: Set<string> } {
+  const units = new Set<string>();
+  const access = new Set<string>();
+  const check = <T extends { id: string }>(
+    list: readonly T[],
+    load: (ids: string[]) => { id: string; owner: string | null }[],
+    ownerOf: (row: T) => string | null,
+    onBad: (row: T) => void,
+  ) => {
+    for (let i = 0; i < list.length; i += 400) {
+      const chunk = list.slice(i, i + 400);
+      const local = new Map(load(chunk.map((row) => row.id)).map((row) => [row.id, row.owner]));
+      for (const row of chunk) {
+        if (local.has(row.id) && local.get(row.id) !== ownerOf(row)) {
+          onBad(row);
+        }
+      }
+    }
+  };
+  check(
+    rows.members,
+    (ids) =>
+      tx
+        .select({ id: groupMembers.id, owner: groupMembers.groupId })
+        .from(groupMembers)
+        .where(inArray(groupMembers.id, ids))
+        .all(),
+    (row) => row.group_id,
+    (row) => units.add(`member:${row.id}`),
+  );
+  check(
+    rows.categories,
+    (ids) =>
+      tx
+        .select({ id: categories.id, owner: categories.groupId })
+        .from(categories)
+        .where(inArray(categories.id, ids))
+        .all(),
+    (row) => row.group_id,
+    (row) => units.add(`category:${row.id}`),
+  );
+  check(
+    rows.expenses,
+    (ids) =>
+      tx
+        .select({ id: expenses.id, owner: expenses.groupId })
+        .from(expenses)
+        .where(inArray(expenses.id, ids))
+        .all(),
+    (row) => row.group_id,
+    (row) => units.add(`expense:${row.id}`),
+  );
+  check(
+    rows.transfers,
+    (ids) =>
+      tx
+        .select({ id: transfers.id, owner: transfers.groupId })
+        .from(transfers)
+        .where(inArray(transfers.id, ids))
+        .all(),
+    (row) => row.group_id,
+    (row) => units.add(`transfer:${row.id}`),
+  );
+  check(
+    rows.payers,
+    (ids) =>
+      tx
+        .select({ id: expensePayers.id, owner: expensePayers.expenseId })
+        .from(expensePayers)
+        .where(inArray(expensePayers.id, ids))
+        .all(),
+    (row) => row.expense_id,
+    (row) => units.add(`expense:${row.expense_id}`),
+  );
+  check(
+    rows.splits,
+    (ids) =>
+      tx
+        .select({ id: expenseSplits.id, owner: expenseSplits.expenseId })
+        .from(expenseSplits)
+        .where(inArray(expenseSplits.id, ids))
+        .all(),
+    (row) => row.expense_id,
+    (row) => units.add(`expense:${row.expense_id}`),
+  );
+  check(
+    rows.access,
+    (ids) =>
+      tx
+        .select({ id: groupAccess.id, owner: groupAccess.groupId })
+        .from(groupAccess)
+        .where(inArray(groupAccess.id, ids))
+        .all(),
+    (row) => row.group_id,
+    (row) => access.add(row.id),
+  );
+  return { units, access };
+}
+
+/**
+ * Cuando el servidor rechazó por un cupo algo que el usuario creó (un grupo, un miembro o una
+ * categoría que nunca llegó), la unidad se quita de la vista y queda al día para no volver a
+ * enviarse: lo creado vive en el borrador. En un grupo nuevo se quita también todo lo que colgaba
+ * de él.
+ */
+export function removeNewUnitLocally(
+  tx: AppDatabase,
+  entity: 'group' | 'member' | 'category',
+  id: string,
+  now: number,
+): void {
+  switch (entity) {
+    case 'member':
+      tx.update(groupMembers)
+        .set({
+          deletedAt: now,
+          updatedAt: now,
+          version: sql`${groupMembers.version} + 1`,
+          syncedVersion: sql`${groupMembers.version} + 1`,
+        })
+        .where(eq(groupMembers.id, id))
+        .run();
+      return;
+    case 'category':
+      tx.update(categories)
+        .set({
+          deletedAt: now,
+          updatedAt: now,
+          version: sql`${categories.version} + 1`,
+          syncedVersion: sql`${categories.version} + 1`,
+        })
+        .where(eq(categories.id, id))
+        .run();
+      return;
+    case 'group': {
+      tx.update(groups)
+        .set({
+          deletedAt: now,
+          updatedAt: now,
+          version: sql`${groups.version} + 1`,
+          syncedVersion: sql`${groups.version} + 1`,
+        })
+        .where(eq(groups.id, id))
+        .run();
+      // Lo suyo que ya salió en vuelo tampoco se reintenta: sus respuestas llegarán y se ignoran.
+      tx.delete(syncOutbox).where(eq(syncOutbox.groupId, id)).run();
+      for (const table of [groupMembers, categories, expenses, transfers] as const) {
+        tx.update(table)
+          .set({
+            deletedAt: now,
+            updatedAt: now,
+            version: sql`${table.version} + 1`,
+            syncedVersion: sql`${table.version} + 1`,
+          })
+          .where(and(eq(table.groupId, id), isNull(table.deletedAt)))
+          .run();
+      }
+      return;
+    }
+  }
 }
 
 /**

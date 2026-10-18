@@ -37,7 +37,34 @@ CREATE TABLE `sync_pull_pages` (
 	PRIMARY KEY(`group_id`, `page`)
 );
 --> statement-breakpoint
+-- Escrito a mano sobre lo que generó drizzle-kit. `sync_conflicts` se reconstruye porque su CHECK de
+-- motivos pasa a aceptar `member_linked` y `quota`, y SQLite no cambia un CHECK en su sitio. Es
+-- seguro: ninguna tabla apunta a ella ni ella a otra (sin claves foráneas), así que no hay cascada
+-- que pueda borrar nada. Se copian todos los borradores; `quota` queda nula. Sin PRAGMA: dentro de
+-- la transacción de la migración no hacen nada.
+CREATE TABLE `__new_sync_conflicts` (
+	`id` text PRIMARY KEY NOT NULL,
+	`entity` text NOT NULL,
+	`entity_id` text NOT NULL,
+	`group_id` text NOT NULL,
+	`reason` text NOT NULL,
+	`quota` text,
+	`data` text NOT NULL,
+	`server_deleted` integer DEFAULT false NOT NULL,
+	`was_new` integer DEFAULT false NOT NULL,
+	`was_deletion` integer DEFAULT false NOT NULL,
+	`created_at` integer NOT NULL,
+	CONSTRAINT "sync_conflicts_entity" CHECK("entity" IN ('group', 'member', 'category', 'expense', 'transfer')),
+	CONSTRAINT "sync_conflicts_reason" CHECK("reason" IN ('conflict', 'currency_locked', 'group_currency_changed', 'member_linked', 'quota')),
+	CONSTRAINT "sync_conflicts_quota" CHECK("quota" IS NULL OR "quota" IN ('groups', 'members', 'categories', 'movements'))
+);
+--> statement-breakpoint
+INSERT INTO `__new_sync_conflicts`("id", "entity", "entity_id", "group_id", "reason", "data", "server_deleted", "was_new", "was_deletion", "created_at") SELECT "id", "entity", "entity_id", "group_id", "reason", "data", "server_deleted", "was_new", "was_deletion", "created_at" FROM `sync_conflicts`;--> statement-breakpoint
+DROP TABLE `sync_conflicts`;--> statement-breakpoint
+ALTER TABLE `__new_sync_conflicts` RENAME TO `sync_conflicts`;--> statement-breakpoint
+CREATE INDEX `sync_conflicts_group_idx` ON `sync_conflicts` (`group_id`);--> statement-breakpoint
 ALTER TABLE `groups` ADD `access_lost_at` integer;--> statement-breakpoint
+ALTER TABLE `sync_cursors` ADD `round_seq` integer;--> statement-breakpoint
 ALTER TABLE `sync_cursors` ADD `hw` integer;--> statement-breakpoint
 ALTER TABLE `sync_cursors` ADD `after_t` integer;--> statement-breakpoint
 ALTER TABLE `sync_cursors` ADD `after_id` text;--> statement-breakpoint

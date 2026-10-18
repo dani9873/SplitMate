@@ -17,8 +17,10 @@ import {
   transfers,
 } from '../schema';
 import {
+  ensureRemoteUsers,
   parseRemoteRows,
   removeNewMovementLocally,
+  removeNewUnitLocally,
   replaceUnitFromServer,
   RemoteRowError,
   serverRoot,
@@ -26,8 +28,8 @@ import {
 } from './apply';
 import { recordConflict } from './conflicts';
 import type { BatchLimits, SyncCounts, SyncDeps, SyncNotice } from './types';
-import { compareUnits, listPendingUnits, readUnit } from './units';
-import type { Mutation, PushResult, RemoteRow, SyncEntity } from './wire';
+import { compareUnits, listPendingUnits, lostGroupIds, readUnit } from './units';
+import type { Mutation, PushResult, QuotaKind, RemoteRow, SyncEntity } from './wire';
 
 /**
  * La cola de envío. Una unidad pendiente se convierte en un envío con su propio id y contenido, que
@@ -88,6 +90,8 @@ export function nextBatch(db: AppDatabase, limits: BatchLimits, deps: SyncDeps):
     return true;
   };
 
+  // Los grupos sin acceso no envían nada: lo suyo se queda en el teléfono y se cuenta aparte.
+  const lost = lostGroupIds(db);
   const stored = db.select().from(syncOutbox).orderBy(asc(syncOutbox.createdAt)).all();
   const taken = new Set<string>();
   const inFlight: OutboxRow[] = [];
@@ -99,7 +103,7 @@ export function nextBatch(db: AppDatabase, limits: BatchLimits, deps: SyncDeps):
       continue;
     }
     taken.add(unitKey(row.entity, row.entityId));
-    if (row.state === 'in_flight') {
+    if (row.state === 'in_flight' && !lost.has(row.groupId)) {
       inFlight.push(row);
     }
   }
@@ -196,7 +200,9 @@ export function applyPushResult(
   }
 
   try {
-    return db.transaction((tx) => applyRejected(tx, row, result.reason, result.current, deps));
+    return db.transaction((tx) =>
+      applyRejected(tx, row, result.reason, result.quota, result.current, deps),
+    );
   } catch (error) {
     // No se pudo dejar la unidad como el servidor la tiene (por ejemplo, falta un miembro que
     // todavía no se descarga). Nada se pierde: lo del usuario sigue como estaba y el envío queda
@@ -350,6 +356,7 @@ function applyRejected(
   tx: AppDatabase,
   row: OutboxRow,
   reason: Extract<PushResult, { status: 'rejected' }>['reason'],
+  quota: QuotaKind | undefined,
   current: readonly RemoteRow[],
   deps: SyncDeps,
 ): ApplyEffect {
@@ -361,6 +368,8 @@ function applyRejected(
   }
   const label = labelOf(tx, row.entity, latest);
   const rows = parseRemoteRows(current);
+  // El servidor puede traer un miembro vinculado a una cuenta ajena: entra como usuario remoto.
+  ensureRemoteUsers(tx, rows, now);
   const root = serverRoot(rows, row.entity, row.entityId);
   const wasNew = row.base === null;
 
@@ -368,6 +377,13 @@ function applyRejected(
     replaceUnitFromServer(tx, row.entity, row.entityId, rows, now);
   } else if (wasNew && (row.entity === 'expense' || row.entity === 'transfer')) {
     removeNewMovementLocally(tx, row.entity, row.entityId, now);
+  } else if (
+    wasNew &&
+    reason === 'quota' &&
+    (row.entity === 'group' || row.entity === 'member' || row.entity === 'category')
+  ) {
+    // Un cupo del servidor: lo que el usuario creó y nunca llegó sale de la vista y vive en el borrador.
+    removeNewUnitLocally(tx, row.entity, row.entityId, now);
   } else {
     throw new RemoteRowError();
   }
@@ -378,6 +394,7 @@ function applyRejected(
     entityId: row.entityId,
     groupId: row.groupId,
     reason,
+    ...(reason === 'quota' && quota ? { quota } : {}),
     data: latest,
     serverDeleted: root !== undefined && root.deletedAt !== null,
     wasNew,
@@ -395,6 +412,7 @@ function applyRejected(
       groupId: row.groupId,
       entity: row.entity,
       reason,
+      ...(reason === 'quota' && quota ? { quota } : {}),
       label,
       serverDeleted: draft.serverDeleted,
       wasNew,
@@ -404,17 +422,25 @@ function applyRejected(
 }
 
 export function countSync(db: AppDatabase): SyncCounts {
+  // Los apartados de un grupo sin acceso se cuentan con los de ese grupo (`lost`), no dos veces.
+  const lostGroups = lostGroupIds(db);
   const failedRows = db
-    .select({ entity: syncOutbox.entity, entityId: syncOutbox.entityId })
+    .select({
+      entity: syncOutbox.entity,
+      entityId: syncOutbox.entityId,
+      groupId: syncOutbox.groupId,
+    })
     .from(syncOutbox)
     .where(eq(syncOutbox.state, 'failed'))
-    .all();
+    .all()
+    .filter((row) => !lostGroups.has(row.groupId));
   const failedKeys = new Set(failedRows.map((row) => unitKey(row.entity, row.entityId)));
   const pending = listPendingUnits(db).filter(
     (unit) => !failedKeys.has(unitKey(unit.entity, unit.id)),
   ).length;
+  const lost = listPendingUnits(db, 'lost').length;
   const conflicts = db.select({ n: count() }).from(syncConflicts).get()?.n ?? 0;
-  return { pending, failed: failedRows.length, conflicts };
+  return { pending, failed: failedRows.length, conflicts, lost };
 }
 
 /** Devuelve los envíos apartados a la cola: se vuelven a armar con un id y contenido nuevos. */

@@ -215,7 +215,7 @@ describe('applyRemoteGroup: grupo nuevo', () => {
         { n: 0 },
       ]);
     }
-    expect(s.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
+    expect(s.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0, lost: 0 });
   });
 
   it('un solo aviso en el bus con source "sync" y el grupo', async () => {

@@ -2,11 +2,21 @@ import {
   pullResponseSchema,
   pushResponseSchema,
   type Mutation,
+  type PullCursor,
   type PullResponse,
   type PushResult,
 } from './wire';
 
-export type RpcName = 'sync_push' | 'sync_pull';
+export type RpcName =
+  | 'sync_push'
+  | 'sync_pull_v2'
+  | 'create_invitation'
+  | 'preview_invitation'
+  | 'accept_invitation'
+  | 'revoke_invitation'
+  | 'list_invitations'
+  | 'leave_group'
+  | 'remove_access';
 
 /** Una llamada a una RPC del servidor: la inyecta quien tiene el cliente de red. */
 export type RpcCall = (name: RpcName, args: Readonly<Record<string, unknown>>) => Promise<unknown>;
@@ -34,8 +44,11 @@ export class SyncTransportError extends Error {
 export interface SyncRemote {
   /** Envía los cambios y devuelve un resultado por envío, en el orden en que se mandaron. */
   push(mutations: readonly Mutation[]): Promise<PushResult[]>;
-  /** Pide lo nuevo de cada grupo desde su cursor; `maxRows` acota el tamaño de la página. */
-  pull(cursors: Readonly<Record<string, number>>, maxRows: number): Promise<PullResponse>;
+  /**
+   * Pide lo nuevo desde los cursores. Hay que mandar el cursor de **todos** los grupos que tiene el
+   * teléfono: el servidor descarga desde 0 el que falte. `maxRows` acota la página.
+   */
+  pull(cursors: Readonly<Record<string, PullCursor>>, maxRows: number): Promise<PullResponse>;
 }
 
 const protocolError = () =>
@@ -81,9 +94,27 @@ export function createSyncRemote(rpc: RpcCall): SyncRemote {
 
     async pull(cursors, maxRows) {
       const parsed = pullResponseSchema.safeParse(
-        await call('sync_pull', { p_cursors: cursors, p_max_rows: maxRows }),
+        await call('sync_pull_v2', { p_cursors: cursors, p_max_rows: maxRows }),
       );
       if (!parsed.success) {
+        throw protocolError();
+      }
+      // C5: el servidor nunca manda más de lo pedido. Una respuesta que pasa los topes se rechaza
+      // entera, antes de tocar la base.
+      const requested = new Set(Object.keys(cursors).map((id) => id.toLowerCase()));
+      const { groups, lost } = parsed.data;
+      const rows = groups.reduce((total, group) => total + group.rows.length, 0);
+      const ids = groups.map((group) => group.id.toLowerCase());
+      const lostIds = lost.map((id) => id.toLowerCase());
+      if (
+        rows > maxRows ||
+        groups.length > maxRows ||
+        new Set(ids).size !== ids.length ||
+        new Set(lostIds).size !== lostIds.length ||
+        lostIds.some((id) => !requested.has(id)) ||
+        // Una página parcial es la única de la llamada.
+        (groups.some((group) => group.partial) && groups.length !== 1)
+      ) {
         throw protocolError();
       }
       return parsed.data;

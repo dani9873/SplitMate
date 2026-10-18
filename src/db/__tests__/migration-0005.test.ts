@@ -158,6 +158,39 @@ describe('migración 0005 sobre una base de la Fase 4a con datos', () => {
     ]);
   });
 
+  it('los borradores que ya había se conservan y aceptan los motivos nuevos', async () => {
+    const SQL = await initSqlJs();
+    const sqlite = new SQL.Database();
+    sqlite.run('PRAGMA foreign_keys = ON');
+    const db = drizzle(sqlite, { schema });
+    const previous = migrationsUpTo(5);
+    try {
+      migrate(db, { migrationsFolder: previous });
+    } finally {
+      rmSync(previous, { recursive: true, force: true });
+    }
+    sqlite.run(
+      `INSERT INTO sync_conflicts (id, entity, entity_id, group_id, reason, data, created_at)
+       VALUES ('c1', 'expense', 'e1', 'g1', 'conflict', '{"title":"Cena"}', ?)`,
+      [NOW],
+    );
+    migrate(db, { migrationsFolder: MIGRATIONS });
+    expect(rows(sqlite, `SELECT id, reason, quota, data FROM sync_conflicts`)).toEqual([
+      ['c1', 'conflict', null, '{"title":"Cena"}'],
+    ]);
+    const insert = (id: string, reason: string, quota: string | null) =>
+      sqlite.run(
+        `INSERT INTO sync_conflicts (id, entity, entity_id, group_id, reason, quota, data, created_at)
+         VALUES (?, 'member', 'm9', 'g1', ?, ?, '{}', ?)`,
+        [id, reason, quota, NOW],
+      );
+    insert('c2', 'member_linked', null);
+    insert('c3', 'quota', 'members');
+    expect(() => insert('c4', 'quota', 'otra')).toThrow(/CHECK/i);
+    expect(() => insert('c5', 'desconocido', null)).toThrow(/CHECK/i);
+    expect(rows(sqlite, `SELECT count(*) FROM sync_conflicts`)).toEqual([[3]]);
+  });
+
   it('crea las tablas nuevas vacías', async () => {
     const { sqlite } = await migrateOldBase();
     for (const table of ['group_access', 'invitation_links', 'sync_pull_pages']) {
@@ -242,13 +275,13 @@ describe('migración 0005 sobre una base de la Fase 4a con datos', () => {
     expect(() => insert(1)).toThrow(/UNIQUE|PRIMARY/i);
   });
 
-  it('no reconstruye ninguna tabla: el .sql solo agrega columnas, tablas e índices', () => {
+  it('solo reconstruye sync_conflicts (sin claves foráneas) y no usa PRAGMA', () => {
     const file = readdirSync(MIGRATIONS).find((name) => name.startsWith('0005_'));
     expect(file).toBeDefined();
     const sql = readFileSync(path.join(MIGRATIONS, file as string), 'utf8');
-    expect(sql).not.toMatch(/DROP\s+TABLE/i);
-    expect(sql).not.toMatch(/__new_/i);
-    expect(sql).not.toMatch(/RENAME\s+TO/i);
+    // Reconstruir una tabla con claves foráneas y foreign_keys = ON podría borrar en cascada.
+    expect(sql.match(/DROP\s+TABLE\s+`?(\w+)`?/gi)).toEqual(['DROP TABLE `sync_conflicts`']);
+    expect(sql.match(/RENAME\s+TO\s+`?(\w+)`?/gi)).toEqual(['RENAME TO `sync_conflicts`']);
     expect(sql).not.toMatch(/PRAGMA\s+foreign_keys/i);
     for (const chunk of sql.split('--> statement-breakpoint')) {
       expect(chunk.replace(/--.*$/gm, '').replace(/[;\s]/g, '')).not.toBe('');

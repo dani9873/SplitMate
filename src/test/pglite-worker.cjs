@@ -12,8 +12,19 @@ const { PGlite } = require('@electric-sql/pglite');
 const { pgcrypto } = require('@electric-sql/pglite/contrib/pgcrypto');
 
 const SUPABASE_DIR = path.join(__dirname, '..', '..', 'supabase');
-const RPC_NAMES = ['sync_push', 'sync_pull'];
-const ARG_NAME = /^p_[a-z_]+$/;
+// Las RPC que el servidor de prueba deja llamar, con el tipo SQL de cada argumento.
+const RPC_SIGNATURES = {
+  sync_push: { p_mutations: 'jsonb' },
+  sync_pull: { p_cursors: 'jsonb', p_max_rows: 'integer' },
+  sync_pull_v2: { p_cursors: 'jsonb', p_max_rows: 'integer' },
+  create_invitation: { p_group_id: 'uuid', p_expires_hours: 'integer', p_max_uses: 'integer' },
+  preview_invitation: { p_token: 'text' },
+  accept_invitation: { p_token: 'text', p_member_id: 'uuid', p_new_member: 'jsonb' },
+  revoke_invitation: { p_invitation_id: 'uuid' },
+  list_invitations: { p_group_id: 'uuid' },
+  leave_group: { p_group_id: 'uuid' },
+  remove_access: { p_group_id: 'uuid', p_user_id: 'uuid' },
+};
 
 /** @type {import('@electric-sql/pglite').PGlite} */
 let db;
@@ -49,20 +60,21 @@ async function createUser(name) {
 
 /** Una llamada a la RPC dentro de una transacción, como la API con el JWT de la cuenta. */
 async function rpc({ userId, name, args }) {
-  if (!RPC_NAMES.includes(name)) {
+  const signature = Object.hasOwn(RPC_SIGNATURES, name) ? RPC_SIGNATURES[name] : undefined;
+  if (!signature) {
     throw new Error(`RPC no permitida en el servidor de prueba: ${String(name)}`);
   }
   const entries = Object.entries(args);
-  if (entries.some(([key]) => !ARG_NAME.test(key))) {
+  if (entries.some(([key]) => !Object.hasOwn(signature, key))) {
     throw new Error('Argumento de RPC no permitido en el servidor de prueba');
   }
-  const placeholders = entries.map(
-    ([key, value], index) =>
-      `${key} => $${index + 1}::${typeof value === 'number' ? 'integer' : 'jsonb'}`,
-  );
-  const params = entries.map(([, value]) =>
-    typeof value === 'number' ? value : JSON.stringify(value),
-  );
+  const placeholders = entries.map(([key], index) => `${key} => $${index + 1}::${signature[key]}`);
+  const params = entries.map(([key, value]) => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return signature[key] === 'jsonb' ? JSON.stringify(value) : value;
+  });
   // La transacción se deshace sola si algo falla; `set local` no deja el rol cambiado.
   return db.transaction(async (tx) => {
     await tx.query(`select set_config('request.jwt.claims', $1, true)`, [

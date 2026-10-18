@@ -172,7 +172,7 @@ describe('applyPushResults: aplicado', () => {
 
     expect(notices).toEqual([]);
     expect(listPendingUnits(s.db)).toEqual([]);
-    expect(s.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
+    expect(s.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0, lost: 0 });
     expect(rows(s, `SELECT server_version, synced_version, version FROM groups`)).toEqual([
       { server_version: 1, synced_version: 1, version: 1 },
     ]);
@@ -300,7 +300,7 @@ describe('applyPushResults: rechazado', () => {
     ]);
     expect(listPendingUnits(s.db)).toEqual([]);
     expect(rows(s, `SELECT count(*) AS n FROM sync_outbox`)).toEqual([{ n: 0 }]);
-    expect(s.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
+    expect(s.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1, lost: 0 });
   });
 
   it('avisa una sola vez en el bus, con origen sync y el grupo afectado', async () => {
@@ -589,8 +589,124 @@ describe('applyPushResults: rechazado', () => {
     expect(rows(s, `SELECT state, fail_reason FROM sync_outbox`)).toEqual([
       { state: 'failed', fail_reason: 'error' },
     ]);
-    expect(s.store.counts()).toEqual({ pending: 0, failed: 1, conflicts: 0 });
+    expect(s.store.counts()).toEqual({ pending: 0, failed: 1, conflicts: 0, lost: 0 });
     expect(s.store.nextBatch(BIG)).toEqual([]);
+  });
+});
+
+describe('applyPushResults: motivos de la 4b (member_linked y quota)', () => {
+  it('borrar un miembro con cuenta y acceso: el miembro vuelve como está en el servidor y queda un borrador', async () => {
+    const s = await setupSync();
+    markEverythingSynced(s);
+    const beto = s.repos.members.listByGroup(s.group.id)[1]!;
+    s.repos.members.remove(beto.id, beto.version);
+    const batch = s.store.nextBatch(BIG);
+    const mutation = batch.find((m) => m.entity === 'member')!;
+    expect(mutation.data).toMatchObject({ id: beto.id, deleted: true });
+
+    const notices = s.store.applyPushResults([
+      rejected(
+        mutation.id,
+        [
+          serverRow('group_members', {
+            id: beto.id,
+            group_id: s.group.id,
+            user_id: '01990000-0000-7000-8000-0000000000aa',
+            display_name: 'Beto',
+            role: 'member',
+            version: 1,
+          }),
+        ],
+        'member_linked',
+      ),
+    ]);
+
+    expect(s.repos.members.listByGroup(s.group.id).map((m) => m.displayName)).toContain('Beto');
+    expect(listConflicts(s.db)).toMatchObject([
+      { entity: 'member', reason: 'member_linked', wasDeletion: true, wasNew: false },
+    ]);
+    expect(notices).toMatchObject([{ reason: 'member_linked', label: 'Beto' }]);
+    expect(notices[0]?.quota).toBeUndefined();
+  });
+
+  it('cupo de miembros: el miembro nuevo sale de la vista y queda en el borrador con el cupo', async () => {
+    const s = await setupSync();
+    markEverythingSynced(s);
+    const nuevo = s.repos.members.add(s.group.id, 'Dani');
+    const batch = s.store.nextBatch(BIG);
+    const mutation = batch.find((m) => m.entity === 'member')!;
+    expect(mutation).toMatchObject({ base: null, data: { id: nuevo.id } });
+
+    const notices = s.store.applyPushResults([rejected(mutation.id, [], 'quota', 'members')]);
+
+    expect(s.repos.members.listByGroup(s.group.id).map((m) => m.id)).not.toContain(nuevo.id);
+    expect(listConflicts(s.db)).toMatchObject([
+      { entity: 'member', reason: 'quota', quota: 'members', wasNew: true },
+    ]);
+    expect(notices).toMatchObject([
+      { reason: 'quota', quota: 'members', wasNew: true, label: 'Dani' },
+    ]);
+    // No vuelve a enviarse.
+    expect(listPendingUnits(s.db)).toEqual([]);
+    expect(s.store.nextBatch(BIG)).toEqual([]);
+  });
+
+  it('cupo de categorías: la categoría nueva sale de la vista y queda en el borrador', async () => {
+    const s = await setupSync();
+    markEverythingSynced(s);
+    const categoryId = '01990000-0000-7000-8000-0000000000c1';
+    s.sqlite.run(
+      `INSERT INTO categories (id, created_at, updated_at, group_id, name, icon)
+       VALUES ('${categoryId}', 1, 1, '${s.group.id}', 'Snacks', 'cookie')`,
+    );
+    const mutation = s.store.nextBatch(BIG).find((m) => m.entity === 'category')!;
+
+    s.store.applyPushResults([rejected(mutation.id, [], 'quota', 'categories')]);
+
+    expect(
+      rows(s, `SELECT deleted_at IS NOT NULL AS gone FROM categories WHERE id = '${categoryId}'`),
+    ).toEqual([{ gone: 1 }]);
+    expect(listConflicts(s.db)).toMatchObject([
+      { entity: 'category', reason: 'quota', quota: 'categories' },
+    ]);
+    expect(s.store.nextBatch(BIG)).toEqual([]);
+  });
+
+  it('cupo de grupos: el grupo nuevo y todo lo que colgaba de él salen de la vista y no se envían', async () => {
+    const s = await setupSync();
+    dinner(s);
+    // Nada se ha subido: el grupo, sus miembros y el gasto son nuevos.
+    const mutation = s.store.nextBatch(BIG).find((m) => m.entity === 'group')!;
+    expect(mutation).toMatchObject({ base: null });
+
+    s.store.applyPushResults([rejected(mutation.id, [], 'quota', 'groups')]);
+
+    expect(rows(s, `SELECT deleted_at IS NOT NULL AS gone FROM groups`)).toEqual([{ gone: 1 }]);
+    expect(rows(s, `SELECT count(*) AS n FROM group_members WHERE deleted_at IS NULL`)).toEqual([
+      { n: 0 },
+    ]);
+    expect(rows(s, `SELECT count(*) AS n FROM expenses WHERE deleted_at IS NULL`)).toEqual([
+      { n: 0 },
+    ]);
+    expect(listConflicts(s.db)).toMatchObject([
+      { entity: 'group', reason: 'quota', quota: 'groups' },
+    ]);
+    // Nada más sale: ni los miembros ni el gasto, que dependían de un grupo que no existe.
+    const rest = s.store
+      .nextBatch(BIG)
+      .filter((m) => m.id !== mutation.id)
+      .map((m) => m.entity);
+    expect(rest).toEqual([]);
+  });
+
+  it('el motivo y el cupo se guardan en el borrador y se leen de vuelta', async () => {
+    const s = await setupSync();
+    markEverythingSynced(s);
+    s.repos.members.add(s.group.id, 'Eli');
+    const mutation = s.store.nextBatch(BIG).find((m) => m.entity === 'member')!;
+    s.store.applyPushResults([rejected(mutation.id, [], 'quota', 'members')]);
+    const [draft] = s.store.listConflicts();
+    expect(s.store.getConflict(draft!.id)).toMatchObject({ reason: 'quota', quota: 'members' });
   });
 });
 
@@ -614,7 +730,7 @@ describe('applyPushResults: fallido y reintento', () => {
         fail_field: 'display_name',
       },
     ]);
-    expect(s.store.counts()).toEqual({ pending: 0, failed: 1, conflicts: 0 });
+    expect(s.store.counts()).toEqual({ pending: 0, failed: 1, conflicts: 0, lost: 0 });
     // Queda fuera de los lotes aunque siga siendo un cambio pendiente.
     expect(listPendingUnits(s.db).map((u) => u.id)).toEqual([bad!.data.id]);
     expect(s.store.nextBatch(BIG)).toEqual([]);
@@ -638,8 +754,8 @@ describe('applyPushResults: fallido y reintento', () => {
 describe('counts', () => {
   it('cuenta pendientes, apartados y borradores', async () => {
     const s = await setupSync();
-    expect(s.store.counts()).toEqual({ pending: 4, failed: 0, conflicts: 0 });
+    expect(s.store.counts()).toEqual({ pending: 4, failed: 0, conflicts: 0, lost: 0 });
     markEverythingSynced(s);
-    expect(s.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
+    expect(s.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0, lost: 0 });
   });
 });

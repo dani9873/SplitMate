@@ -223,7 +223,7 @@ describe('flujo de sincronización con el motor real', () => {
       network.set(true);
     });
     expect(await indicator('Sincronización: todo al día')).toBeOnTheScreen();
-    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
+    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1, lost: 0 });
 
     await user.press(screen.getByTestId('sync-status-button'));
     expect(await screen.findByText('1 cambio por revisar')).toBeOnTheScreen();
@@ -234,7 +234,7 @@ describe('flujo de sincronización con el motor real', () => {
     // lento que en local, el segundo toque llegaba con el botón ausente).
     await user.press(await screen.findByRole('button', { name: 'Sincronizar ahora' }));
     expect(await screen.findByRole('button', { name: 'Sincronizar ahora' })).toBeOnTheScreen();
-    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
+    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1, lost: 0 });
     expect(screen.queryByText(/por subir/)).toBeNull();
 
     // También cuando la tablet vuelve a cambiar lo mismo y el teléfono la descarga.
@@ -244,7 +244,7 @@ describe('flujo de sincronización con el motor real', () => {
     await user.press(screen.getByRole('button', { name: 'Sincronizar ahora' }));
     expect(await screen.findByRole('button', { name: 'Sincronizar ahora' })).toBeOnTheScreen();
     expect(phone.repos.expenses.get(expense.id)?.title).toBe('Cena de la tablet, otra vez');
-    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
+    expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1, lost: 0 });
     expect(screen.queryByText(/por subir/)).toBeNull();
 
     // La cabecera no afirma que todo está en la nube mientras haya un borrador solo en el teléfono.

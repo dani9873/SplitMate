@@ -1,12 +1,30 @@
 import { logger } from '@/lib/logger';
 
-import type { ChangeBus } from '../changes';
+import type { ChangeBus, TableName } from '../changes';
 import type { AppDatabase } from '../repositories/types';
 import { discardConflict, getConflict, listConflicts, type ConflictDraft } from './conflicts';
 import { applyPushResult, countSync, nextBatch, retryFailed } from './outbox';
-import { applyGroupChanges, readCursors, writeCursor } from './pull';
-import type { ApplyOutcome, BatchLimits, SyncCounts, SyncDeps, SyncNotice } from './types';
-import type { Mutation, PushResult, RemoteGroupChanges } from './wire';
+import {
+  applyGroupChanges,
+  applyPulledGroup,
+  clearStaging,
+  finishStagedGroup,
+  markGroupsLost,
+  readCursors,
+  readPullCursors,
+  stagedGroups,
+  writeCursor,
+  type PulledResult,
+} from './pull';
+import type {
+  ApplyOutcome,
+  BatchLimits,
+  PullOutcome,
+  SyncCounts,
+  SyncDeps,
+  SyncNotice,
+} from './types';
+import type { Mutation, PullCursor, PullResponse, PushResult, RemoteGroupChanges } from './wire';
 
 /**
  * Todo lo que el motor de sincronización necesita de SQLite, sin que vea SQL.
@@ -23,8 +41,19 @@ export interface SyncStore {
    * usuario que quedó como borrador.
    */
   applyPushResults(results: readonly PushResult[]): SyncNotice[];
-  /** Hasta qué `change_seq` del servidor se descargó cada grupo (id de grupo → cursor). */
+  /** Hasta qué `change_seq` del servidor se descargó (y aplicó) cada grupo (id de grupo → cursor). */
   cursors(): Record<string, number>;
+  /**
+   * Lo que hay que mandar a `sync_pull_v2`: el cursor de **todos** los grupos del teléfono (menos
+   * los que perdieron el acceso), como entero o, en una descarga por páginas, como objeto.
+   */
+  pullCursors(): Record<string, PullCursor>;
+  /**
+   * Aplica una respuesta de `sync_pull_v2`: cada grupo en su transacción, junto con su cursor; las
+   * páginas parciales se guardan sin aplicar y se aplican juntas al final; los grupos perdidos
+   * quedan de solo lectura.
+   */
+  applyPull(response: PullResponse): PullOutcome;
   /**
    * Aplica la descarga de un grupo en una sola transacción, con su cursor: si nada quedó retenido
    * (`held`), el cursor avanza junto con las filas; si no, se reintenta en el próximo ciclo. Las
@@ -60,6 +89,63 @@ export function createSyncStore(db: AppDatabase, bus: ChangeBus, deps: SyncDeps)
     },
 
     cursors: () => readCursors(db),
+
+    pullCursors: () => readPullCursors(db),
+
+    applyPull(response) {
+      const now = deps.now();
+      let applied = 0;
+      let skipped = 0;
+      const held: { id: string; cursor: number | null }[] = [];
+      const present = new Set<string>();
+
+      const run = (
+        id: string,
+        heldCursor: number | null,
+        work: (tx: AppDatabase) => PulledResult,
+      ) => {
+        let result: PulledResult;
+        try {
+          result = db.transaction((tx) => work(tx));
+        } catch (error) {
+          // Nada de este grupo quedó a medias. Lo guardado de la descarga por páginas se descarta
+          // y se baja de nuevo en el próximo ciclo.
+          logger.error('No se pudo aplicar la descarga de un grupo', error);
+          try {
+            db.transaction((tx) => clearStaging(tx, id));
+          } catch (clearError) {
+            logger.error('No se pudo descartar la descarga por páginas', clearError);
+          }
+          held.push({ id, cursor: heldCursor });
+          return;
+        }
+        applied += result.applied;
+        skipped += result.skipped;
+        if (result.held) {
+          held.push({ id, cursor: heldCursor });
+        }
+        if (result.applied > 0) {
+          bus.emit({ source: 'sync', tables: result.tables as TableName[], groupIds: [id] });
+        }
+      };
+
+      for (const group of response.groups) {
+        present.add(group.id);
+        run(group.id, group.cursor, (tx) => applyPulledGroup(tx, group, now));
+      }
+      // La ronda extra de un grupo grande que no trajo nada de él: se aplica lo guardado.
+      for (const { id, hw } of stagedGroups(db)) {
+        if (!present.has(id)) {
+          run(id, hw, (tx) => finishStagedGroup(tx, id, now));
+        }
+      }
+
+      const lost = markGroupsLost(db, response.lost, now);
+      if (lost.length > 0) {
+        bus.emit({ source: 'sync', tables: ['groups'], groupIds: lost });
+      }
+      return { applied, skipped, held, lost, more: stagedGroups(db).length > 0 };
+    },
 
     applyRemoteGroup(changes) {
       let result: ReturnType<typeof applyGroupChanges>;

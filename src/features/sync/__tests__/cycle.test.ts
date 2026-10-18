@@ -1,9 +1,9 @@
 import type {
-  ApplyOutcome,
   Mutation,
+  PulledGroup,
+  PullOutcome,
   PullResponse,
   PushResult,
-  RemoteGroupChanges,
   SyncNotice,
   SyncRemote,
   SyncStore,
@@ -29,10 +29,9 @@ const notice = (draftId: string): SyncNotice => ({
   wasDeletion: false,
 });
 
-type CycleStore = Pick<
-  SyncStore,
-  'nextBatch' | 'applyPushResults' | 'cursors' | 'applyRemoteGroup'
->;
+type CycleStore = Pick<SyncStore, 'nextBatch' | 'applyPushResults' | 'pullCursors' | 'applyPull'>;
+
+const nothingPulled: PullOutcome = { applied: 0, skipped: 0, held: [], lost: [], more: false };
 
 /** Un almacén falso con una cola fija de lotes. */
 function fakeStore(batches: Mutation[][], notices: SyncNotice[][] = []) {
@@ -44,8 +43,8 @@ function fakeStore(batches: Mutation[][], notices: SyncNotice[][] = []) {
       applied.push([...results]);
       return notices.shift() ?? [];
     }),
-    cursors: jest.fn(() => ({})),
-    applyRemoteGroup: jest.fn(() => ({ applied: 0, skipped: 0, held: false })),
+    pullCursors: jest.fn(() => ({})),
+    applyPull: jest.fn(() => nothingPulled),
   };
   return { store, applied };
 }
@@ -59,7 +58,11 @@ const appliedResult = (m: Mutation): PushResult => ({
 
 function fakeRemote(resultFor: (m: Mutation) => PushResult = appliedResult) {
   const push = jest.fn(async (mutations: readonly Mutation[]) => mutations.map(resultFor));
-  const pull = jest.fn(async (): Promise<PullResponse> => ({ groups: [], hasMore: false }));
+  const pull = jest.fn(async (): Promise<PullResponse> => ({
+    groups: [],
+    hasMore: false,
+    lost: [],
+  }));
   const remote: SyncRemote = { push, pull };
   return { remote, push, pull };
 }
@@ -80,6 +83,7 @@ describe('runSyncCycle (envío)', () => {
       pulled: 0,
       skipped: 0,
       held: 0,
+      lost: 0,
       notices: [],
     });
   });
@@ -167,12 +171,18 @@ describe('runSyncCycle (envío)', () => {
   });
 });
 
-const group = (id: string, cursor: number): RemoteGroupChanges => ({ id, cursor, rows: [] });
-const outcome = (over: Partial<ApplyOutcome> = {}): ApplyOutcome => ({
-  applied: 1,
-  skipped: 0,
-  held: false,
-  ...over,
+const group = (id: string, cursor: number): PulledGroup => ({
+  id,
+  cursor,
+  partial: false,
+  next: null,
+  rows: [],
+});
+const outcome = (over: Partial<PullOutcome> = {}): PullOutcome => ({ ...nothingPulled, ...over });
+const response = (groups: PulledGroup[], hasMore: boolean, lost: string[] = []): PullResponse => ({
+  groups,
+  hasMore,
+  lost,
 });
 
 describe('runSyncCycle (descarga)', () => {
@@ -180,11 +190,11 @@ describe('runSyncCycle (descarga)', () => {
   function pagedRemote(pages: PullResponse[]) {
     const queue = [...pages];
     const { remote, push, pull } = fakeRemote();
-    pull.mockImplementation(async () => queue.shift() ?? { groups: [], hasMore: false });
+    pull.mockImplementation(async () => queue.shift() ?? response([], false));
     return { remote, push, pull };
   }
 
-  it('descarga después de enviar, con los cursores del almacén y 2000 filas por página', async () => {
+  it('descarga después de enviar, con los cursores de todos los grupos y 1000 filas por página', async () => {
     const calls: string[] = [];
     const { store } = fakeStore([]);
     let batches = 0;
@@ -193,7 +203,10 @@ describe('runSyncCycle (descarga)', () => {
       batches += 1;
       return batches === 1 ? [mutation(1)] : [];
     });
-    store.cursors = jest.fn(() => ({ g1: 4 }));
+    store.pullCursors = jest.fn(() => ({
+      g1: 4,
+      g2: { seq: 1, hw: 9, after: { t: 3, id: 'x' } },
+    }));
     const { remote, push, pull } = fakeRemote();
     push.mockImplementation(async (m) => {
       calls.push('push');
@@ -201,71 +214,93 @@ describe('runSyncCycle (descarga)', () => {
     });
     pull.mockImplementation(async () => {
       calls.push('pull');
-      return { groups: [], hasMore: false };
+      return response([], false);
     });
 
     await runSyncCycle({ store, remote });
 
     expect(calls).toEqual(['nextBatch', 'push', 'nextBatch', 'pull']);
-    expect(pull).toHaveBeenCalledWith({ g1: 4 }, 2000);
+    expect(pull).toHaveBeenCalledWith(
+      { g1: 4, g2: { seq: 1, hw: 9, after: { t: 3, id: 'x' } } },
+      1000,
+    );
   });
 
-  it('usa pullMaxRows y encadena las páginas hasta hasMore: false, aplicando cada grupo', async () => {
+  it('usa pullMaxRows y encadena las páginas hasta hasMore: false, aplicando cada respuesta', async () => {
     const { store } = fakeStore([]);
-    store.applyRemoteGroup = jest.fn(() => outcome({ applied: 2 }));
+    store.applyPull = jest.fn(() => outcome({ applied: 2 }));
     const { remote, pull } = pagedRemote([
-      { groups: [group('a', 3), group('b', 5)], hasMore: true },
-      { groups: [group('c', 1)], hasMore: false },
+      response([group('a', 3), group('b', 5)], true),
+      response([group('c', 1)], false),
     ]);
 
     const result = await runSyncCycle({ store, remote, pullMaxRows: 100 });
 
     expect(pull).toHaveBeenCalledTimes(2);
     expect(pull).toHaveBeenNthCalledWith(1, {}, 100);
-    expect(store.applyRemoteGroup).toHaveBeenCalledTimes(3);
-    expect((store.applyRemoteGroup as jest.Mock).mock.calls.map(([g]) => g.id)).toEqual([
-      'a',
-      'b',
-      'c',
-    ]);
-    expect(result).toMatchObject({ pages: 2, pulled: 6, skipped: 0, held: 0 });
+    expect(store.applyPull).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ pages: 2, pulled: 4, skipped: 0, held: 0 });
   });
 
-  it('cuenta lo saltado y lo retenido', async () => {
+  it('cuenta lo saltado, lo retenido y los grupos perdidos', async () => {
     const { store } = fakeStore([]);
-    store.applyRemoteGroup = jest
-      .fn()
-      .mockReturnValueOnce(outcome({ applied: 1, skipped: 2 }))
-      .mockReturnValueOnce(outcome({ applied: 0, held: true }));
-    const { remote } = pagedRemote([{ groups: [group('a', 3), group('b', 5)], hasMore: false }]);
+    store.applyPull = jest.fn(() =>
+      outcome({ applied: 1, skipped: 2, held: [{ id: 'b', cursor: 5 }], lost: ['z'] }),
+    );
+    const { remote } = pagedRemote([response([group('a', 3), group('b', 5)], false, ['z'])]);
 
     const result = await runSyncCycle({ store, remote });
 
-    expect(result).toMatchObject({ pulled: 1, skipped: 2, held: 1 });
+    expect(result).toMatchObject({ pulled: 1, skipped: 2, held: 1, lost: 1 });
   });
 
   it('un grupo retenido no se vuelve a pedir en el mismo ciclo, para no atascar a los demás', async () => {
     const { store } = fakeStore([]);
-    store.applyRemoteGroup = jest.fn((g: RemoteGroupChanges) =>
-      outcome({ applied: 0, held: g.id === 'a' }),
-    );
+    store.applyPull = jest
+      .fn()
+      .mockReturnValueOnce(outcome({ held: [{ id: 'a', cursor: 3 }] }))
+      .mockReturnValue(outcome());
+    store.pullCursors = jest.fn(() => ({ a: 0 }));
     const { remote, pull } = pagedRemote([
-      { groups: [group('a', 3)], hasMore: true },
-      { groups: [group('b', 2)], hasMore: false },
+      response([group('a', 3)], true),
+      response([group('b', 2)], false),
     ]);
 
     await runSyncCycle({ store, remote });
 
-    // El segundo pedido ya lleva el cursor de a, aunque el almacén no lo avanzó.
-    expect(pull).toHaveBeenNthCalledWith(2, { a: 3 }, 2000);
-    // El almacén sigue con el cursor de antes: el próximo ciclo lo reintenta.
-    expect(store.cursors()).toEqual({});
+    // El segundo pedido ya lleva el cursor de a donde llegó, aunque el almacén no lo avanzó.
+    expect(pull).toHaveBeenNthCalledWith(2, { a: 3 }, 1000);
+  });
+
+  it('sin un cursor seguro para el grupo retenido, deja de descargar hasta el próximo ciclo', async () => {
+    const { store } = fakeStore([]);
+    store.applyPull = jest.fn(() => outcome({ held: [{ id: 'a', cursor: null }] }));
+    const { remote, pull } = pagedRemote([response([group('a', 3)], true), response([], false)]);
+
+    const result = await runSyncCycle({ store, remote });
+
+    expect(pull).toHaveBeenCalledTimes(1);
+    expect(result.held).toBe(1);
+  });
+
+  it('con una ronda extra pendiente sigue pidiendo aunque hasMore sea false', async () => {
+    const { store } = fakeStore([]);
+    store.applyPull = jest
+      .fn()
+      .mockReturnValueOnce(outcome({ more: true }))
+      .mockReturnValue(outcome());
+    const { remote, pull } = pagedRemote([response([group('a', 3)], false), response([], false)]);
+
+    const result = await runSyncCycle({ store, remote });
+
+    expect(pull).toHaveBeenCalledTimes(2);
+    expect(result.pages).toBe(2);
   });
 
   it('un servidor que siempre dice hasMore no deja el ciclo dando vueltas', async () => {
     const { store } = fakeStore([]);
     const { remote, pull } = fakeRemote();
-    pull.mockImplementation(async () => ({ groups: [group('a', 1)], hasMore: true }));
+    pull.mockImplementation(async () => response([group('a', 1)], true));
 
     const result = await runSyncCycle({ store, remote, maxPages: 4 });
 

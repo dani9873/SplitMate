@@ -105,8 +105,10 @@ describe('descarga: la tablet recibe lo del teléfono', () => {
     });
 
     const first = await phone.sync();
-    // El servidor le devuelve al teléfono lo que acaba de subir: no es un cambio.
-    expect(first).toMatchObject({ rejected: 0, failed: 0, pulled: 0, held: 0 });
+    // El servidor le devuelve al teléfono lo que acaba de subir: no es un cambio. Lo único nuevo
+    // es la fila de acceso de su dueña (group_access), que el servidor crea al subir el grupo.
+    expect(first).toMatchObject({ rejected: 0, failed: 0, pulled: 1, held: 0 });
+    expect(phone.sqlite.exec('SELECT role FROM group_access')[0]?.values).toEqual([['owner']]);
     expect(phone.repos.expenses.get(dinner.id)?.version).toBe(1);
 
     const result = await tablet.sync();
@@ -114,7 +116,7 @@ describe('descarga: la tablet recibe lo del teléfono', () => {
     expect(result).toMatchObject({ sent: 0, failed: 0, held: 0 });
     expect(result.pulled).toBeGreaterThan(0);
     expect(tablet.repos.expenses.get(dinner.id)).toMatchObject({ title: 'Cena', amount: 3000 });
-    expect(tablet.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
+    expect(tablet.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0, lost: 0 });
     await expectConverged(phone, tablet);
   });
 
@@ -211,7 +213,7 @@ describe('conflicto de versión entre dos dispositivos: lo del usuario se conser
     await phone.sync();
     expect(phone.repos.expenses.get(dinner.id)).toMatchObject({ title: 'Cena (tablet)' });
     await expectConverged(phone, tablet);
-    expect(tablet.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0 });
+    expect(tablet.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 0, lost: 0 });
   });
 
   it('editar algo que el otro borró: vuelve borrado, queda el borrador y el aviso dice que está borrado', async () => {
