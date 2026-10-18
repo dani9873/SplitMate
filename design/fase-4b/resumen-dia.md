@@ -14,7 +14,7 @@ no se tocó; no se abrió PR ni se borró ninguna rama. La fase **no** se marca 
 | 3 | `log_parameter_max_length_on_error` en el remoto (solo lectura) | Hecha: vale `0` |
 | 4 | `guia-manana.md` | Hecha |
 | 5 | Borrador del push n.º 3 | Hecha |
-| 6 | Auditoría de las pantallas nuevas | Pendiente |
+| 6 | Auditoría de las pantallas nuevas | Hecha |
 
 ## Tarea 1 — Segunda revisión de seguridad
 
@@ -104,3 +104,29 @@ Probado en local copiando los archivos a `supabase/` y corriendo `npm run test:d
 en verde** (las 40 del 010 viejo pasan a 6 y las demás no cambian); después se revirtió todo. Lo que 010
 probaba de la descarga lo cubre `014`. ⚠️ El código `PGRST202` que espera el parche de `check:data-api`
 no está verificado contra el remoto.
+
+## Tarea 6 — Auditoría de las pantallas nuevas
+
+Pantallas revisadas: Invitar (`InviteGroupScreen`), Unirme con un enlace (`JoinWithLinkScreen`), `/invite`
+(`InviteScreen`), Miembros y ajustes del grupo, la tarjeta del grupo, el detalle con acceso perdido y la hoja
+de sincronización.
+
+- **Paridad es/en:** ya existe (`src/i18n/__tests__/locales.test.ts`: mismas claves, sin textos vacíos y
+  mismas variables de interpolación) y pasa; no se añadió otra. Además, un recorrido ad hoc de todas las
+  claves literales `t('…')` de `src/` y `app/` no encontró ninguna que falte en `es.json` (las únicas que
+  no resuelve son las de datos de ejemplo, que usan otro prefijo, y una de tipos).
+- **Etiquetas de accesibilidad:** todos los `IconButton` de las pantallas nuevas llevan `label` (el
+  componente lo exige); los `Pressable` de «¿Quién eres?» y del dueño tienen rol `radio`, nombre y estado.
+  Sin hallazgos.
+- **Corregido (pequeño, con TDD):** los avisos de error y de «alguien ya eligió a esa persona» de `/invite`
+  aparecían sin anunciarse a un lector de pantalla. `Banner` gana la propiedad opcional `announce`
+  (`accessibilityLiveRegion="polite"`) y `InviteScreen` la usa. Prueba nueva (en rojo sin el cambio).
+- **Estados vacíos y de error:** Invitar tiene cargando, error con «Reintentar», lista vacía («Todavía no hay
+  enlaces»), sin conexión (con los enlaces de este teléfono) y sin permiso (no ofrece crear). `/invite` tiene
+  revisando, descargando, error con «Reintentar» solo cuando mejora reintentar, y «Cerrar». «Unirme con un
+  enlace» muestra el error de formato. Sin hallazgos.
+- **Anotado, no corregido (grande o de diseño):**
+  - «Unirme con un enlace» no tiene botón «Pegar»; se pega a mano. A propósito, para no leer el portapapeles
+    sin que la persona lo pida; se puede reconsiderar.
+  - El teclado de Android sigue sin abrirse solo dentro de las hojas (pendiente ya listado en `CLAUDE.md`).
+  - Nada se verificó con un lector de pantalla real (TalkBack): solo roles y etiquetas en pruebas.

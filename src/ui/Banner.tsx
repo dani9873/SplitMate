@@ -13,6 +13,8 @@ export interface BannerProps {
   /** Botones de acción, por ejemplo Recuperar y Descartar. */
   actions?: ReactNode;
   tone?: 'info' | 'warning';
+  /** Un aviso que aparece o cambia por una acción (un error): el lector de pantalla lo anuncia. */
+  announce?: boolean;
   className?: string;
   testID?: string;
 }
@@ -23,6 +25,7 @@ export function Banner({
   message,
   actions,
   tone = 'info',
+  announce = false,
   className,
   testID,
 }: BannerProps) {
@@ -36,7 +39,11 @@ export function Banner({
         className,
       )}
     >
-      <View className="flex-row items-start gap-3" accessible>
+      <View
+        className="flex-row items-start gap-3"
+        accessible
+        accessibilityLiveRegion={announce ? 'polite' : undefined}
+      >
         <Icon size={20} color={tone === 'warning' ? colors.warning : colors.primary} />
         <Text variant="label" className="flex-1">
           {message}

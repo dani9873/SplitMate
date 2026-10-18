@@ -198,6 +198,7 @@ export function InviteScreen() {
           <Banner
             icon={TriangleAlert}
             tone="warning"
+            announce
             message={t(`invite.errors.${phase.key}`)}
             testID="invite-error"
           />
@@ -315,7 +316,13 @@ function Ready({
       ) : (
         <>
           {notice ? (
-            <Banner testID="invite-notice" icon={UserRound} tone="warning" message={notice} />
+            <Banner
+              testID="invite-notice"
+              icon={UserRound}
+              tone="warning"
+              announce
+              message={notice}
+            />
           ) : null}
           <View className="gap-3">
             <Text variant="subheading" accessibilityRole="header">

@@ -115,6 +115,20 @@ describe('InviteScreen: la vista previa', () => {
     expect(service.preview).not.toHaveBeenCalled();
     expect(screen.queryByTestId('invite-retry')).toBeNull();
   });
+
+  it('el aviso de error se anuncia a los lectores de pantalla', async () => {
+    await clearPendingInvite();
+    await setup();
+    await screen.findByTestId('invite-error');
+    // Sube desde el texto hasta el contenedor accesible del aviso.
+    let node = screen.getByText(
+      'Este enlace no es válido. Pídele a quien te invitó uno nuevo.',
+    ).parent;
+    while (node && !node.props.accessibilityLiveRegion) {
+      node = node.parent;
+    }
+    expect(node?.props.accessibilityLiveRegion).toBe('polite');
+  });
 });
 
 describe('InviteScreen: unirse', () => {
