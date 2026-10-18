@@ -130,3 +130,54 @@ de sincronización.
     sin que la persona lo pida; se puede reconsiderar.
   - El teclado de Android sigue sin abrirse solo dentro de las hojas (pendiente ya listado en `CLAUDE.md`).
   - Nada se verificó con un lector de pantalla real (TalkBack): solo roles y etiquetas en pruebas.
+
+## Verificación (evidencia de cierre, antes de subir)
+
+| Qué | Resultado |
+|---|---|
+| `npx tsc --noEmit` | sin errores |
+| `npm run lint` (`--max-warnings 0`) | sin avisos |
+| `npm test -- --watchAll=false` | 123 suites, **1557 pruebas** en verde (eran 1548: +9) |
+| `npm run test:db:local` (PGlite) | **744 pruebas** en verde (sin cambios: no se tocó SQL de `supabase/`) |
+| `npm run check:bundle` | OK |
+| `scripts/test-concurrencia.mjs` contra Postgres 18 real | 2 × (50 rondas × 4 escenarios) sin diferencias; con la mutación, falla |
+| CI | ver abajo |
+
+## Qué falló o quedó incompleto
+
+- **El grafo de código (`codebase-memory-mcp`) no conectó** en esta sesión; la revisión se hizo leyendo el
+  código real. No se corrió `detect_changes`.
+- **Nada se probó en un teléfono, en Cloudflare, en EAS ni en Brevo** (estaba prohibido o no hay acceso). La
+  guía marca con ⚠️ lo que no se pudo verificar.
+- **La prueba de concurrencia no se pudo correr con la CLI de Supabase** (no hay Docker aquí); se validó con
+  un Postgres 18 real embebido. El CI usa Postgres 17: si el paso nuevo fallara allí por el entorno, se
+  documenta abajo.
+- Un tropiezo de procedimiento: un script mío reescribió algunos archivos con finales de línea de Windows
+  (CRLF); lo vi por el lint, los normalicé a LF antes del primer commit y no llegó nada al repositorio.
+
+## Decisiones de la jornada
+
+1. **Revisión de seguridad:** nada de severidad media o superior en el servidor, así que la migración
+   `20261019090000_invitaciones.sql` quedó **idéntica**: el dry-run del push n.º 2 sigue siendo el mismo.
+2. **Borrar el enlace pendiente al cerrar sesión o cambiar de cuenta, pero no al entrar desde «sin
+   sesión»:** el segundo caso es el de quien se registra con un enlace.
+3. **`pg` como dependencia de desarrollo** para la prueba de concurrencia (el único cambio en `package.json`).
+4. **`pages.dev` en vez de comprar dominio** como arranque para los enlaces (la guía lo explica).
+5. **No se tocó `CLAUDE.md`**: la fase sigue en curso.
+
+## Lo que te toca en la noche (en este orden)
+
+1. Leer este resumen y, si quieres, `revision-seguridad.md` («Segunda revisión»).
+2. **Aprobar el `db push` n.º 2** con su dry-run. Es una sola migración,
+   `supabase/migrations/20261019090000_invitaciones.sql` (sin cambios hoy):
+   `npx supabase@2.120.0 db push --dry-run` y, si dice solo esa, pedirme `db push` o ejecutarlo tú. Después,
+   `npm run check:data-api` (contraseña por variable de entorno; gasta 2 de los 10 intentos fallidos por hora de
+   la cuenta de prueba).
+3. Seguir `guia-manana.md`: A (Cloudflare Pages), B (huellas), C (`EXPO_PUBLIC_INVITE_HOST` en EAS),
+   E (builds). La D (Brevo) puede esperar a tener dominio propio; sin ella, la cuenta B de la prueba no puede
+   registrarse con un correo que no sea de tu organización de Supabase.
+4. Pasarme el dominio y las huellas si quieres que yo rellene `assetlinks.json` y suba la rama.
+5. Prueba con dos teléfonos (sección F de la guía) y las dos pruebas manuales de la Fase 3.
+6. Cuando los dos teléfonos tengan el build nuevo: **`db push` n.º 3** con `borrador-push3/` (su README
+   lleva el aviso: no antes), la revisión final del paso 13 y el PR.
+7. Pendiente menor: cambiar la contraseña de `prueba1@splitmate.test` (ver `CLAUDE.md`).
