@@ -1,0 +1,12 @@
+diff --git a/supabase/tests/database/006-privilegios.test.sql b/supabase/tests/database/006-privilegios.test.sql
+index 07708c4..f269edf 100644
+--- a/supabase/tests/database/006-privilegios.test.sql
++++ b/supabase/tests/database/006-privilegios.test.sql
+@@ -84,7 +84,6 @@ select set_eq(
+     'private.shares_group_with(uuid)',
+     -- sync_push es SECURITY INVOKER: authenticated ejecuta también todo lo que ella llama.
+     'sync_push(jsonb)',
+-    'sync_pull(jsonb,integer)',
+     'sync_pull_v2(jsonb,integer)',
+     'leave_group(uuid)',
+     'remove_access(uuid,uuid)',

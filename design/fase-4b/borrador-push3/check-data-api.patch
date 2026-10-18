@@ -1,0 +1,35 @@
+diff --git a/scripts/check-data-api.mjs b/scripts/check-data-api.mjs
+index 6b10eb5..c8bb87c 100644
+--- a/scripts/check-data-api.mjs
++++ b/scripts/check-data-api.mjs
+@@ -96,6 +96,8 @@ const check = (name, ok, detail) => {
+ const describe = (r) => [r.status, r.json?.code, r.json?.message].filter(Boolean).join(' ');
+ // PostgREST responde 401 a anon y 403 a authenticated cuando falta un privilegio o lo frena RLS.
+ const denied = (r) => (r.status === 401 || r.status === 403) && r.json?.code === '42501';
++// La función ya no existe: PostgREST responde 404 con PGRST202 (ni siquiera la reconoce).
++const missing = (r) => r.status === 404 && r.json?.code === 'PGRST202';
+ 
+ let password = process.env.SPLITMATE_TEST_PASSWORD;
+ if (!password) {
+@@ -116,7 +118,7 @@ const anonInsert = await request('POST', '/rest/v1/profiles', {
+ });
+ check('no inserta en profiles', denied(anonInsert), describe(anonInsert));
+ const anonPull = await request('POST', '/rest/v1/rpc/sync_pull', { body: { p_cursors: {} } });
+-check('no ejecuta sync_pull', denied(anonPull), describe(anonPull));
++check('sync_pull (v1) ya no existe', missing(anonPull), describe(anonPull));
+ const anonPush = await request('POST', '/rest/v1/rpc/sync_push', { body: { p_mutations: [] } });
+ check('no ejecuta sync_push', denied(anonPush), describe(anonPush));
+ 
+@@ -188,11 +190,7 @@ try {
+   check('no borra filas', denied(remove), describe(remove));
+ 
+   const pull = await request('POST', '/rest/v1/rpc/sync_pull', { token, body: { p_cursors: {} } });
+-  check(
+-    'ejecuta sync_pull (sin grupos)',
+-    pull.status === 200 && Array.isArray(pull.json?.groups) && pull.json.groups.length === 0,
+-    describe(pull),
+-  );
++  check('sync_pull (v1) ya no existe (authenticated)', missing(pull), describe(pull));
+   const push = await request('POST', '/rest/v1/rpc/sync_push', {
+     token,
+     body: { p_mutations: [] },

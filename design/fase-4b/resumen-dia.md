@@ -13,7 +13,7 @@ no se tocó; no se abrió PR ni se borró ninguna rama. La fase **no** se marca 
 | 2 | Prueba de concurrencia real del último uso | Hecha en local; falta ver el CI (se sube al cierre) |
 | 3 | `log_parameter_max_length_on_error` en el remoto (solo lectura) | Hecha: vale `0` |
 | 4 | `guia-manana.md` | Hecha |
-| 5 | Borrador del push n.º 3 | Pendiente |
+| 5 | Borrador del push n.º 3 | Hecha |
 | 6 | Auditoría de las pantallas nuevas | Pendiente |
 
 ## Tarea 1 — Segunda revisión de seguridad
@@ -93,3 +93,14 @@ Decisiones y cosas que conviene saber antes de leerla:
   `pm verify-app-links --re-verify`); no se ejecutó nada contra Cloudflare, EAS ni teléfonos.
 - El caso de «enlace agotado» (10 cuentas) y el de «vencido» (mínimo 1 día) son incómodos a mano; la guía
   lo dice y apunta a las pruebas automáticas.
+
+## Tarea 5 — Borrador del push n.º 3 (retirar `sync_pull` v1)
+
+En `design/fase-4b/borrador-push3/`, **fuera de `supabase/migrations/`** (no afecta al CI ni a ningún
+push): la migración `20261020090000_retirar_sync_pull_v1.sql` (comprueba que existe `sync_pull_v2` y borra
+la v1), el `010-sync-pull.test.sql` de reemplazo, y dos parches (`006-privilegios`, `check-data-api`).
+README con la advertencia en mayúsculas, el criterio para aplicarlo, los pasos y cómo deshacerlo.
+Probado en local copiando los archivos a `supabase/` y corriendo `npm run test:db:local`: **710 pruebas
+en verde** (las 40 del 010 viejo pasan a 6 y las demás no cambian); después se revirtió todo. Lo que 010
+probaba de la descarga lo cubre `014`. ⚠️ El código `PGRST202` que espera el parche de `check:data-api`
+no está verificado contra el remoto.
