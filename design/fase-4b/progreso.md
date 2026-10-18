@@ -6,8 +6,8 @@
 - [x] 3. Cupos en `sync_push`: migración `20261018110000_cupos.sql`, pruebas `015-cupos` (37)
 - [x] 4a. `check:data-api` con los casos nuevos (commit d99235b)
 - [ ] 4. 🔒 `db push` n.º 1: **aplicado el 2026-10-18** (commit de la rama `d99235b`); **verificado en teléfono y con `check:data-api` el 2026-10-18** (reporte del usuario). Remoto: 2 grupos activos, 2 filas de `group_access`, un dueño por grupo y el grupo nuevo es de su creador (usuario +splitmate)
-- [~] 5. Invitaciones (servidor): migración `20261019090000_invitaciones.sql`, pruebas `013-invitaciones` (155) en verde; falta la revisión de seguridad y el dry-run
-- [ ] 6. 🔒 `db push` n.º 2
+- [x] 5. Invitaciones (servidor): migración `20261019090000_invitaciones.sql`, pruebas `013-invitaciones` (159), revisión de seguridad hecha (`revision-seguridad.md`), dry-run limpio (solo esa migración)
+- [ ] 6. 🔒 `db push` n.º 2: **pendiente de aprobación del usuario** (no se ejecuta de noche; el dry-run lista solo `20261019090000_invitaciones.sql`)
 - [ ] 7. Base local 0005
 - [ ] 8. Motor con `sync_pull_v2`
 - [ ] 9. Permisos y acceso perdido en pantallas
@@ -18,7 +18,7 @@
 - [ ] 14. 🔒 `db push` n.º 3: retiro de `sync_pull` v1
 - [ ] 15. Documentación y PR
 
-**Siguiente paso:** paso 5, invitaciones (servidor): pgTAP `013-invitaciones` primero, con las condiciones de seguridad de `plan.md` (uso atómico, mismo `SMINV`, vista previa mínima y con límite, token fuera de los registros). Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
+**Siguiente paso (noche del 18 al 19):** bloque B, paso 7 (base local 0005). El push n.º 2 espera tu aprobación. Antes: paso 5, invitaciones (servidor): pgTAP `013-invitaciones` primero, con las condiciones de seguridad de `plan.md` (uso atómico, mismo `SMINV`, vista previa mínima y con límite, token fuera de los registros). Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
 
 **Notas del paso 3:**
 

@@ -10,7 +10,8 @@ ni correos de prueba, sin tocar `main`, sin abrir PR, sin borrar ramas.
 ## Bloque A — Servidor de invitaciones (paso 5)
 
 - [x] Migración `20261019090000_invitaciones.sql`, pruebas `013-invitaciones` (155), `006` ajustado, `check:data-api` ampliado.
-- [ ] Revisión de seguridad (`revision-seguridad.md`) y `supabase db push --dry-run`.
+- [x] Revisión de seguridad (`revision-seguridad.md`): sin hallazgos críticos ni altos; un medio (I1: un expulsado volvía con otro enlace vigente) corregido con TDD; el resto bajo/informativo.
+- [x] `supabase db push --dry-run` (solo lectura, 2026-10-19): «Would push these migrations: 20261019090000_invitaciones.sql». Solo esa; las tres del push n.º 1 ya están en el remoto. **No se hizo el push real.**
 
 ## Bloque B — Cliente (pasos 7 a 12)
 

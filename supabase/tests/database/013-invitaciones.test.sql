@@ -9,7 +9,7 @@
 --   en el historial, ni en las respuestas de error.
 -- Los grupos 301 en adelante y los ids nuevos son tests.mid(n).
 begin;
-select plan(155);
+select plan(159);
 
 select tests.crear_mundo();
 
@@ -705,12 +705,12 @@ select is(
   'Pero elegir un miembro que ya existe sí entra'
 );
 
--- Quitar el acceso y volver a entrar --------------------------------------------------------------------
+-- Salir y volver a entrar --------------------------------------------------------------------
 
-select tests.autenticar_como(tests.id('ana'));
-select public.remove_access(tests.id('viaje'), tests.u('eva'));
+select tests.autenticar_como(tests.u('eva'));
+select public.leave_group(tests.id('viaje'));
 reset role;
-select is(tests.acc(tests.id('viaje'), tests.u('eva')), 'member/fuera', 'Ana le quita el acceso a Eva');
+select is(tests.acc(tests.id('viaje'), tests.u('eva')), 'member/fuera', 'Eva sale del grupo');
 select tests.autenticar_como(tests.u('eva'));
 insert into res select 'p_eva_fuera', public.preview_invitation(tests.tkn('c1'));
 reset role;
@@ -890,6 +890,43 @@ select tests.autenticar_como(tests.u('hugo'));
 insert into res select 'a_c5', public.accept_invitation(tests.tkn('c5'), tests.mid(6003));
 reset role;
 select is(tests.err('a_c5'), 'SMINV', 'Y el enlace de quien salió ya no sirve');
+
+-- Expulsar a alguien revoca todos los enlaces vigentes del grupo ------------------------------------------
+
+-- Sin esto, quien fue expulsado volvería con cualquier enlace que haya visto en el chat del grupo.
+insert into public.groups (id, name, currency, created_by)
+values (tests.mid(701), 'Expulsiones', 'USD', tests.id('ana')), (tests.mid(702), 'Otro', 'USD', tests.id('ana'));
+insert into public.group_access (group_id, user_id, role)
+values (tests.mid(701), tests.u('fran'), 'member'), (tests.mid(701), tests.u('gabi'), 'member');
+select tests.autenticar_como(tests.id('ana'));
+insert into res select 'x_ana', public.create_invitation(tests.mid(701));
+insert into res select 'x_otro', public.create_invitation(tests.mid(702));
+reset role;
+select tests.autenticar_como(tests.u('gabi'));
+insert into res select 'x_gabi', public.create_invitation(tests.mid(701));
+reset role;
+select tests.autenticar_como(tests.id('ana'));
+select public.remove_access(tests.mid(701), tests.u('fran'));
+reset role;
+select is(
+  (select count(*)::integer from private.group_invitations where group_id = tests.mid(701) and revoked_at is null),
+  0,
+  'Al expulsar a alguien, todos los enlaces vigentes del grupo quedan revocados'
+);
+select is(
+  (select revoked_by from private.group_invitations where id = (select (j ->> 'id')::uuid from res where k = 'x_gabi')),
+  tests.id('ana'),
+  'A nombre de quien lo expulsó'
+);
+select is(
+  (select count(*)::integer from private.group_invitations where group_id = tests.mid(702) and revoked_at is null),
+  1,
+  'Los de otros grupos siguen vigentes'
+);
+select tests.autenticar_como(tests.u('fran'));
+insert into res select 'x_fran', public.accept_invitation(tests.tkn('x_gabi'), null, jsonb_build_object('id', tests.mid(703), 'display_name', 'Fran'));
+reset role;
+select is(tests.err('x_fran'), 'SMINV', 'El expulsado no vuelve con un enlace que ya conocía');
 
 -- Límites de la tabla -------------------------------------------------------------------------------------
 

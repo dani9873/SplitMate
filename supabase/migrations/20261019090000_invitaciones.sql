@@ -5,7 +5,8 @@
 -- - cinco RPC SECURITY DEFINER: create_invitation, preview_invitation, accept_invitation,
 --   revoke_invitation y list_invitations;
 -- - group_access.invitation_id apunta a la invitación por la que entró la cuenta;
--- - salir o ser expulsado de un grupo revoca los enlaces que esa cuenta creó en él.
+-- - salir de un grupo revoca los enlaces que esa cuenta creó en él, y expulsarla revoca todos los
+--   enlaces vigentes del grupo.
 --
 -- Seguridad (013-invitaciones verifica cada punto):
 -- - El token (32 bytes aleatorios del servidor, 43 caracteres base64url) se ve una sola vez, en la
@@ -616,6 +617,46 @@ begin
       v_member.version, p_actor
     );
   end loop;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------------------------
+-- Expulsar revoca todos los enlaces vigentes del grupo
+-- ---------------------------------------------------------------------------------------------
+
+-- Igual a la versión anterior, más la revocación de todos los enlaces vigentes del grupo: quien fue
+-- expulsado pudo ver cualquier enlace compartido en el grupo y, sin esto, volvería a entrar con él.
+-- El dueño crea enlaces nuevos para quien sí quiere. (leave_group solo revoca los de quien sale, en
+-- private.release_access.) create or replace conserva los privilegios de la función.
+create or replace function public.remove_access(p_group_id uuid, p_user_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+begin
+  if v_uid is null then
+    raise exception 'Se necesita una sesión' using errcode = 'insufficient_privilege';
+  end if;
+  if p_user_id is null then
+    raise exception 'p_user_id es obligatorio' using errcode = '22023';
+  end if;
+  perform private.lock_group_changes(p_group_id);
+  if not private.is_group_owner(p_group_id) or p_user_id = v_uid then
+    raise exception 'Solo el dueño quita el acceso a otra cuenta' using errcode = 'insufficient_privilege';
+  end if;
+  if exists (
+    select 1 from public.group_access a
+    where a.group_id = p_group_id and a.user_id = p_user_id and a.deleted_at is null
+  ) then
+    update private.group_invitations
+    set revoked_at = now(), revoked_by = v_uid
+    where group_id = p_group_id and revoked_at is null;
+  end if;
+  perform private.release_access(p_group_id, p_user_id, v_uid);
 end;
 $$;
 
