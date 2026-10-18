@@ -5,7 +5,7 @@
 - [x] 2. `sync_pull_v2`: migración `20261018100000_sync_pull_v2.sql`, pruebas `014-sync-pull-v2` (68)
 - [x] 3. Cupos en `sync_push`: migración `20261018110000_cupos.sql`, pruebas `015-cupos` (37)
 - [x] 4a. `check:data-api` con los casos nuevos (commit d99235b)
-- [ ] 4. 🔒 `db push` n.º 1: **aplicado el 2026-10-18** (commit de la rama `d99235b`); falta `check:data-api` del usuario y la prueba en el teléfono
+- [ ] 4. 🔒 `db push` n.º 1: **aplicado el 2026-10-18** (commit de la rama `d99235b`); **verificado en teléfono y con `check:data-api` el 2026-10-18** (reporte del usuario). Remoto: 2 grupos activos, 2 filas de `group_access`, un dueño por grupo y el grupo nuevo es de su creador (usuario +splitmate)
 - [ ] 5. Invitaciones (servidor)
 - [ ] 6. 🔒 `db push` n.º 2
 - [ ] 7. Base local 0005
@@ -18,9 +18,7 @@
 - [ ] 14. 🔒 `db push` n.º 3: retiro de `sync_pull` v1
 - [ ] 15. Documentación y PR
 
-**Siguiente paso:** el usuario corre `check:data-api` y prueba el teléfono; con su reporte se cierra el paso 4 y sigue el 5. Antes: verificado en el remoto (1 grupo, 1 fila de acceso, 1 dueño, ninguno sin acceso).
-
-(Nota anterior) Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
+**Siguiente paso:** paso 5, invitaciones (servidor): pgTAP `013-invitaciones` primero, con las condiciones de seguridad de `plan.md` (uso atómico, mismo `SMINV`, vista previa mínima y con límite, token fuera de los registros). Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
 
 **Notas del paso 3:**
 
