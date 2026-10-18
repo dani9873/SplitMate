@@ -5,15 +5,17 @@ import {
   Plus,
   ReceiptText,
   Settings,
+  ShieldAlert,
   UserRound,
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ALL_TABLES } from '@/db/changes';
 import { useDatabase } from '@/db/DatabaseProvider';
+import { listPendingUnits } from '@/db/sync';
 import type { ActivityItem, Group, Repositories } from '@/db/repositories';
 import { useLiveQuery } from '@/db/use-live-query';
 import { zero, type Money } from '@/domain';
@@ -119,11 +121,13 @@ function GroupContent({ data }: { data: DetailData }) {
   const { t } = useTranslation();
   const router = useGuardedRouter();
   const insets = useSafeAreaInsets();
-  const { repos } = useDatabase();
+  const { db, repos } = useDatabase();
   const { offerUndo } = useUndo();
   const [section, setSection] = useState<Section>('activity');
   const { group } = data;
-  const archived = group.archivedAt !== null;
+  const lost = group.accessLostAt !== null;
+  // Archivado o sin acceso: de solo lectura.
+  const archived = group.archivedAt !== null || lost;
   const settingsPath = `/groups/${group.id}/settings`;
   const addEntry = () => router.push(`/groups/${group.id}/entries/new`);
 
@@ -133,6 +137,34 @@ function GroupContent({ data }: { data: DetailData }) {
     } catch (error) {
       offerUndo({ message: describeError(error, t), undo: () => {} });
     }
+  };
+
+  const removeFromPhone = () => {
+    // Lo que no se subió se pierde con la copia: se cuenta al momento de preguntar.
+    const unsynced = listPendingUnits(db, 'lost').filter(
+      (unit) => unit.groupId === group.id,
+    ).length;
+    Alert.alert(
+      t('groupDetail.removeFromPhoneTitle', { name: group.name }),
+      unsynced > 0
+        ? `${t('groupDetail.removeFromPhoneMessage')} ${t('groupDetail.removeFromPhoneUnsynced', { count: unsynced })}`
+        : t('groupDetail.removeFromPhoneMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('groupDetail.removeFromPhoneConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            try {
+              repos.access.removeFromPhone(group.id);
+              router.replace('/');
+            } catch (error) {
+              offerUndo({ message: describeError(error, t), undo: () => {} });
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -163,7 +195,24 @@ function GroupContent({ data }: { data: DetailData }) {
         </View>
       </View>
 
-      {archived ? (
+      {lost ? (
+        <Banner
+          testID="access-lost-banner"
+          icon={ShieldAlert}
+          tone="warning"
+          message={t('groupDetail.accessLost')}
+          className="mb-4"
+          actions={
+            <Button
+              testID="remove-from-phone"
+              label={t('groupDetail.removeFromPhone')}
+              size="sm"
+              variant="secondary"
+              onPress={removeFromPhone}
+            />
+          }
+        />
+      ) : archived ? (
         <Banner
           icon={Archive}
           tone="warning"

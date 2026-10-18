@@ -88,8 +88,31 @@
       "archiveTitle": "¿Archivar {{name}}?",
       "archiveMessage": "Nadie podrá agregar ni cambiar movimientos hasta que lo restaures.",
       "archiveConfirm": "Archivar",
-      "unarchive": "Restaurar grupo"
-    }
+      "unarchive": "Restaurar grupo",
+      "accountTag": "Con cuenta",
+      "ownerTag": "Dueño",
+      "removeAccess": "Quitar el acceso de {{name}}",
+      "removeAccessTitle": "¿Quitar el acceso de {{name}}?",
+      "removeAccessMessage": "Dejará de ver y de cambiar este grupo. Sus movimientos se conservan y su nombre queda en el grupo, sin cuenta. Los enlaces de invitación vigentes dejan de servir.",
+      "removeAccessConfirm": "Quitar acceso",
+      "cannotRemoveLinked": "{{name}} tiene cuenta en el grupo. Para quitarlo, primero quítale el acceso.",
+      "leave": "Salir del grupo",
+      "leaveHint": "Dejas de ver este grupo. Tus movimientos se quedan para los demás.",
+      "leaveTitle": "¿Salir de {{name}}?",
+      "leaveMessage": "Dejarás de ver este grupo. Tus movimientos se quedan para los demás y tu nombre queda en el grupo, sin cuenta. Para volver necesitarás otro enlace de invitación.",
+      "leaveConfirm": "Salir",
+      "leaveLastOne": "Eres la única persona con acceso. Puedes borrar el grupo.",
+      "deleteGroup": "Borrar grupo",
+      "deleteGroupHint": "Solo el dueño. El grupo se borra para todas las personas que lo comparten.",
+      "deleteTitle": "¿Borrar {{name}}?",
+      "deleteMessage": "El grupo desaparece para todas las personas que lo comparten.",
+      "deleteConfirm": "Borrar grupo",
+      "needInternet": "Hace falta conexión a internet para esto. Inténtalo de nuevo cuando vuelva.",
+      "accessActionFailed": "No se pudo completar. Inténtalo de nuevo.",
+      "forbidden": "Solo el dueño del grupo puede hacer esto."
+    },
+    "lostBadge": "Sin acceso",
+    "summaryLineLost": "{{members}} · {{currency}} · {{lost}}"
   },
   "activity": {
     "title": "Actividad",
@@ -223,7 +246,14 @@
     "archived": "Este grupo está archivado: es de solo lectura.",
     "restore": "Restaurar",
     "chooseMe": "Elige quién eres para ver tu saldo.",
-    "chooseMeAction": "Elegir"
+    "chooseMeAction": "Elegir",
+    "accessLost": "Ya no tienes acceso a este grupo. Esta es la última copia de este teléfono.",
+    "removeFromPhone": "Quitar de este teléfono",
+    "removeFromPhoneTitle": "¿Quitar {{name}} de este teléfono?",
+    "removeFromPhoneMessage": "Se borra la copia de este grupo que hay en este teléfono. No se puede deshacer.",
+    "removeFromPhoneUnsynced_one": "Además se pierde {{count}} cambio que no se subió.",
+    "removeFromPhoneUnsynced_other": "Además se pierden {{count}} cambios que no se subieron.",
+    "removeFromPhoneConfirm": "Quitar"
   },
   "balance": {
     "youAreOwed": "Te deben {{amount}}",
@@ -425,7 +455,9 @@
       "MEMBER_TAKEN": "Ese miembro ya está vinculado a otra persona.",
       "CURRENCY_LOCKED": "La moneda no cambia porque el grupo ya tiene movimientos.",
       "CURRENCY_CHANGED": "El grupo cambió de moneda desde que se registró este movimiento, así que ya no se puede restaurar. Regístralo de nuevo.",
-      "GROUP_ARCHIVED": "El grupo está archivado: restáuralo para hacer cambios."
+      "GROUP_ARCHIVED": "El grupo está archivado: restáuralo para hacer cambios.",
+      "GROUP_ACCESS_LOST": "Ya no tienes acceso a este grupo: es de solo lectura.",
+      "MEMBER_LINKED": "Esa persona tiene cuenta en el grupo. Quítale el acceso antes de quitarla."
     },
     "domain": {
       "UNKNOWN_CURRENCY": "Esa moneda no está disponible.",
@@ -614,7 +646,12 @@
       "currencyLocked": "No se cambió la moneda de «{{label}}»: ya tiene movimientos. Quedó como borrador.",
       "many_one": "{{count}} cambio tuyo no se aplicó. Quedó como borrador.",
       "many_other": "{{count}} cambios tuyos no se aplicaron. Quedaron como borradores.",
-      "review": "Revisar"
+      "review": "Revisar",
+      "memberLinked": "No se quitó a «{{label}}»: tiene cuenta en el grupo. Primero quítale el acceso. Quedó como borrador.",
+      "quotaGroups": "«{{label}}» no se guardó: llegaste al máximo de grupos. Quedó como borrador.",
+      "quotaMembers": "«{{label}}» no se guardó: el grupo llegó al máximo de miembros. Quedó como borrador.",
+      "quotaCategories": "«{{label}}» no se guardó: el grupo llegó al máximo de categorías. Quedó como borrador.",
+      "quotaMovements": "«{{label}}» no se guardó: el grupo llegó al máximo de movimientos. Quedó como borrador."
     },
     "review": {
       "open": "Revisar",
@@ -637,7 +674,12 @@
         "serverDeleted": "Se borró en otro dispositivo.",
         "deletionRejected": "Tu borrado no se aplicó: se cambió en otro dispositivo.",
         "groupCurrencyChanged": "No se guardó: cambió la moneda del grupo.",
-        "currencyLocked": "No se cambió la moneda: el grupo ya tiene movimientos."
+        "currencyLocked": "No se cambió la moneda: el grupo ya tiene movimientos.",
+        "memberLinked": "No se quitó: esa persona tiene cuenta en el grupo.",
+        "quotaGroups": "No se guardó: llegaste al máximo de grupos.",
+        "quotaMembers": "No se guardó: el grupo llegó al máximo de miembros.",
+        "quotaCategories": "No se guardó: el grupo llegó al máximo de categorías.",
+        "quotaMovements": "No se guardó: el grupo llegó al máximo de movimientos."
       },
       "field": {
         "name": "Nombre",
@@ -659,8 +701,12 @@
         "useMine": "Usar la mía",
         "keepCurrent": "Mantener la actual",
         "understood": "Entendido"
-      }
-    }
+      },
+      "memberLinkedHint": "Para quitarla del grupo, primero quítale el acceso desde los ajustes del grupo."
+    },
+    "lost_one": "{{count}} cambio no se subirá: ya no tienes acceso",
+    "lost_other": "{{count}} cambios no se subirán: ya no tienes acceso",
+    "lostHint": "Siguen en este teléfono, pero el servidor ya no te deja cambiar ese grupo. Si vuelves a entrar con un enlace de invitación, se intentan subir."
   },
   "account": {
     "defaultName": "Usuario",
@@ -685,7 +731,7 @@
       "intro": "Esto borra para siempre:",
       "itemAccount": "Tu cuenta y tu perfil en SplitMate.",
       "itemPhone": "Los datos de esta cuenta en este teléfono.",
-      "itemGroups": "Cuando los grupos se compartan: los grupos donde no quede otra persona con cuenta. En los demás, tu nombre queda sin cuenta.",
+      "itemGroups": "Los grupos donde no quede otra persona con cuenta. En los grupos compartidos, tu nombre queda sin cuenta y el grupo sigue para los demás, con tus movimientos.",
       "email": "Escribe tu correo para confirmar",
       "emailMismatch": "No coincide con el correo de esta cuenta.",
       "password": "Tu contraseña",

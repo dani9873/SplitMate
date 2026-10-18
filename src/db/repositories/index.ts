@@ -1,4 +1,5 @@
 import { createChangeBus, type ChangeBus, type ChangeSource } from '../changes';
+import { createAccessRepository } from './access';
 import { createActivityRepository } from './activity';
 import { createCategoriesRepository } from './categories';
 import { createConflictsRepository } from './conflicts';
@@ -41,6 +42,7 @@ export function createRepositories(
     profile: createProfileRepository(ctx),
     groups: createGroupsRepository(ctx),
     members: createMembersRepository(ctx),
+    access: createAccessRepository(ctx),
     categories: createCategoriesRepository(ctx),
     expenses: createExpensesRepository(ctx),
     transfers: createTransfersRepository(ctx),
@@ -74,6 +76,7 @@ export type {
   ActivityTransfer,
 } from './activity';
 export { OTHER_CATEGORY_ID, type Category } from './categories';
+export type { AccessEntry, AccessRole } from './access';
 export type { ConflictDraft } from './conflicts';
 export type { Expense, ExpensePayer, ExpenseSplit, ExpenseWithParts } from './expenses';
 export type { GroupSummary } from './groups';

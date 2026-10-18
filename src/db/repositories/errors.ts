@@ -11,7 +11,9 @@ export type RepositoryErrorCode =
   | 'MEMBER_TAKEN'
   | 'CURRENCY_LOCKED'
   | 'CURRENCY_CHANGED'
-  | 'GROUP_ARCHIVED';
+  | 'GROUP_ARCHIVED'
+  | 'GROUP_ACCESS_LOST'
+  | 'MEMBER_LINKED';
 
 export interface ValidationIssue {
   readonly path: string;
@@ -36,6 +38,8 @@ export interface RepositoryErrorDetails {
  * - `CURRENCY_CHANGED`: el grupo cambió de moneda desde que se registró el movimiento borrado,
  *   así que ya no se puede restaurar: sus montos están en la moneda anterior del grupo.
  * - `GROUP_ARCHIVED`: un grupo archivado es de solo lectura.
+ * - `GROUP_ACCESS_LOST`: la cuenta ya no tiene acceso al grupo: es una copia de solo lectura.
+ * - `MEMBER_LINKED`: un miembro con cuenta y acceso no se borra; primero se le quita el acceso.
  */
 export class RepositoryError extends Error {
   constructor(

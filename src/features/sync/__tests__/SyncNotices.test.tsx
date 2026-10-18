@@ -82,6 +82,31 @@ describe('SyncNotices', () => {
       { reason: 'currency_locked', entity: 'group', label: 'Viaje' },
       'No se cambió la moneda de «Viaje»: ya tiene movimientos. Quedó como borrador.',
     ],
+    [
+      'no se quitó a alguien con cuenta',
+      { reason: 'member_linked', entity: 'member', label: 'Beto', wasDeletion: true },
+      'No se quitó a «Beto»: tiene cuenta en el grupo. Primero quítale el acceso. Quedó como borrador.',
+    ],
+    [
+      'cupo de grupos',
+      { reason: 'quota', quota: 'groups', entity: 'group', label: 'Viaje', wasNew: true },
+      '«Viaje» no se guardó: llegaste al máximo de grupos. Quedó como borrador.',
+    ],
+    [
+      'cupo de miembros',
+      { reason: 'quota', quota: 'members', entity: 'member', label: 'Dani', wasNew: true },
+      '«Dani» no se guardó: el grupo llegó al máximo de miembros. Quedó como borrador.',
+    ],
+    [
+      'cupo de categorías',
+      { reason: 'quota', quota: 'categories', entity: 'category', label: 'Snacks', wasNew: true },
+      '«Snacks» no se guardó: el grupo llegó al máximo de categorías. Quedó como borrador.',
+    ],
+    [
+      'cupo de movimientos',
+      { reason: 'quota', quota: 'movements', wasNew: true },
+      '«Cena» no se guardó: el grupo llegó al máximo de movimientos. Quedó como borrador.',
+    ],
   ] as const)('%s: dice qué pasó con su nombre y ofrece "Revisar"', async (_name, patch, text) => {
     const engine = createFakeSyncEngine();
     await renderNotices(engine);

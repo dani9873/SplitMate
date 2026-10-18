@@ -154,8 +154,13 @@ export async function createSupabaseTestServer(): Promise<SupabaseTestServer> {
         try {
           result = await channel.request({ op: 'rpc', userId, name, args });
         } catch (error) {
-          const kind = kindForSqlState((error as { code?: unknown }).code);
-          throw new SyncTransportError(kind, MESSAGES[kind]);
+          const code = (error as { code?: unknown }).code;
+          const kind = kindForSqlState(code);
+          throw new SyncTransportError(
+            kind,
+            MESSAGES[kind],
+            typeof code === 'string' ? code : undefined,
+          );
         }
         if (fault === 'lost-response') {
           throw new SyncTransportError('offline', MESSAGES.offline);

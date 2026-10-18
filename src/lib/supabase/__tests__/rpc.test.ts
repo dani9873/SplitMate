@@ -116,6 +116,22 @@ describe('createSupabaseRpc', () => {
     expect(JSON.stringify(error)).not.toContain('Secreto');
   });
 
+  it('conserva solo el código del error de Postgres (SMLST, 42501...), para que se pueda explicar', async () => {
+    const { fake, rpc } = setup();
+    fake.on('POST', PATH, apiError(400, 'SMLST', 'Eres la única persona con acceso'));
+    const error = await failureOf(() => rpc('sync_push', { p_mutations: [] }));
+    expect(error.kind).toBe('protocol');
+    expect(error.code).toBe('SMLST');
+    expect(error.message).not.toContain('única');
+  });
+
+  it('un código con otra forma (los de PostgREST) no se conserva', async () => {
+    const { fake, rpc } = setup();
+    fake.on('POST', PATH, apiError(400, 'PGRST000', 'mensaje'));
+    const error = await failureOf(() => rpc('sync_push', { p_mutations: [] }));
+    expect(error.code).toBeUndefined();
+  });
+
   it('una respuesta correcta después de un fallo vuelve a funcionar', async () => {
     const { fake, rpc } = setup();
     fake.on('POST', PATH, apiError(503, 'PGRST000', 'x'));

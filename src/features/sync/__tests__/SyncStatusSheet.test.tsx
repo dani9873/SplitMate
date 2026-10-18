@@ -58,6 +58,27 @@ describe('SyncStatusSheet', () => {
     expect(screen.getByText(/only on this phone/)).toBeOnTheScreen();
   });
 
+  it('cambios sin subir de un grupo sin acceso: se cuentan aparte y se explica por qué', async () => {
+    await renderSheet(createFakeSyncEngine({ lost: 2 }));
+    expect(screen.getByText('2 cambios no se subirán: ya no tienes acceso')).toBeOnTheScreen();
+    expect(screen.getByText(/el servidor ya no te deja cambiar ese grupo/)).toBeOnTheScreen();
+    expect(screen.queryByText(/por subir/)).toBeNull();
+  });
+
+  it('un solo cambio sin subir de un grupo sin acceso, en singular y en inglés', async () => {
+    await renderSheet(createFakeSyncEngine({ lost: 1 }));
+    expect(screen.getByText('1 cambio no se subirá: ya no tienes acceso')).toBeOnTheScreen();
+    await act(() => changeLanguage('en'));
+    expect(
+      screen.getByText("1 change won't be uploaded: you no longer have access"),
+    ).toBeOnTheScreen();
+  });
+
+  it('sin cambios en grupos sin acceso no hay fila', async () => {
+    await renderSheet(createFakeSyncEngine());
+    expect(screen.queryByTestId('sync-row-lost')).toBeNull();
+  });
+
   it('nunca sincronizado: lo dice sin inventar una fecha', async () => {
     await renderSheet(createFakeSyncEngine());
     expect(screen.getByText('Todavía no se ha sincronizado')).toBeOnTheScreen();

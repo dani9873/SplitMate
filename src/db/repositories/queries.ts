@@ -20,9 +20,20 @@ export function requireGroup(db: AppDatabase, id: string): Group {
   return group;
 }
 
-/** Grupo que admite escrituras: existe y no está archivado. */
+/** Sin acceso (el servidor ya no deja ver el grupo a esta cuenta), el grupo es de solo lectura. */
+export function requireAccess(group: Group): void {
+  if (group.accessLostAt !== null) {
+    throw ruleViolation(
+      'GROUP_ACCESS_LOST',
+      'Ya no tienes acceso a este grupo: es de solo lectura',
+    );
+  }
+}
+
+/** Grupo que admite escrituras: existe, esta cuenta lo ve y no está archivado. */
 export function requireWritableGroup(db: AppDatabase, id: string): Group {
   const group = requireGroup(db, id);
+  requireAccess(group);
   if (group.archivedAt !== null) {
     throw ruleViolation('GROUP_ARCHIVED', 'El grupo está archivado: es de solo lectura');
   }

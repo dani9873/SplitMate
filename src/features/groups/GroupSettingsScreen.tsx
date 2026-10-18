@@ -4,9 +4,12 @@ import {
   ArchiveRestore,
   Check,
   Compass,
+  LogOut,
   Pencil,
+  ShieldAlert,
   Trash2,
   UserPlus,
+  UserX,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
@@ -15,7 +18,7 @@ import { Alert, Pressable, View } from 'react-native';
 
 import { ALL_TABLES } from '@/db/changes';
 import { useDatabase } from '@/db/DatabaseProvider';
-import type { Group, Member, Repositories } from '@/db/repositories';
+import type { AccessEntry, AccessRole, Group, Member, Repositories } from '@/db/repositories';
 import { useLiveQuery } from '@/db/use-live-query';
 import type { Money } from '@/domain';
 import { useFormatters } from '@/i18n';
@@ -38,6 +41,7 @@ import {
   usePressGuard,
 } from '@/ui';
 
+import { accessErrorKey, useAccessService } from '../access';
 import { absolute, balanceDirection } from '../balances';
 import { CurrencyField, CurrencyPicker } from '../currency';
 import { describeError } from '../errors/describe-error';
@@ -45,6 +49,7 @@ import { ScreenHeader, useRouteId } from '../navigation';
 import { AppearancePicker } from './AppearancePicker';
 import { appearanceSchema, isDuplicateName, type AppearanceForm } from './group-form';
 import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
+import { useSyncEngine } from '../sync';
 
 interface SettingsData {
   readonly group: Group;
@@ -52,6 +57,12 @@ interface SettingsData {
   readonly balances: Map<string, Money>;
   readonly hasMovements: boolean;
   readonly localUserId: string | null;
+  /** Las cuentas con acceso activo al grupo (vacío si el grupo todavía no bajó su acceso). */
+  readonly access: AccessEntry[];
+  /** Mi papel en el grupo; `null` si ya no tengo acceso. */
+  readonly myRole: AccessRole | null;
+  /** Ya no tengo acceso: el grupo es una copia de solo lectura. */
+  readonly lost: boolean;
 }
 
 function readSettings(repos: Repositories, groupId: string): SettingsData | null {
@@ -66,6 +77,9 @@ function readSettings(repos: Repositories, groupId: string): SettingsData | null
     balances: new Map(balances.map((b) => [b.memberId, b.amount])),
     hasMovements: repos.groups.hasMovements(groupId),
     localUserId: repos.profile.get()?.id ?? null,
+    access: repos.access.listActive(groupId),
+    myRole: repos.access.myRole(groupId),
+    lost: group.accessLostAt !== null,
   };
 }
 
@@ -106,6 +120,8 @@ function SettingsContent({ data }: { data: SettingsData }) {
   const { repos } = useDatabase();
   const { group } = data;
   const archived = group.archivedAt !== null;
+  // Archivado o sin acceso: de solo lectura.
+  const readOnly = archived || data.lost;
   const hasMe = data.members.some((m) => m.userId !== null && m.userId === data.localUserId);
   // El orden se fija al abrir: si la sección se moviera al elegir, la pantalla saltaría.
   const [meFirst] = useState(!hasMe);
@@ -140,7 +156,14 @@ function SettingsContent({ data }: { data: SettingsData }) {
 
   return (
     <>
-      {archived ? (
+      {data.lost ? (
+        <Banner
+          testID="access-lost-banner"
+          icon={ShieldAlert}
+          tone="warning"
+          message={t('groupDetail.accessLost')}
+        />
+      ) : archived ? (
         <Banner
           icon={Archive}
           tone="warning"
@@ -158,11 +181,11 @@ function SettingsContent({ data }: { data: SettingsData }) {
       ) : null}
       {/* Si todavía no eligió quién es, esa pregunta va primero: es a lo que viene desde
           "Elegir" en el grupo. */}
-      {meFirst ? <MeSection data={data} readOnly={archived} /> : null}
-      <DetailsSection data={data} readOnly={archived} />
-      <MembersSection data={data} readOnly={archived} />
-      {meFirst ? null : <MeSection data={data} readOnly={archived} />}
-      {archived ? null : (
+      {meFirst ? <MeSection data={data} readOnly={readOnly} /> : null}
+      <DetailsSection data={data} readOnly={readOnly} />
+      <MembersSection data={data} readOnly={readOnly} />
+      {meFirst ? null : <MeSection data={data} readOnly={readOnly} />}
+      {readOnly ? null : (
         <View className="gap-2">
           <Button
             testID="archive-group"
@@ -176,7 +199,102 @@ function SettingsContent({ data }: { data: SettingsData }) {
           </Text>
         </View>
       )}
+      {data.lost || data.myRole === null ? null : <AccessSection data={data} />}
     </>
+  );
+}
+
+/** Salir del grupo (cualquier cuenta con acceso) y borrarlo (solo el dueño). */
+function AccessSection({ data }: { data: SettingsData }) {
+  const { t } = useTranslation();
+  const router = useGuardedRouter();
+  const { repos } = useDatabase();
+  const access = useAccessService();
+  const engine = useSyncEngine();
+  const { group } = data;
+  const [busy, setBusy] = useState(false);
+
+  const leave = () =>
+    Alert.alert(
+      t('groups.settings.leaveTitle', { name: group.name }),
+      t('groups.settings.leaveMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('groups.settings.leaveConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            setBusy(true);
+            access
+              .leaveGroup(group.id)
+              .then(() => {
+                // El servidor ya no te da el grupo: el próximo ciclo lo deja de solo lectura.
+                engine.request('manual');
+                router.replace('/');
+              })
+              .catch((error: unknown) =>
+                Alert.alert(
+                  t('groups.settings.leaveTitle', { name: group.name }),
+                  t(`groups.settings.${accessErrorKey(error)}`),
+                ),
+              )
+              .finally(() => setBusy(false));
+          },
+        },
+      ],
+    );
+
+  const remove = () =>
+    Alert.alert(
+      t('groups.settings.deleteTitle', { name: group.name }),
+      t('groups.settings.deleteMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('groups.settings.deleteConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            try {
+              repos.groups.remove(group.id, group.version);
+              router.replace('/');
+            } catch (error) {
+              Alert.alert(t('groups.settings.deleteGroup'), describeError(error, t));
+            }
+          },
+        },
+      ],
+    );
+
+  return (
+    <View className="gap-4">
+      <View className="gap-2">
+        <Button
+          testID="leave-group"
+          label={t('groups.settings.leave')}
+          icon={LogOut}
+          variant="secondary"
+          onPress={leave}
+          disabled={busy}
+        />
+        <Text variant="caption" tone="muted">
+          {t('groups.settings.leaveHint')}
+        </Text>
+      </View>
+      {data.myRole === 'owner' ? (
+        <View className="gap-2">
+          <Button
+            testID="delete-group"
+            label={t('groups.settings.deleteGroup')}
+            icon={Trash2}
+            variant="danger"
+            onPress={remove}
+          />
+          <Text variant="caption" tone="muted">
+            {t('groups.settings.deleteGroupHint')}
+          </Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -298,6 +416,9 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
   const { t } = useTranslation();
   const { repos } = useDatabase();
   const { money } = useFormatters();
+  const access = useAccessService();
+  const engine = useSyncEngine();
+  const accessByUser = new Map(data.access.map((entry) => [entry.userId, entry]));
   const [newName, setNewName] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<Member | null>(null);
@@ -323,6 +444,35 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
 
   // "Intro" en el teclado y el botón comparten la protección: pulsar los dos seguidos agrega una vez.
   const guardedAdd = usePressGuard(add);
+
+  const removeAccess = (member: Member) => {
+    if (member.userId === null) {
+      return;
+    }
+    const userId = member.userId;
+    Alert.alert(
+      t('groups.settings.removeAccessTitle', { name: member.displayName }),
+      t('groups.settings.removeAccessMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('groups.settings.removeAccessConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            access
+              .removeAccess(data.group.id, userId)
+              .then(() => engine.request('manual'))
+              .catch((error: unknown) =>
+                Alert.alert(
+                  t('groups.settings.removeAccessTitle', { name: member.displayName }),
+                  t(`groups.settings.${accessErrorKey(error)}`),
+                ),
+              );
+          },
+        },
+      ],
+    );
+  };
 
   const remove = (member: Member) => {
     const balance = data.balances.get(member.id);
@@ -367,6 +517,11 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
       <Card padded={false}>
         {data.members.map((member, index) => {
           const isMe = member.userId !== null && member.userId === data.localUserId;
+          const entry = member.userId === null ? undefined : accessByUser.get(member.userId);
+          const tags = [
+            entry?.role === 'owner' ? t('groups.settings.ownerTag') : null,
+            entry && !isMe ? t('groups.settings.accountTag') : null,
+          ].filter((tag): tag is string => tag !== null);
           return (
             <View
               key={member.id}
@@ -376,9 +531,16 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
               )}
             >
               <MemberAvatar name={member.displayName} highlight={isMe} />
-              <Text className="flex-1" numberOfLines={1}>
-                {isMe ? t('common.youSuffix', { name: member.displayName }) : member.displayName}
-              </Text>
+              <View className="flex-1 py-2">
+                <Text numberOfLines={1}>
+                  {isMe ? t('common.youSuffix', { name: member.displayName }) : member.displayName}
+                </Text>
+                {tags.length > 0 ? (
+                  <Text variant="caption" tone="muted" numberOfLines={1}>
+                    {tags.join(' · ')}
+                  </Text>
+                ) : null}
+              </View>
               {readOnly ? null : (
                 <>
                   <IconButton
@@ -387,12 +549,24 @@ function MembersSection({ data, readOnly }: { data: SettingsData; readOnly: bool
                     label={t('groups.settings.rename', { name: member.displayName })}
                     onPress={() => setRenaming(member)}
                   />
-                  <IconButton
-                    icon={Trash2}
-                    tone="fgMuted"
-                    label={t('groups.settings.remove', { name: member.displayName })}
-                    onPress={() => remove(member)}
-                  />
+                  {entry ? (
+                    // Un miembro con cuenta y acceso no se borra: el dueño le quita el acceso.
+                    data.myRole === 'owner' && !isMe ? (
+                      <IconButton
+                        icon={UserX}
+                        tone="fgMuted"
+                        label={t('groups.settings.removeAccess', { name: member.displayName })}
+                        onPress={() => removeAccess(member)}
+                      />
+                    ) : null
+                  ) : (
+                    <IconButton
+                      icon={Trash2}
+                      tone="fgMuted"
+                      label={t('groups.settings.remove', { name: member.displayName })}
+                      onPress={() => remove(member)}
+                    />
+                  )}
                 </>
               )}
             </View>

@@ -26,7 +26,8 @@ const MESSAGES: Record<TransportErrorKind, string> = {
   protocol: 'El servidor rechazó la petición',
 };
 
-const transportError = (kind: TransportErrorKind) => new SyncTransportError(kind, MESSAGES[kind]);
+const transportError = (kind: TransportErrorKind, code?: string) =>
+  new SyncTransportError(kind, MESSAGES[kind], code);
 
 /**
  * Llama a las RPC de sincronización con supabase-js, con tiempo límite, y traduce cualquier fallo
@@ -54,7 +55,8 @@ export function createSupabaseRpc(
         throw transportError('timeout');
       }
       if (error) {
-        throw transportError(kindForStatus(status));
+        // Solo el código del error (`42501`, `SMLST`...), nunca su mensaje.
+        throw transportError(kindForStatus(status), error.code);
       }
       return data;
     } catch (error) {

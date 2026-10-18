@@ -12,8 +12,21 @@ import { useGuardedRouter } from '@/features/navigation/use-guarded-router';
 /** Por encima del aviso de "Deshacer" (que va a `insets.bottom + 72`), para no taparse. */
 const BOTTOM_OFFSET = 140;
 
+const QUOTA_NOTICE = {
+  groups: 'quotaGroups',
+  members: 'quotaMembers',
+  categories: 'quotaCategories',
+  movements: 'quotaMovements',
+} as const;
+
 /** La clave de `sync.notice.*` que cuenta qué pasó con un cambio, según la razón del rechazo. */
 function noticeKey(notice: SyncNotice) {
+  if (notice.reason === 'member_linked') {
+    return 'memberLinked';
+  }
+  if (notice.reason === 'quota') {
+    return QUOTA_NOTICE[notice.quota ?? 'movements'];
+  }
   if (notice.reason === 'currency_locked') {
     return 'currencyLocked';
   }

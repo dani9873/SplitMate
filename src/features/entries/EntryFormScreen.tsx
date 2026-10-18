@@ -90,7 +90,7 @@ interface LoadOptions {
 /** Lee lo que necesita el formulario. `null` si el grupo o el movimiento no existen. */
 function loadForm(repos: Repositories, options: LoadOptions): FormData | null {
   const group = repos.groups.get(options.groupId);
-  if (!group || group.archivedAt !== null) {
+  if (!group || group.archivedAt !== null || group.accessLostAt !== null) {
     return null;
   }
   const localUserId = repos.profile.get()?.id ?? null;

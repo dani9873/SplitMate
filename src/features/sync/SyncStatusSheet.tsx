@@ -52,6 +52,13 @@ export function SyncStatusSheet({ visible, onClose }: SyncStatusSheetProps) {
             testID="sync-row-failed"
           />
         ) : null}
+        {status.lost > 0 ? (
+          <Row
+            label={t('sync.lost', { count: status.lost })}
+            hint={t('sync.lostHint')}
+            testID="sync-row-lost"
+          />
+        ) : null}
         {status.held > 0 ? (
           <Row
             label={t('sync.held', { count: status.held })}

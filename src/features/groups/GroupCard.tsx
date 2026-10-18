@@ -23,6 +23,7 @@ export const GroupCard = memo(function GroupCard({ summary, onOpen }: GroupCardP
   const { group, memberCount, myBalance } = summary;
   const members = t('groups.memberCount', { count: memberCount });
   const archived = group.archivedAt !== null;
+  const lost = group.accessLostAt !== null;
   const balance = myBalance ? balanceSentence(myBalance, 'you', money, t) : t('groups.chooseMe');
   const label = t('groups.cardA11y', { name: group.name, members, balance });
 
@@ -30,7 +31,13 @@ export const GroupCard = memo(function GroupCard({ summary, onOpen }: GroupCardP
     <Pressable
       testID={`group-card-${group.id}`}
       accessibilityRole="button"
-      accessibilityLabel={archived ? `${label}, ${t('groups.archivedBadge')}` : label}
+      accessibilityLabel={
+        lost
+          ? `${label}, ${t('groups.lostBadge')}`
+          : archived
+            ? `${label}, ${t('groups.archivedBadge')}`
+            : label
+      }
       onPress={() => onOpen(group.id)}
       className="mb-3 flex-row items-center gap-3 rounded-xl border border-line bg-surface p-4 active:bg-surface-muted"
     >
@@ -40,13 +47,19 @@ export const GroupCard = memo(function GroupCard({ summary, onOpen }: GroupCardP
           {group.name}
         </Text>
         <Text variant="caption" tone="muted" numberOfLines={1}>
-          {archived
-            ? t('groups.summaryLineArchived', {
+          {lost
+            ? t('groups.summaryLineLost', {
                 members,
                 currency: group.currency,
-                archived: t('groups.archivedBadge'),
+                lost: t('groups.lostBadge'),
               })
-            : t('groups.summaryLine', { members, currency: group.currency })}
+            : archived
+              ? t('groups.summaryLineArchived', {
+                  members,
+                  currency: group.currency,
+                  archived: t('groups.archivedBadge'),
+                })
+              : t('groups.summaryLine', { members, currency: group.currency })}
         </Text>
         {myBalance ? (
           <BalanceText amount={myBalance} perspective="you" />

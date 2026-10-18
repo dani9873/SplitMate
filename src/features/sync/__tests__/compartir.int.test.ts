@@ -2,6 +2,7 @@
 import { createSyncRemote, type SyncRemote } from '@/db/sync';
 import { createSupabaseTestServer, type SupabaseTestServer } from '@/test/supabase-pglite';
 
+import { createAccessService } from '../../access';
 import { runSyncCycle } from '../cycle';
 import { createDevice, serverSnapshot, type Device } from '../test-utils';
 
@@ -349,5 +350,40 @@ describe('borrar la cuenta de la dueña con el grupo compartido', () => {
       { user_id: null },
     ]);
     expect(await b.snapshot()).toEqual(await serverSnapshot(server, [group.id]));
+  });
+});
+
+describe('el servicio de acceso contra el servidor', () => {
+  it('salir siendo la única cuenta con acceso da LAST_ACCOUNT; con otra cuenta, sale', async () => {
+    const { a, b, group, memberIds, invite, join } = await world();
+    const alone = createAccessService(a.rpc);
+    await expect(alone.leaveGroup(group.id)).rejects.toMatchObject({ code: 'LAST_ACCOUNT' });
+
+    const { token } = await invite();
+    await join(b, token, memberIds[1] as string);
+    await expect(createAccessService(b.rpc).leaveGroup(group.id)).resolves.toBeUndefined();
+    await a.sync();
+    expect(rowsOf(a, `SELECT user_id FROM group_members WHERE id = '${memberIds[1]}'`)).toEqual([
+      { user_id: null },
+    ]);
+  });
+
+  it('solo la dueña quita el acceso a otra cuenta; las demás reciben FORBIDDEN', async () => {
+    const { a, b, group, memberIds, invite, join } = await world();
+    const { token } = await invite();
+    await join(b, token, memberIds[1] as string);
+    await b.sync();
+
+    await expect(createAccessService(b.rpc).removeAccess(group.id, a.userId)).rejects.toMatchObject(
+      { code: 'FORBIDDEN' },
+    );
+    await expect(
+      createAccessService(a.rpc).removeAccess(group.id, b.userId),
+    ).resolves.toBeUndefined();
+    await b.sync();
+    expect(b.store.counts().lost).toBe(0);
+    expect(rowsOf(b, 'SELECT access_lost_at FROM groups')).toEqual([
+      { access_lost_at: expect.any(Number) },
+    ]);
   });
 });

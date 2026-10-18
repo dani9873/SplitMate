@@ -1,7 +1,7 @@
 import { recordConflict, type NewConflict } from '@/db/sync/conflicts';
 import { createTestGroup, createTestRepositories, type TestRepositories } from '@/db/test-utils';
 
-import { applyMine, deleteNow, readConflictItem } from '../conflict-review';
+import { applyMine, deleteNow, readConflictItem, reasonKey } from '../conflict-review';
 
 const DRAFT = '01990000-0000-7000-8000-0000000000c1';
 
@@ -245,5 +245,57 @@ describe('grupo y miembro', () => {
     );
 
     expect(item).toMatchObject({ kind: 'fields', label: 'Comida', canUseMine: false, diffs: [] });
+  });
+});
+
+describe('motivos de la 4b', () => {
+  it('member_linked: un borrado que no se puede repetir mientras la cuenta tenga acceso', () => {
+    const beto = setup.ids[1] as string;
+    const d = draft({
+      entity: 'member',
+      entityId: beto,
+      reason: 'member_linked',
+      wasDeletion: true,
+      data: { id: beto, display_name: 'Beto', deleted: true },
+    });
+    const item = readConflictItem(ctx.repos, d);
+    expect(item.kind).toBe('deletion');
+    // El miembro sigue ahí, pero "Borrar ahora" no se ofrece: primero se le quita el acceso.
+    expect(item.canDeleteNow).toBe(false);
+    expect(reasonKey(d)).toBe('memberLinked');
+  });
+
+  it.each([
+    ['groups', 'quotaGroups'],
+    ['members', 'quotaMembers'],
+    ['categories', 'quotaCategories'],
+    ['movements', 'quotaMovements'],
+  ] as const)('quota %s se explica con su propio texto', (quota, key) => {
+    const d = draft({
+      entity: 'member',
+      entityId: '01990000-0000-7000-8000-0000000000d9',
+      reason: 'quota',
+      quota,
+      wasNew: true,
+      data: { display_name: 'Dani' },
+    });
+    expect(d.quota).toBe(quota);
+    expect(reasonKey(d)).toBe(key);
+  });
+
+  it('quota de un miembro nuevo: nada que aplicar sobre la versión actual', () => {
+    const d = draft({
+      entity: 'member',
+      entityId: '01990000-0000-7000-8000-0000000000d9',
+      reason: 'quota',
+      quota: 'members',
+      wasNew: true,
+      data: { display_name: 'Dani' },
+    });
+    const item = readConflictItem(ctx.repos, d);
+    expect(item.kind).toBe('fields');
+    expect(item.canUseMine).toBe(false);
+    expect(item.diffs).toEqual([]);
+    expect(item.label).toBe('Dani');
   });
 });

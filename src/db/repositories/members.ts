@@ -1,6 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { groupMembers } from '../schema';
+import { hasActiveAccess } from './access';
 import { conflict, invalid, notFound, parse, ruleViolation } from './errors';
 import { computeGroupBalances } from './ledger';
 import { adoptLocalUser, ensureLocalUser, readLocalUser } from './profile';
@@ -107,6 +108,11 @@ export function createMembersRepository(ctx: RepositoryContext) {
     remove(id: string, expectedVersion: number): void {
       const member = requireMember(id);
       const group = requireWritableGroup(db, member.groupId);
+      // Un miembro con cuenta y acceso no se borra: primero se le quita el acceso (el servidor lo
+      // rechazaría igual).
+      if (member.userId !== null && hasActiveAccess(db, group.id, member.userId)) {
+        throw ruleViolation('MEMBER_LINKED', 'El miembro tiene una cuenta con acceso al grupo');
+      }
       if (listMembers(db, group.id).length <= 1) {
         throw ruleViolation('LAST_MEMBER', 'Un grupo necesita al menos un miembro');
       }

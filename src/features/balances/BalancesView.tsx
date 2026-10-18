@@ -72,7 +72,13 @@ function readBalances(repos: Repositories, groupId: string, you: (name: string) 
       names.set(member.id, member.displayName);
     }
   }
-  return { archived: group.archivedAt !== null, rows, settlement, names };
+  // Archivado o sin acceso: de solo lectura.
+  return {
+    archived: group.archivedAt !== null || group.accessLostAt !== null,
+    rows,
+    settlement,
+    names,
+  };
 }
 
 /** Saldos del grupo con barras desde el centro y las transferencias sugeridas para saldarlo. */

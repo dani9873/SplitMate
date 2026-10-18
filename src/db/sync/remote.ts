@@ -33,11 +33,17 @@ export type TransportErrorKind = 'offline' | 'timeout' | 'server' | 'auth' | 'pr
 /** El mensaje nunca lleva datos del usuario: ni lo enviado ni lo que contestó el servidor. */
 export class SyncTransportError extends Error {
   readonly kind: TransportErrorKind;
+  /**
+   * El código de error de Postgres o propio del servidor (`42501`, `SMLST`...), solo si tiene la
+   * forma de uno: cinco caracteres de letras mayúsculas y dígitos. Nunca el mensaje.
+   */
+  readonly code: string | undefined;
 
-  constructor(kind: TransportErrorKind, message: string) {
+  constructor(kind: TransportErrorKind, message: string, code?: string) {
     super(message);
     this.name = 'SyncTransportError';
     this.kind = kind;
+    this.code = code !== undefined && /^[0-9A-Z]{5}$/.test(code) ? code : undefined;
   }
 }
 

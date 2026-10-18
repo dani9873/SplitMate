@@ -88,8 +88,31 @@
       "archiveTitle": "Archive {{name}}?",
       "archiveMessage": "Nobody can add or change activity until you restore it.",
       "archiveConfirm": "Archive",
-      "unarchive": "Restore group"
-    }
+      "unarchive": "Restore group",
+      "accountTag": "Has account",
+      "ownerTag": "Owner",
+      "removeAccess": "Remove {{name}}'s access",
+      "removeAccessTitle": "Remove {{name}}'s access?",
+      "removeAccessMessage": "They will stop seeing and changing this group. Their entries stay and their name remains in the group, without an account. Active invitation links stop working.",
+      "removeAccessConfirm": "Remove access",
+      "cannotRemoveLinked": "{{name}} has an account in the group. To remove them, remove their access first.",
+      "leave": "Leave group",
+      "leaveHint": "You stop seeing this group. Your entries stay for everyone else.",
+      "leaveTitle": "Leave {{name}}?",
+      "leaveMessage": "You will stop seeing this group. Your entries stay for everyone else and your name remains in the group, without an account. To come back you will need another invitation link.",
+      "leaveConfirm": "Leave",
+      "leaveLastOne": "You are the only person with access. You can delete the group.",
+      "deleteGroup": "Delete group",
+      "deleteGroupHint": "Owner only. The group is deleted for everyone who shares it.",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteMessage": "The group disappears for everyone who shares it.",
+      "deleteConfirm": "Delete group",
+      "needInternet": "This needs an internet connection. Try again when it's back.",
+      "accessActionFailed": "That couldn't be completed. Try again.",
+      "forbidden": "Only the group owner can do this."
+    },
+    "lostBadge": "No access",
+    "summaryLineLost": "{{members}} · {{currency}} · {{lost}}"
   },
   "activity": {
     "title": "Activity",
@@ -223,7 +246,14 @@
     "archived": "This group is archived: it's read-only.",
     "restore": "Restore",
     "chooseMe": "Choose who you are to see your balance.",
-    "chooseMeAction": "Choose"
+    "chooseMeAction": "Choose",
+    "accessLost": "You no longer have access to this group. This is the last copy on this phone.",
+    "removeFromPhone": "Remove from this phone",
+    "removeFromPhoneTitle": "Remove {{name}} from this phone?",
+    "removeFromPhoneMessage": "The copy of this group on this phone is deleted. This can't be undone.",
+    "removeFromPhoneUnsynced_one": "You would also lose {{count}} change that wasn't uploaded.",
+    "removeFromPhoneUnsynced_other": "You would also lose {{count}} changes that weren't uploaded.",
+    "removeFromPhoneConfirm": "Remove"
   },
   "balance": {
     "youAreOwed": "You're owed {{amount}}",
@@ -425,7 +455,9 @@
       "MEMBER_TAKEN": "That member is already linked to someone else.",
       "CURRENCY_LOCKED": "The currency can't change because the group already has activity.",
       "CURRENCY_CHANGED": "The group changed currency after this entry was recorded, so it can't be restored. Record it again.",
-      "GROUP_ARCHIVED": "The group is archived: restore it to make changes."
+      "GROUP_ARCHIVED": "The group is archived: restore it to make changes.",
+      "GROUP_ACCESS_LOST": "You no longer have access to this group: it's read-only.",
+      "MEMBER_LINKED": "That person has an account in the group. Remove their access before removing them."
     },
     "domain": {
       "UNKNOWN_CURRENCY": "That currency isn't available.",
@@ -614,7 +646,12 @@
       "currencyLocked": "The currency of “{{label}}” wasn't changed: it already has entries. It was saved as a draft.",
       "many_one": "{{count}} of your changes wasn't applied. It was saved as a draft.",
       "many_other": "{{count}} of your changes weren't applied. They were saved as drafts.",
-      "review": "Review"
+      "review": "Review",
+      "memberLinked": "\"{{label}}\" wasn't removed: they have an account in the group. Remove their access first. It was kept as a draft.",
+      "quotaGroups": "\"{{label}}\" wasn't saved: you reached the maximum number of groups. It was kept as a draft.",
+      "quotaMembers": "\"{{label}}\" wasn't saved: the group reached its maximum number of members. It was kept as a draft.",
+      "quotaCategories": "\"{{label}}\" wasn't saved: the group reached its maximum number of categories. It was kept as a draft.",
+      "quotaMovements": "\"{{label}}\" wasn't saved: the group reached its maximum number of entries. It was kept as a draft."
     },
     "review": {
       "open": "Review",
@@ -637,7 +674,12 @@
         "serverDeleted": "It was deleted on another device.",
         "deletionRejected": "Your deletion wasn't applied: it was changed on another device.",
         "groupCurrencyChanged": "It wasn't saved: the group's currency changed.",
-        "currencyLocked": "The currency wasn't changed: the group already has entries."
+        "currencyLocked": "The currency wasn't changed: the group already has entries.",
+        "memberLinked": "Not removed: that person has an account in the group.",
+        "quotaGroups": "Not saved: you reached the maximum number of groups.",
+        "quotaMembers": "Not saved: the group reached its maximum number of members.",
+        "quotaCategories": "Not saved: the group reached its maximum number of categories.",
+        "quotaMovements": "Not saved: the group reached its maximum number of entries."
       },
       "field": {
         "name": "Name",
@@ -659,8 +701,12 @@
         "useMine": "Use mine",
         "keepCurrent": "Keep the current one",
         "understood": "Got it"
-      }
-    }
+      },
+      "memberLinkedHint": "To remove them from the group, remove their access first from the group settings."
+    },
+    "lost_one": "{{count}} change won't be uploaded: you no longer have access",
+    "lost_other": "{{count}} changes won't be uploaded: you no longer have access",
+    "lostHint": "They stay on this phone, but the server no longer lets you change that group. If you rejoin with an invitation link, they are uploaded."
   },
   "account": {
     "defaultName": "User",
@@ -685,7 +731,7 @@
       "intro": "This permanently deletes:",
       "itemAccount": "Your SplitMate account and profile.",
       "itemPhone": "The data of this account on this phone.",
-      "itemGroups": "Once groups are shared: the groups with nobody else who has an account. In the others, your name stays without an account.",
+      "itemGroups": "Groups where no other person with an account remains. In shared groups, your name stays without an account and the group continues for everyone else, with your entries.",
       "email": "Enter your email to confirm",
       "emailMismatch": "It does not match the email of this account.",
       "password": "Your password",

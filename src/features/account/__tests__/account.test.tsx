@@ -171,6 +171,11 @@ describe('cuenta', () => {
 
       await press(user, 'account-delete');
       expect(await screen.findByText('Tu cuenta y tu perfil en SplitMate.')).toBeOnTheScreen();
+      // Los grupos compartidos siguen para los demás, sin tu cuenta.
+      expect(
+        screen.getByText(/En los grupos compartidos, tu nombre queda sin cuenta/),
+      ).toBeOnTheScreen();
+      expect(screen.queryByText(/Cuando los grupos se compartan/)).toBeNull();
 
       await user.type(screen.getByTestId('delete-account-email'), 'otra@example.com');
       await press(user, 'delete-account-submit');

@@ -6,7 +6,7 @@ import { expenses, groupMembers, groups, transfers, users } from '../schema';
 import { conflict, notFound, parse, ruleViolation } from './errors';
 import { computeGroupBalances } from './ledger';
 import { readLocalUser, type User } from './profile';
-import { listMembers, requireGroup, type Group, type Member } from './queries';
+import { listMembers, requireAccess, requireGroup, type Group, type Member } from './queries';
 import type { RepositoryContext } from './types';
 import {
   createGroupSchema,
@@ -71,6 +71,7 @@ export function createGroupsRepository(ctx: RepositoryContext) {
       Pick<Group, 'name' | 'currency' | 'emoji' | 'color' | 'archivedAt' | 'deletedAt'>
     >,
   ): Group {
+    requireAccess(requireGroup(db, id));
     const [updated] = db
       .update(groups)
       .set({ ...values, updatedAt: deps.now(), version: sql`${groups.version} + 1` })

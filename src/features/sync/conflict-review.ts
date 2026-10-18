@@ -138,7 +138,8 @@ export function readConflictItem(repos: Repositories, draft: ConflictDraft): Con
       kind: 'deletion',
       label,
       route: null,
-      canDeleteNow: present,
+      // Un miembro con cuenta y acceso no se borra: el servidor lo rechazó por eso.
+      canDeleteNow: present && draft.reason !== 'member_linked',
       canUseMine: false,
       diffs: [],
     };
@@ -255,7 +256,25 @@ export function deleteNow(repos: Repositories, item: ConflictItem): void {
 /** La clave de `sync.review.reason.*` que cuenta por qué quedó el borrador. */
 export function reasonKey(
   draft: ConflictDraft,
-): 'conflict' | 'serverDeleted' | 'deletionRejected' | 'groupCurrencyChanged' | 'currencyLocked' {
+):
+  | 'conflict'
+  | 'serverDeleted'
+  | 'deletionRejected'
+  | 'groupCurrencyChanged'
+  | 'currencyLocked'
+  | 'memberLinked'
+  | 'quotaGroups'
+  | 'quotaMembers'
+  | 'quotaCategories'
+  | 'quotaMovements' {
+  if (draft.reason === 'member_linked') {
+    return 'memberLinked';
+  }
+  if (draft.reason === 'quota') {
+    const quota = draft.quota ?? 'movements';
+    return `quota${quota.charAt(0).toUpperCase()}${quota.slice(1)}` as
+      'quotaGroups' | 'quotaMembers' | 'quotaCategories' | 'quotaMovements';
+  }
   if (draft.reason === 'currency_locked') {
     return 'currencyLocked';
   }

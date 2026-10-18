@@ -42,7 +42,8 @@ function readDetail(repos: Repositories, groupId: string, entryId: string): Deta
     item.kind === 'transfer' || !item.categoryId
       ? null
       : (repos.categories.list().find((c) => c.id === item.categoryId) ?? null);
-  return { item, archived: group.archivedAt !== null, category };
+  // Archivado o sin acceso: de solo lectura.
+  return { item, archived: group.archivedAt !== null || group.accessLostAt !== null, category };
 }
 
 /** Detalle de un movimiento: quién pagó, cómo se dividió y la tasa si hubo conversión. */

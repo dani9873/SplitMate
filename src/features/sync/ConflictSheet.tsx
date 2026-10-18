@@ -134,7 +134,11 @@ function ItemCard({
       {item.kind === 'fields' ? <Diffs item={item} /> : null}
       {item.kind === 'deletion' ? (
         <Text tone="muted">
-          {item.canDeleteNow ? t('sync.review.deletionHint') : t('sync.review.deletionGone')}
+          {draft.reason === 'member_linked'
+            ? t('sync.review.memberLinkedHint')
+            : item.canDeleteNow
+              ? t('sync.review.deletionHint')
+              : t('sync.review.deletionGone')}
         </Text>
       ) : null}
 
