@@ -230,7 +230,9 @@ describe('flujo de sincronización con el motor real', () => {
 
     // Dos toques a "Sincronizar ahora": el borrador no cuenta como un cambio por subir.
     await user.press(screen.getByRole('button', { name: 'Sincronizar ahora' }));
-    await user.press(screen.getByRole('button', { name: 'Sincronizar ahora' }));
+    // El botón se reemplaza mientras sincroniza: se espera a que vuelva (en CI, más rápido o más
+    // lento que en local, el segundo toque llegaba con el botón ausente).
+    await user.press(await screen.findByRole('button', { name: 'Sincronizar ahora' }));
     expect(await screen.findByRole('button', { name: 'Sincronizar ahora' })).toBeOnTheScreen();
     expect(phone.store.counts()).toEqual({ pending: 0, failed: 0, conflicts: 1 });
     expect(screen.queryByText(/por subir/)).toBeNull();
