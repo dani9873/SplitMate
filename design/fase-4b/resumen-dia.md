@@ -10,7 +10,7 @@ no se tocó; no se abrió PR ni se borró ninguna rama. La fase **no** se marca 
 | # | Tarea | Estado |
 |---|---|---|
 | 1 | Segunda revisión de seguridad adversarial | Hecha: ver abajo |
-| 2 | Prueba de concurrencia real del último uso | Hecha en local; falta ver el CI (se sube al cierre) |
+| 2 | Prueba de concurrencia real del último uso | Hecha, verde en el CI |
 | 3 | `log_parameter_max_length_on_error` en el remoto (solo lectura) | Hecha: vale `0` |
 | 4 | `guia-manana.md` | Hecha |
 | 5 | Borrador del push n.º 3 | Hecha |
@@ -58,8 +58,7 @@ pregunta del encargo.
   - **Prueba de mutación:** quitando el bloqueo del contador del grupo y el `FOR UPDATE`, y volviendo no
     atómico el reclamo del uso, el script falla en los escenarios 1, 2 y 3 (entran dos cuentas con una
     sola plaza; `23505` en la misma cuenta). O sea, la prueba detecta la carrera que debe detectar.
-- **Pendiente:** ver el paso en el CI real (Postgres 17). Si falla por el entorno (no por las
-  invitaciones), el script se queda y el paso del workflow se revierte; ver el cierre abajo.
+- **CI:** el paso corrió en verde a la primera en el Postgres 17 del workflow (no hizo falta revertir nada).
 
 ## Tarea 3 — `log_parameter_max_length_on_error` en el remoto
 
@@ -141,7 +140,7 @@ de sincronización.
 | `npm run test:db:local` (PGlite) | **744 pruebas** en verde (sin cambios: no se tocó SQL de `supabase/`) |
 | `npm run check:bundle` | OK |
 | `scripts/test-concurrencia.mjs` contra Postgres 18 real | 2 × (50 rondas × 4 escenarios) sin diferencias; con la mutación, falla |
-| CI | ver abajo |
+| CI (commit `a6b8aec`, ejecución 39130380016) | **verde**: «Tipos, lint y pruebas» y «Base de datos y RLS», incluido el paso nuevo «Concurrencia de las invitaciones» en Postgres 17 de `supabase db start`, a la primera |
 
 ## Qué falló o quedó incompleto
 
@@ -149,9 +148,8 @@ de sincronización.
   código real. No se corrió `detect_changes`.
 - **Nada se probó en un teléfono, en Cloudflare, en EAS ni en Brevo** (estaba prohibido o no hay acceso). La
   guía marca con ⚠️ lo que no se pudo verificar.
-- **La prueba de concurrencia no se pudo correr con la CLI de Supabase** (no hay Docker aquí); se validó con
-  un Postgres 18 real embebido. El CI usa Postgres 17: si el paso nuevo fallara allí por el entorno, se
-  documenta abajo.
+- **La prueba de concurrencia no se pudo correr con la CLI de Supabase en local** (no hay Docker aquí); se
+  validó con un Postgres 18 real embebido y después pasó en el CI (Postgres 17).
 - Un tropiezo de procedimiento: un script mío reescribió algunos archivos con finales de línea de Windows
   (CRLF); lo vi por el lint, los normalicé a LF antes del primer commit y no llegó nada al repositorio.
 
