@@ -243,7 +243,7 @@ src/
 - [x] Fase 2 — Pantallas del MVP: grupos, miembros, gastos, ingresos, transferencias, saldos y actividad (PR #3 integrado en `main`)
 - [x] Fase 3 — Cuentas y nube con Supabase: login obligatorio, esquema en Postgres con RLS, sin sincronizar todavía (PR #4 integrado en `main`; antes de probar la Fase 4 con otra persona, las dos pruebas manuales de "Pendientes técnicos")
 - [x] Fase 4a — Sincronización offline-first (PR #5 integrado en `main`): servidor, motor, pantallas, correcciones tras la prueba en el teléfono y toques repetidos. **COMPLETA**, verificada en el teléfono (S24 Ultra y Poco X3) y con el CI en verde.
-- [ ] Fase 4b — Pendientes: invitaciones por enlace; SMTP propio para el correo; acceso del creador pasado a membresía; Realtime; S3 (`sync_pull` sin tope por grupo, cupos); cambiar la contraseña de `prueba1@splitmate.test`. Detalle en "Pendientes técnicos".
+- [ ] Fase 4b — En curso (rama `fase-4b-invitaciones`): 1) recrear los usuarios de prueba con correos reales (dos, para probar invitaciones; reemplaza a `prueba1@splitmate.test`); invitaciones por enlace; SMTP propio para el correo; acceso del creador pasado a membresía; S3 (`sync_pull` sin tope por grupo, cupos). Realtime pasa a la Fase 4c (fuera de la 4b). Detalle en `design/fase-4b/` y en "Pendientes técnicos".
 
 ## Exploración de código
 

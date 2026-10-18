@@ -1,6 +1,6 @@
 # Fase 4b — Progreso
 
-- [x] 0. Diseño y plan (`diseno.md`, `plan.md`): escritos, pendientes de aprobación
+- [x] 0. Diseño y plan (`diseno.md`, `plan.md`): escritos y aprobados con ajustes (2026-10-17)
 - [ ] 1. Acceso por membresía (servidor)
 - [ ] 2. `sync_pull_v2`
 - [ ] 3. Cupos en `sync_push`
@@ -17,4 +17,4 @@
 - [ ] 14. 🔒 `db push` n.º 3: retiro de `sync_pull` v1
 - [ ] 15. Documentación y PR
 
-**Siguiente paso:** esperar la aprobación del diseño y del plan. Después, paso 1.
+**Siguiente paso:** paso 1 (acceso por membresía): pruebas pgTAP `012-acceso`, luego la migración.

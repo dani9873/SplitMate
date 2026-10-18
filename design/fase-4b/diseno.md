@@ -143,7 +143,11 @@ Las escrituras pasan por el trigger de columnas del servidor, así que reciben `
 los demás por la sincronización. La función corre como dueña (`postgres`), y la guardia de la 4a no
 la frena.
 
-**Errores** (5 caracteres, como `SMCUR`):
+**Errores** (5 caracteres, como `SMCUR`). Ajuste del 2026-10-17: `preview_invitation` y
+`accept_invitation` responden **el mismo `SMINV`** para un token inexistente, vencido, revocado o
+agotado, así no se puede saber desde fuera si un token existió. Los códigos `SMEXP`, `SMREV` y `SMFUL`
+quedan como estado interno (lo que muestra `list_invitations` a quien administra el enlace) y para las
+pruebas:
 
 | Código  | Cuándo                                       | Qué ve el usuario                                                           |
 | ------- | -------------------------------------------- | --------------------------------------------------------------------------- |
@@ -243,6 +247,8 @@ que antes dejaba:
    de borrar la cuenta.
 4. Un grupo sin `created_by` ni miembros vinculados queda sin acceso. No debería haber ninguno (la 4a
    los borra al borrar la cuenta). La migración avisa con `raise notice` cuántos encontró.
+5. El relleno es **idempotente** (`ON CONFLICT DO NOTHING`): correrlo dos veces no duplica filas. Se
+   prueba en pgTAP con un grupo con creador, uno con varios miembros y uno borrado lógicamente.
 
 **La sincronización no se rompe:**
 

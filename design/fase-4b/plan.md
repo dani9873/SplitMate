@@ -25,7 +25,7 @@ exactas se confirman al empezar cada paso leyendo el código; en esta etapa no s
 
 | Cuándo            | Qué                                                                                                             |
 | ----------------- | --------------------------------------------------------------------------------------------------------------- |
-| Antes del paso 4  | Cambiar la contraseña de `prueba1@splitmate.test` y dármela solo por la variable de entorno de `check:data-api` |
+| Antes del paso 4  | Recrear los usuarios de prueba con correos reales (dos, para probar invitaciones; el correo `.test` no es válido para Supabase) y dar la contraseña de `check:data-api` solo por su variable de entorno |
 | Antes del paso 10 | Comprar `<dominio>` en Cloudflare y pasarme el nombre (sección c del diseño)                                    |
 | Antes del paso 13 | Brevo y el SMTP de Supabase (diseño, c, pasos 2 a 9)                                                            |
 | En el paso 10     | Cloudflare Pages con `web/links`                                                                                |
@@ -52,6 +52,10 @@ exactas se confirman al empezar cada paso leyendo el código; en esta etapa no s
   - `001-estructura` y `006-privilegios` con la tabla y las funciones nuevas.
 - **Jest:** las pruebas del motor contra PGlite pasan sin cambios, porque la app de la 4a sigue
   funcionando con la migración nueva.
+- **Migración de grupos existentes, probada en pgTAP con datos reales** (dentro de `012-acceso`): un
+  grupo con creador, un grupo con varios miembros vinculados y un grupo borrado lógicamente. La
+  migración es **idempotente**: correr el relleno dos veces no duplica filas. Los tests `007` a `012`
+  (los de hoy) siguen en verde como prueba de que la descarga vieja no cambió.
 - **Hecho cuando** un creador expulsado no ve nada del grupo y todo lo de la 4a sigue en verde.
 
 ### Paso 2 — `sync_pull_v2`
@@ -78,6 +82,18 @@ exactas se confirman al empezar cada paso leyendo el código; en esta etapa no s
 - **pgTAP:** `015-cupos`, con el tope exacto y uno más para cada cupo.
 - **Hecho cuando** cada cupo rechaza justo en su límite. Se mide el tiempo del conteo con 20 000
   movimientos y, si pasa de 50 ms, se cambia a contadores.
+
+### Condiciones de seguridad para los pasos 4 a 6
+
+Obligatorias; cada una lleva su prueba pgTAP en `013-invitaciones`:
+
+- **Contador de usos atómico:** `use_count < max_uses` se comprueba y se suma en un solo `UPDATE`
+  (con `RETURNING`); nunca leer y luego escribir.
+- **Mismo error** (`SMINV`) para token vencido, revocado, agotado o inexistente, en `preview` y en
+  `accept`: desde fuera no se distingue un caso de otro.
+- **Vista previa** (`preview_invitation`): solo con sesión, solo el nombre del grupo (y lo mínimo para
+  elegir miembro) y con límite de intentos.
+- **El token nunca se escribe** en registros (app, servidor, scripts) ni en informes.
 
 ### Paso 4 — 🔒 `db push` n.º 1 (pasos 1 a 3)
 
