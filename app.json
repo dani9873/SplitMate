@@ -48,7 +48,8 @@
           "configureAndroidBackup": false
         }
       ],
-      "./plugins/with-backup-rules"
+      "./plugins/with-backup-rules",
+      "./plugins/with-invite-links"
     ],
     "extra": {
       "router": {},

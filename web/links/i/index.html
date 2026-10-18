@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="light dark" />
+    <title>SplitMate</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1 id="title">Te invitaron a SplitMate</h1>
+      <p id="lead">Abre este enlace en un teléfono que tenga SplitMate para unirte al grupo.</p>
+      <div id="actions" hidden>
+        <a id="open" class="button" href="#">Abrir en SplitMate</a>
+        <button id="copy" class="button secondary" type="button">Copiar enlace</button>
+        <p id="copied" role="status" hidden>Enlace copiado</p>
+      </div>
+      <p id="invalid" role="alert" hidden>
+        Este enlace no es válido. Pídele a quien te invitó uno nuevo.
+      </p>
+      <p id="note" class="note">
+        La app todavía no está en las tiendas. Pídele a quien te invitó cómo instalarla.
+      </p>
+    </main>
+    <noscript>
+      <p class="note">
+        Para abrir la invitación hace falta JavaScript. Copia este enlace en SplitMate.
+      </p>
+    </noscript>
+    <script src="/app.js"></script>
+  </body>
+</html>

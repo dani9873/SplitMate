@@ -18,7 +18,7 @@ ni correos de prueba, sin tocar `main`, sin abrir PR, sin borrar ramas.
 - [x] 7. Base local 0005 (`0005_acceso_e_invitaciones.sql`, 10 pruebas de migración sobre una base de la 4a con datos)
 - [x] 8. Motor con `sync_pull_v2` (pruebas: `pull-v2` 30, `compartir.int` 10 contra PGlite con tres cuentas, wire/remote ampliados)
 - [x] 9. Permisos y acceso perdido en pantallas (Jest completo 1287 en verde)
-- [ ] 10. Enlaces de entrada y página de respaldo
+- [x] 10. Enlaces de entrada y página de respaldo (sin dominio ni huella reales; archivos listos, sin desplegar)
 - [ ] 11. Invitar y unirse
 - [ ] 12. Doble toque a 300 ms
 

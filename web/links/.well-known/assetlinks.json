@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.dani9873.splitmate",
+      "sha256_cert_fingerprints": [
+        "<SHA-256 de la firma de development (eas credentials)>",
+        "<SHA-256 de la firma de preview (eas credentials)>"
+      ]
+    }
+  }
+]

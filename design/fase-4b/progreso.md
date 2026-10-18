@@ -11,14 +11,14 @@
 - [x] 7. Base local 0005: `0005_acceso_e_invitaciones.sql` (generada por drizzle-kit, con SQL; sin `--custom`), `users.is_remote`, `groups.access_lost_at`, `group_access`, `invitation_links`, `sync_pull_pages` y las columnas de descarga en curso de `sync_cursors`; pruebas `migration-0005`
 - [x] 8. Motor con `sync_pull_v2`: wire estricto ampliado (`member_linked`, `quota`, `group_access`, `partial`/`next`/`lost`), topes de C5 en `remote.pull`, páginas parciales en `sync_pull_pages` con ronda extra desde `hw`, `lost`, C4, usuarios remotos, cuenta borrada (`created_by` nulo); pruebas `pull-v2`, `outbox` y `compartir.int` (tres cuentas contra PGlite)
 - [x] 9. Permisos y acceso perdido en pantallas: `repos.access`, grupos sin acceso de solo lectura (`GROUP_ACCESS_LOST`), `MEMBER_LINKED`, servicio `src/features/access` (salir y quitar acceso, con el código `SMLST`/`42501` del servidor), marcas «tú / con cuenta / dueño», Quitar acceso, Salir del grupo, Borrar grupo, aviso y «Quitar de este teléfono», conteo aparte en la hoja de sincronización, textos de `member_linked` y `quota`, texto de borrar la cuenta; RNTL en es y en
-- [ ] 10. Enlaces de entrada y página de respaldo
+- [x] 10. Enlaces de entrada y página de respaldo: `src/features/invitations` (`INVITE_HOST` con marcador `<dominio>`, validación zod/regex de `https://<dominio>/i#<token>` y `splitmate://i#<token>`, token pendiente en memoria y `expo-secure-store` con vencimiento de 1 hora), `app/+native-intent.tsx`, plugin `plugins/with-invite-links.js` (App Link con `autoVerify` solo si `EXPO_PUBLIC_INVITE_HOST` es un dominio), `web/links/` (página estática, `_headers`, `assetlinks.json` con marcadores de huella; sin desplegar). La ruta `/invite` y el montaje de `PendingInviteRedirect` llegan con el paso 11
 - [ ] 11. Invitar y unirse
 - [ ] 12. Doble toque a 300 ms
 - [ ] 13. Verificación, revisión de seguridad y builds
 - [ ] 14. 🔒 `db push` n.º 3: retiro de `sync_pull` v1
 - [ ] 15. Documentación y PR
 
-**Siguiente paso (noche del 18 al 19):** bloque B, paso 10 (enlaces de entrada y página de respaldo). El push n.º 2 espera tu aprobación. Antes: paso 5, invitaciones (servidor): pgTAP `013-invitaciones` primero, con las condiciones de seguridad de `plan.md` (uso atómico, mismo `SMINV`, vista previa mínima y con límite, token fuera de los registros). Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
+**Siguiente paso (noche del 18 al 19):** bloque B, paso 11 (invitar y unirse). El push n.º 2 espera tu aprobación. Antes: paso 5, invitaciones (servidor): pgTAP `013-invitaciones` primero, con las condiciones de seguridad de `plan.md` (uso atómico, mismo `SMINV`, vista previa mínima y con límite, token fuera de los registros). Esperar el «sí» tras el dry-run de las tres migraciones (nuevos: `20261018090000`, `20261018100000`, `20261018110000`). Antes del `check:data-api` hacen falta los usuarios de prueba con correo real (tarea del usuario).
 
 **Notas del paso 3:**
 
