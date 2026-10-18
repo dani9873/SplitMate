@@ -121,6 +121,11 @@ begin
     (tests.id('casa_caro'), tests.id('casa'), tests.id('caro'), 'Caro', 'owner'),
     (tests.id('casa_zoe'), tests.id('casa'), null, 'Zoe', 'member');
 
+  -- Los grupos nacen con su creador como dueño (trigger de groups). Beto, miembro de viaje, tiene
+  -- acceso como cuenta invitada; los demás miembros no tienen cuenta.
+  insert into public.group_access (group_id, user_id, role)
+  values (tests.id('viaje'), tests.id('beto'), 'member');
+
   insert into public.categories (id, group_id, name, icon) values
     (tests.id('cat_viaje'), tests.id('viaje'), 'Excursiones', 'mountain'),
     (tests.id('cat_oficina'), tests.id('oficina'), 'Café', 'coffee'),

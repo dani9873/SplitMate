@@ -364,7 +364,8 @@ select throws_ok(
 -- Beto, ya quitado del grupo -------------------------------------------------------------------
 
 reset role;
-update public.group_members set deleted_at = now() where id = tests.id('viaje_beto');
+update public.group_access set deleted_at = now()
+where group_id = tests.id('viaje') and user_id = tests.id('beto');
 select tests.autenticar_como(tests.id('beto'));
 
 select is_empty(

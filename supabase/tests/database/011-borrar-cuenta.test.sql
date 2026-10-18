@@ -101,8 +101,8 @@ select ok(
 );
 select is(
   (select count(*)::integer from public.change_log where group_id = tests.id('viaje')),
-  1,
-  'Su historial queda, también la entrada de Ana'
+  4,
+  'Su historial queda: la entrada de Ana y las tres de su salida (acceso borrado, nuevo dueño y miembro sin cuenta)'
 );
 select isnt_empty(
   $$ select id from public.groups where id = tests.id('nuevo_2') $$,

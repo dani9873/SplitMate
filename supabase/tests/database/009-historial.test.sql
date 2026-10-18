@@ -346,8 +346,8 @@ select is(
 );
 select is(
   (select count(*)::integer from public.change_log where actor = tests.id('ana')),
-  1,
-  'Su historial queda: el autor no tiene clave foránea'
+  4,
+  'Su historial queda: el autor no tiene clave foránea (su entrada y las tres de su salida de viaje: acceso borrado, nuevo dueño y miembro sin cuenta)'
 );
 
 select * from finish();

@@ -10,7 +10,7 @@ select tables_are(
   'public',
   array[
     'profiles', 'groups', 'group_members', 'categories',
-    'expenses', 'expense_payers', 'expense_splits', 'transfers', 'change_log'
+    'expenses', 'expense_payers', 'expense_splits', 'transfers', 'change_log', 'group_access'
   ],
   'public tiene solo las tablas revisadas por estas pruebas'
 );
@@ -87,8 +87,9 @@ select is_empty(
     from pg_class c
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
-      -- change_log es de solo lectura: 009-historial revisa sus privilegios.
-      and c.relname <> 'change_log'
+      -- change_log y group_access son de solo lectura: 009-historial y 012-acceso revisan sus
+      -- privilegios.
+      and c.relname not in ('change_log', 'group_access')
       and not (
         has_table_privilege('authenticated', c.oid, 'SELECT')
         and has_table_privilege('authenticated', c.oid, 'INSERT')
@@ -129,7 +130,7 @@ select is_empty(
     from pg_class c
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
-      and c.relname <> 'change_log'
+      and c.relname not in ('change_log', 'group_access')
       -- Con CASE: el orden del WHERE no está fijo y la función falla en tablas sin deleted_at.
       and case when c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')
         then not has_column_privilege('authenticated', c.oid, 'deleted_at', 'UPDATE')
@@ -161,9 +162,9 @@ select set_eq(
   $$,
   $$
     values ('groups'), ('group_members'), ('categories'), ('expenses'), ('expense_payers'),
-      ('expense_splits'), ('transfers')
+      ('expense_splits'), ('transfers'), ('group_access')
   $$,
-  'Las siete tablas de grupo tienen el trigger de las columnas del servidor y la guardia'
+  'Las ocho tablas de grupo tienen el trigger de las columnas del servidor y la guardia'
 );
 
 -- Funciones --------------------------------------------------------------------------------
@@ -187,7 +188,10 @@ select is(
       and p.prosecdef
       and p.provolatile = 's'
   ),
-  array['can_access_group', 'is_group_creator', 'is_group_member', 'shares_group_with'],
+  array[
+    'can_access_group', 'group_has_access_rows', 'is_group_member', 'is_group_owner',
+    'shares_group_with'
+  ],
   'Las funciones de apoyo de RLS son SECURITY DEFINER y STABLE'
 );
 
@@ -204,7 +208,8 @@ select is_empty(
       values
         ('private.is_group_member(uuid)'),
         ('private.can_access_group(uuid)'),
-        ('private.is_group_creator(uuid)'),
+        ('private.is_group_owner(uuid)'),
+        ('private.group_has_access_rows(uuid)'),
         ('private.shares_group_with(uuid)'),
         ('private.next_change_seq(uuid)')
     ) as f (signature)

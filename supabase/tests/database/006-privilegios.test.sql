@@ -28,9 +28,9 @@ select set_eq(
     ]) as t (tabla)
     cross join unnest(array['SELECT', 'INSERT']) as p (privilegio)
     union all
-    select 'change_log', 'SELECT'
+    select t.tabla, 'SELECT' from unnest(array['change_log', 'group_access']) as t (tabla)
   $$,
-  'authenticated: SELECT e INSERT en cada tabla de public (change_log solo SELECT), y ningún otro privilegio de tabla'
+  'authenticated: SELECT e INSERT en cada tabla de public (change_log y group_access solo SELECT), y ningún otro privilegio de tabla'
 );
 
 select set_eq(
@@ -77,13 +77,16 @@ select set_eq(
   $$,
   array[
     'private.can_access_group(uuid)',
-    'private.is_group_creator(uuid)',
+    'private.is_group_owner(uuid)',
+    'private.group_has_access_rows(uuid)',
     'private.is_group_member(uuid)',
     'private.next_change_seq(uuid)',
     'private.shares_group_with(uuid)',
     -- sync_push es SECURITY INVOKER: authenticated ejecuta también todo lo que ella llama.
     'sync_push(jsonb)',
     'sync_pull(jsonb,integer)',
+    'leave_group(uuid)',
+    'remove_access(uuid,uuid)',
     'private.sync_find_mutation(uuid)',
     'private.sync_remember_mutation(uuid,text,uuid,integer)',
     'private.lock_group_changes(uuid)',
@@ -107,7 +110,7 @@ select set_eq(
     'private.sync_apply_expense(jsonb,integer,uuid)',
     'private.sync_apply_transfer(jsonb,integer,uuid)'
   ],
-  'authenticated: EXECUTE solo en las funciones de las políticas, del trigger de columnas, de sync_push y de sync_pull'
+  'authenticated: EXECUTE solo en las funciones de las políticas, del trigger de columnas, de sync_push, de sync_pull, de leave_group y de remove_access'
 );
 
 select is_empty(
