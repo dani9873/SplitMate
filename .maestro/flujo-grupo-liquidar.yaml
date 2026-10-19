@@ -2,7 +2,7 @@
 # crear grupo, agregar personas, cuatro gastos (igual, montos, porcentajes y partes), ver
 # saldos, marcar las transferencias sugeridas como pagadas y comprobar que todo queda en cero.
 # Usa ids de prueba, así funciona con el teléfono en cualquier idioma. Instrucciones en README.md.
-appId: com.dani9873.splitmate
+appId: com.devdani.splitmate
 name: Crear grupo, gastos con los cuatro métodos y liquidar hasta cero
 tags:
   - fase-2

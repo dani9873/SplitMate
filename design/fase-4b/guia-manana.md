@@ -83,7 +83,7 @@ con «subida directa»: sin conectar GitHub y sin compilar nada.
    ```
 
    **Verás** en la primera: `HTTP/1.1 200`, y `content-type: application/json` (lo pone el archivo `_headers`).
-   En la segunda, el JSON con `com.dani9873.splitmate`.
+   En la segunda, el JSON con `com.devdani.splitmate`.
    En el navegador, abre `https://<dominio>/i#` + 43 letras cualesquiera: debe salir «Te invitaron a SplitMate»
    con los botones **Abrir en SplitMate** y **Copiar enlace**. Con `https://<dominio>/i` a secas debe salir «Este
    enlace no es válido».
@@ -289,20 +289,20 @@ EAS porque Gradle falla local por las rutas largas de OneDrive. El cambio de est
    teléfono conectado por cable y la app instalada:
 
    ```powershell
-   adb shell pm verify-app-links --re-verify com.dani9873.splitmate
+   adb shell pm verify-app-links --re-verify com.devdani.splitmate
    ```
 
    Espera unos minutos y:
 
    ```powershell
-   adb shell pm get-app-links com.dani9873.splitmate
+   adb shell pm get-app-links com.devdani.splitmate
    ```
 
    **Verás** `<dominio>: verified`. Cualquier otra cosa (`none`, `legacy_failure`, un número de 1024 o más)
    significa que no se verificó: normalmente la huella no coincide con el APK instalado (sección B) o el dominio
    no responde. Mientras no esté `verified`, el enlace se abre en el navegador, y desde la página el botón
    **Abrir en SplitMate** (esquema propio) sigue funcionando. Para reintentar desde cero:
-   `adb shell pm set-app-links --package com.dani9873.splitmate 0 all` y otra vez `--re-verify`.
+   `adb shell pm set-app-links --package com.devdani.splitmate 0 all` y otra vez `--re-verify`.
 
 ---
 

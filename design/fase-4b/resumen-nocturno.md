@@ -115,7 +115,7 @@ dominio/huella de los enlaces, Brevo y los builds.
 5. **Configurar Brevo** (pasos 1 a 9 de la sección c del diseño) y avisarme para pasar `EMAIL_HAS_CODE` a
    `true` en el build del cierre.
 6. **Builds** de development y preview para Android (`eas build`), y `adb shell pm get-app-links
-   com.dani9873.splitmate` para ver el dominio verificado.
+   com.devdani.splitmate` para ver el dominio verificado.
 7. **Pruebas en el teléfono con los dos usuarios de prueba** (S24 con la cuenta A, Poco con la B, correos
    reales): lista de «En el teléfono, al cierre» del diseño (compartir por WhatsApp, abrir como App Link,
    unirse eligiendo un miembro, gastos de los dos, revocar y probar otro, quitar acceso y volver, salir,

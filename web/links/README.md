@@ -15,7 +15,7 @@ sección a, y los pasos de Cloudflare en la sección c.
 3. Compila la app con `EXPO_PUBLIC_INVITE_HOST=<dominio>` (en EAS, variable de entorno del build);
    el plugin `plugins/with-invite-links.js` agrega el App Link con `autoVerify`.
 4. Comprueba que `https://<dominio>/.well-known/assetlinks.json` responda con
-   `Content-Type: application/json` y que `adb shell pm get-app-links com.dani9873.splitmate` diga
+   `Content-Type: application/json` y que `adb shell pm get-app-links com.devdani.splitmate` diga
    que el dominio está verificado.
 
 ## Qué hay aquí

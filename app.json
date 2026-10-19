@@ -8,11 +8,11 @@
     "scheme": "splitmate",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.dani9873.splitmate",
+      "bundleIdentifier": "com.devdani.splitmate",
       "supportsTablet": true
     },
     "android": {
-      "package": "com.dani9873.splitmate",
+      "package": "com.devdani.splitmate",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
